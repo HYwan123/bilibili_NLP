@@ -10,6 +10,8 @@ jieba
 scikit-learn
 numpy
 redis
-kafka-python
 uvloop
-httptools 
+httptools
+sentence-transformers
+pymilvus
+requests 

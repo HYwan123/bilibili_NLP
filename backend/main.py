@@ -9,8 +9,10 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import uuid
 import json
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
-from . import bilibili, database, vector_db, kafka_producer, sql_use
+from . import bilibili, database, vector_db, sql_use
 
 # --- Configuration ---
 SECRET_KEY = "your_super_secret_key"
@@ -73,8 +75,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        user_id: int = payload.get("id")
+        username = payload.get("sub")
+        user_id = payload.get("id")
         if username is None or user_id is None:
             raise credentials_exception
         token_data = TokenData(username=username, id=user_id)
@@ -83,8 +85,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     
     # We now have the ID and username directly from the token.
     # We can create the User object without another DB call if we trust the token.
+    if token_data.id is None or token_data.username is None:
+        raise credentials_exception
     return User(id=token_data.id, username=token_data.username)
 
+# --- Thread Pool for Background Tasks ---
+executor = ThreadPoolExecutor(max_workers=4)
 
 # --- API Routers ---
 user_router = APIRouter(prefix="/user", tags=["user"])
@@ -94,13 +100,13 @@ api_router = APIRouter(prefix="/api", tags=["api"])
 @user_router.post("/login")
 def login_for_access_token(form_data: UserCreate):
     user_dict = database.get_user_by_username(username=form_data.username)
-    if not user_dict or not verify_password(form_data.password, user_dict['password']):
+    if not user_dict or not isinstance(user_dict, dict) or 'password' not in user_dict or not verify_password(form_data.password, user_dict['password']):
         return JSONResponse(
             status_code=401,
             content={"code": 401, "message": "Incorrect username or password"}
         )
     # Include both username and id in the token
-    access_token = create_access_token(data={"sub": user_dict['username'], "id": user_dict['id']})
+    access_token = create_access_token(data={"sub": user_dict.get('username'), "id": user_dict.get('id')})
     return JSONResponse(
         status_code=200,
         content={"code": 200, "message": "Login successful", "data": {"token": access_token}}
@@ -152,13 +158,11 @@ async def select_BV(BV: str, current_user: User = Depends(get_current_user)):
 @api_router.post("/user/analysis/{uid}")
 async def get_user_analysis(uid: int, current_user: User = Depends(get_current_user)):
     job_id = str(uuid.uuid4())
-    job_data = {"uid": uid, "job_id": job_id}
     
-    # --- Record history with job_id ---
+    # Record history with job_id
     try:
-        database.add_uuid_history(uid=str(uid), username=current_user.username, job_id=job_id)
+        database.add_uuid_history(uid=uid, username=current_user.username, job_id=job_id)
     except Exception as e:
-        # Log the error but don't block the job submission
         print(f"Error adding UUID history to database: {e}")
 
     redis_handler = sql_use.SQL_redis()
@@ -167,31 +171,35 @@ async def get_user_analysis(uid: int, current_user: User = Depends(get_current_u
     initial_status = {"status": "Queued", "progress": 5, "details": "任务已加入队列，等待处理..."}
     redis_handler.set_job_status(job_id, initial_status)
 
-    # Prepare the message for the Redis queue
-    message = {
-        "uid": uid,
-        "job_id": job_id
-    }
+    # Start background task
+    asyncio.create_task(process_user_analysis(uid, job_id))
     
-    # Push the job to a Redis list, which acts as our queue
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content={'code': 202, 'message': 'Analysis request accepted.', 'data': {'job_id': job_id}}
+    )
+
+async def process_user_analysis(uid: int, job_id: str):
+    """Background task to process user analysis"""
+    redis_handler = sql_use.SQL_redis()
+    
     try:
-        if redis_handler.redis_client:
-            redis_handler.redis_client.lpush("analysis_queue", json.dumps(message))
-            print(f"Pushed job {job_id} to Redis queue 'analysis_queue'")
-            
-            return JSONResponse(
-                status_code=status.HTTP_202_ACCEPTED,
-                content={'code': 202, 'message': 'Analysis request accepted.', 'data': {'job_id': job_id}}
-            )
-        else:
-            raise ConnectionError("Failed to connect to Redis.")
-            
+        # Update status to processing
+        status_update = {"status": "Processing", "progress": 20, "details": f"开始处理用户 {uid} 的分析任务..."}
+        redis_handler.set_job_status(job_id, status_update)
+        
+        # Run the analysis in a thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(executor, bilibili.user_select, uid, job_id)
+        
+        # Update status to completed
+        final_status = {"status": "Complete", "progress": 100, "details": "分析完成，可以获取结果。"}
+        redis_handler.set_job_status(job_id, final_status)
+        
     except Exception as e:
-        print(f"Failed to push job to Redis queue: {e}")
-        return JSONResponse(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={'code': 500, 'message': 'Failed to queue analysis request.'}
-        )
+        print(f"Error processing user analysis for UID {uid}: {e}")
+        error_status = {"status": "Failed", "progress": -1, "details": f"处理失败: {str(e)}"}
+        redis_handler.set_job_status(job_id, error_status)
 
 @api_router.get("/job/status/{job_id}")
 async def get_job_status(job_id: str, current_user: User = Depends(get_current_user)):
@@ -213,6 +221,25 @@ async def get_history(current_user: User = Depends(get_current_user)):
         status_code=200,
         content={'code': 200, 'message': 'success', 'data': history_data}
     )
+
+@api_router.get("/user/comments/{uid}")
+async def get_user_comments(uid: int, current_user: User = Depends(get_current_user)):
+    """
+    从Redis中获取指定uid的用户评论数据
+    """
+    redis_handler = sql_use.SQL_redis()
+    comments_data = redis_handler.redis_select(str(uid))
+    
+    if comments_data:
+        return JSONResponse(
+            status_code=200,
+            content={'code': 200, 'message': 'success', 'data': comments_data}
+        )
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={'code': 404, 'message': '未找到该用户的评论数据', 'data': None}
+        )
 
 # --- Mount Routers to the App ---
 app.include_router(user_router)

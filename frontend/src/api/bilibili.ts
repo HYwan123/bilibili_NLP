@@ -34,4 +34,15 @@ export function getJobStatus(jobId: string) {
     url: `/api/job/status/${jobId}`,
     method: 'get'
   })
+}
+
+/**
+ * 获取用户评论数据
+ * @param uid 用户ID
+ */
+export function getUserComments(uid: number) {
+  return request({
+    url: `/api/user/comments/${uid}`,
+    method: 'get'
+  })
 } 

@@ -29,6 +29,13 @@
                 :disabled="!row.job_id">
                 查看结果
               </el-button>
+              <el-button 
+                type="success" 
+                size="small" 
+                @click="viewComments(row.uid)" 
+                style="margin-left: 5px;">
+                查看评论
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -65,12 +72,34 @@
       </template>
     </el-dialog>
 
+    <!-- 评论展示对话框 -->
+    <el-dialog v-model="commentsDialogVisible" title="用户评论详情" width="60%">
+      <div v-if="isLoadingComments">
+        <p>正在加载评论...</p>
+      </div>
+      <div v-else-if="userComments.length > 0">
+        <h4>用户评论列表 (共{{ userComments.length }}条)</h4>
+        <el-table :data="userComments" stripe height="400">
+          <el-table-column type="index" width="50" />
+          <el-table-column prop="comment_text" label="评论内容" />
+        </el-table>
+      </div>
+      <div v-else>
+        <p>未找到该用户的评论数据。</p>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="commentsDialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
   </el-card>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getHistory, getJobStatus } from '@/api/bilibili'
+import { getHistory, getJobStatus, getUserComments } from '@/api/bilibili'
 import { ElMessage } from 'element-plus'
 
 const activeTab = ref('bv')
@@ -79,6 +108,9 @@ const uidHistory = ref([])
 const dialogVisible = ref(false)
 const isLoadingResult = ref(false)
 const currentResult = ref(null)
+const commentsDialogVisible = ref(false)
+const isLoadingComments = ref(false)
+const userComments = ref([])
 
 const fetchHistory = async () => {
   try {
@@ -109,6 +141,22 @@ const viewResult = async (jobId) => {
     currentResult.value = null // Ensure no stale data is shown
   } finally {
     isLoadingResult.value = false
+  }
+}
+
+const viewComments = async (uid) => {
+  commentsDialogVisible.value = true
+  isLoadingComments.value = true
+  userComments.value = []
+
+  try {
+    const res = await getUserComments(uid)
+    userComments.value = res.data.data || []
+  } catch (error) {
+    console.error(`Failed to fetch comments for user ${uid}:`, error)
+    ElMessage.error('获取用户评论失败')
+  } finally {
+    isLoadingComments.value = false
   }
 }
 

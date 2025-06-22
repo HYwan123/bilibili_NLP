@@ -83,16 +83,25 @@ def user_select(uid: int, job_id: str) -> Optional[List[Dict[str, Any]]]:
         print(f"An unexpected error occurred during comment fetching for UID {uid}: {e}")
         raise Exception(f"获取评论时发生未知错误: {e}")
 
-    # 3. Update status: Processing and storing vectors
+    # 3. 将用户评论数据直接存储到Redis，键为uid
+    try:
+        # 存储原始评论数据到Redis，键为uid
+        redis_handler.redis_insert(str(uid), user_comments)
+        print(f"Stored {len(user_comments)} comments for UID {uid} in Redis cache")
+    except Exception as e:
+        print(f"Failed to store comments in Redis for UID {uid}: {e}")
+        # 不中断流程，继续执行
+
+    # 4. Update status: Processing and storing vectors
     status_update = {"status": "Processing", "progress": 70, "details": "获取评论成功，正在进行AI分析和存储..."}
     redis_handler.set_job_status(job_id, status_update)
     
-    # 4. Perform vector analysis and storage
+    # 5. Perform vector analysis and storage
     try:
-        # Step 4a: Process texts, embed, and store in Milvus. This is the correct function name.
+        # Step 5a: Process texts, embed, and store in Milvus. This is the correct function name.
         vector_db.process_and_store_comments(uid, user_comments)
         
-        # Step 4b: Calculate the average vector after storing.
+        # Step 5b: Calculate the average vector after storing.
         avg_vector = vector_db.get_user_avg_vector(uid)
         avg_vector_list = avg_vector.tolist() if avg_vector.size > 0 else []
 
@@ -104,7 +113,7 @@ def user_select(uid: int, job_id: str) -> Optional[List[Dict[str, Any]]]:
         redis_handler.set_job_status(job_id, status_update)
         raise Exception(error_message)
 
-    # 5. Update status: Completed
+    # 6. Update status: Completed
     print(f"Successfully processed job {job_id} for UID {uid}.")
     final_result = {
         "average_vector": avg_vector_list,
@@ -148,22 +157,8 @@ def select_by_BV(BV: str) -> List[dict]:
         return []
 
 def main():
-    user_select(474791758)
+    """测试函数"""
+    user_select(474791758, "test_job_id")
 
 if __name__ == "__main__":
-    main()
-
-def select_bilibili(BV: str) -> List:
-    if result := sql_use.redis_select('BV1cGEJzQEvV') is None:
-        sql_use.redis_insert('BV1cGEJzQEvV', get_comments('BV1cGEJzQEvV', 1))
-    result = sql_use.redis_select('BV1cGEJzQEvV')
-    return result
-
-def insert_bilibili(BV: str) -> bool:
-    pass
-
-def main():
-    user_select(1)
-
-if __name__ == '__main__':
     main()
