@@ -1,0 +1,42 @@
+import { fileURLToPath, URL } from 'node:url'
+
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueDevTools(),
+    AutoImport({
+      resolvers: [ElementPlusResolver()],
+    }),
+    Components({
+      resolvers: [ElementPlusResolver()],
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    },
+  },
+  server: {
+    host: '0.0.0.0', // Allow access from network
+    port: 5173,      // You can specify a port
+    proxy: {
+      // Proxying both /api and /user to the backend server
+      '/api': {
+        target: 'http://localhost:5480',
+        changeOrigin: true,
+      },
+      '/user': {
+        target: 'http://localhost:5480',
+        changeOrigin: true,
+      }
+    }
+  }
+})

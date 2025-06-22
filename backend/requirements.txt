@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+mysql-connector-python
+python-jose[cryptography]
+passlib[bcrypt]
+python-dotenv
+bilibili-api-python
+pandas
+jieba
+scikit-learn
+numpy
+redis
+kafka-python
+uvloop
+httptools 

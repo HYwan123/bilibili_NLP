@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-multipart
+passlib[bcrypt]
+python-jose[cryptography]
+pymysql
+kafka-python-ng
+pymilvus
+sentence-transformers
+redis
+requests 
