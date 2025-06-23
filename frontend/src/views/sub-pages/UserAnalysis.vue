@@ -41,7 +41,7 @@
       <!-- 评论表格 -->
       <div v-if="retrievedComments.length > 0" class="comments-section">
         <h3>用户评论列表 (共{{ retrievedComments.length }}条)</h3>
-        <el-table :data="retrievedComments" stripe style="width: 100%" height="700">
+        <el-table :data="retrievedComments" stripe style="width: 100%" height="300">
           <el-table-column type="index" width="50" />
           <el-table-column prop="comment_text" label="评论内容" />
         </el-table>
@@ -50,7 +50,7 @@
       <!-- 用户画像分析结果 -->
       <div v-if="analysisResult" style="margin-top: 20px;">
         <h3>用户画像分析结果</h3>
-        <el-card>
+      
           <div v-if="analysisResult.uid">
             <p><strong>用户UID:</strong> {{ analysisResult.uid }}</p>
             <p><strong>评论数量:</strong> {{ analysisResult.comment_count }}</p>
@@ -60,7 +60,7 @@
             <h4>分析内容:</h4>
             <div style="white-space: pre-line; line-height: 1.6;">{{ analysisResult.analysis }}</div>
           </div>
-        </el-card>
+       
       </div>
     </el-card>
   </div>
