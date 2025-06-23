@@ -2,8 +2,8 @@
   <div class="login-container">
     <div class="login-left">
       <div class="welcome-content">
-        <h1 class="system-title">Bili-NLP</h1>
-        <p class="system-description">AI驱动的B站评论分析平台</p>
+        <h1 class="system-title">B站评论分析系统</h1>
+
       </div>
     </div>
     <div class="login-right">

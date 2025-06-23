@@ -49,7 +49,7 @@
 
       <div v-if="retrievedComments.length > 0" class="comments-section">
         <h3>用户评论列表 (共{{ retrievedComments.length }}条)</h3>
-        <el-table :data="retrievedComments" stripe style="width: 100%" height="400">
+        <el-table :data="retrievedComments" stripe style="width: 100%" height="700">
           <el-table-column type="index" width="50" />
           <el-table-column prop="comment_text" label="评论内容" />
         </el-table>

@@ -2,8 +2,8 @@
   <div class="register-container">
     <div class="register-left">
       <div class="welcome-content">
-        <h1 class="system-title">加入 Bili-NLP</h1>
-        <p class="system-description">开启您的 AI 评论分析之旅</p>
+        <h1 class="system-title">B站评论分析系统</h1>
+
       </div>
     </div>
     <div class="register-right">
