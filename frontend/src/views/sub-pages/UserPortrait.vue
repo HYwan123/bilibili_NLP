@@ -1,126 +1,112 @@
 <template>
   <div class="user-portrait">
-    <h2>用户画像分析</h2>
-    <el-input v-model="uid" placeholder="请输入用户UID" style="width: 300px; margin-bottom: 10px;" />
-    <el-button type="primary" @click="fetchComments" style="margin-right: 10px;">获取评论</el-button>
-    <el-button type="success" @click="analyzeUser" :loading="analyzing" style="margin-right: 10px;">分析用户画像</el-button>
-    <el-button type="info" @click="getHistoryAnalysis" :loading="loadingHistory">查看历史分析</el-button>
-    
-    <div v-if="loading" style="margin-top: 10px;">加载中...</div>
-    <div v-if="error" style="color: red; margin-top: 10px;">{{ error }}</div>
-    
-    <!-- 评论内容展示 -->
-    <div v-if="comments.length" style="margin-top: 20px;">
-      <h3>评论内容（共{{ comments.length }}条）</h3>
-      <el-table :data="comments" style="width: 100%; margin-top: 10px;">
-        <el-table-column prop="comment_text" label="评论内容" />
-      </el-table>
-    </div>
-    
-    <!-- 用户画像分析结果 -->
-    <div v-if="analysisResult" style="margin-top: 20px;">
-      <h3>用户画像分析结果</h3>
-      <el-card>
-        <div v-if="analysisResult.uid">
-          <p><strong>用户UID:</strong> {{ analysisResult.uid }}</p>
-          <p><strong>评论数量:</strong> {{ analysisResult.comment_count }}</p>
-          <p><strong>分析时间:</strong> {{ formatTime(analysisResult.timestamp) }}</p>
-        </div>
-        <div v-if="analysisResult.analysis" style="margin-top: 15px;">
+    <h2>历史用户画像分析记录</h2>
+
+    <!-- 历史 UID 列表 -->
+    <el-table :data="uidList" style="width: 100%; margin-top: 20px;" v-loading="loadingHistory">
+      <el-table-column prop="uid" label="用户UID" width="200" />
+      <el-table-column label="操作">
+        <template #default="{ row }">
+          <el-button type="primary" size="small" @click="viewAnalysis(row.uid)">
+            查看画像
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+
+    <!-- 弹出用户画像分析结果 -->
+    <el-dialog v-model="dialogVisible" title="用户画像分析结果" width="600px" :before-close="handleCloseDialog">
+      <div v-if="analysisResult">
+        <p><strong>用户UID:</strong> {{ analysisResult.uid }}</p>
+        <p><strong>评论数量:</strong> {{ analysisResult.comment_count }}</p>
+        <p><strong>分析时间:</strong> {{ formatTime(analysisResult.timestamp) }}</p>
+        <div style="margin-top: 15px;">
           <h4>分析内容:</h4>
           <div style="white-space: pre-line; line-height: 1.6;">{{ analysisResult.analysis }}</div>
         </div>
-      </el-card>
-    </div>
+      </div>
+      <template #footer>
+        <el-button @click="dialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
-
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import request from '@/utils/request';
 
-const uid = ref('');
-const comments = ref<any[]>([]);
+const uidList = ref<{ uid: string }[]>([]);
 const analysisResult = ref<any>(null);
-const loading = ref(false);
-const analyzing = ref(false);
+const dialogVisible = ref(false);
 const loadingHistory = ref(false);
+
 const error = ref('');
 
-const fetchComments = async () => {
-  if (!uid.value) {
-    error.value = '请输入UID';
-    return;
-  }
-  loading.value = true;
-  error.value = '';
-  comments.value = [];
+// 获取 UID 列表
+const fetchUidList = async () => {
+  loadingHistory.value = true;
   try {
-    const res = await request.get(`/api/user/comments/redis/${uid.value}`);
-    if (res.code === 200) {
-      comments.value = res.data;
+    const res = await request.get('/api/get_uids'); // res.data 就是数组了
+    const uidArray = res.data; // 直接就是 [{uid: 15133257}, ...]
+    if (Array.isArray(uidArray)) {
+      uidList.value = uidArray;  // 直接赋值，数组格式已经符合 el-table 要求
     } else {
-      error.value = res.message || '未找到评论';
+      error.value = '未获取到UID列表';
     }
   } catch (e: any) {
     error.value = e.message || '请求失败';
   } finally {
-    loading.value = false;
-  }
-};
-
-const analyzeUser = async () => {
-  if (!uid.value) {
-    error.value = '请输入UID';
-    return;
-  }
-  analyzing.value = true;
-  error.value = '';
-  try {
-    const res = await request.post(`/api/user/analyze/${uid.value}`);
-    if (res.code === 200) {
-      analysisResult.value = res.data;
-    } else {
-      error.value = res.message || '分析失败';
-    }
-  } catch (e: any) {
-    error.value = e.message || '分析请求失败';
-  } finally {
-    analyzing.value = false;
-  }
-};
-
-const getHistoryAnalysis = async () => {
-  if (!uid.value) {
-    error.value = '请输入UID';
-    return;
-  }
-  loadingHistory.value = true;
-  error.value = '';
-  try {
-    const res = await request.get(`/api/user/analysis/${uid.value}`);
-    if (res.code === 200) {
-      analysisResult.value = res.data;
-    } else {
-      error.value = res.message || '未找到历史分析结果';
-    }
-  } catch (e: any) {
-    error.value = e.message || '获取历史分析失败';
-  } finally {
     loadingHistory.value = false;
   }
+};
+
+
+// 查看某个 UID 的分析结果
+const viewAnalysis = async (uid: string) => {
+  try {
+    const res = await request.get(`/api/user/analysis/${uid}`);
+    if (res.code === 200) {
+      analysisResult.value = res.data;
+      dialogVisible.value = true;
+    } else {
+      error.value = res.message || '未找到分析记录';
+    }
+  } catch (e: any) {
+    error.value = e.message || '请求失败';
+  }
+};
+
+const handleCloseDialog = () => {
+  dialogVisible.value = false;
+  analysisResult.value = null;
 };
 
 const formatTime = (timestamp: string) => {
   if (!timestamp) return '';
   return new Date(timestamp).toLocaleString('zh-CN');
 };
-</script>
 
+// 页面加载时请求 UID 列表
+onMounted(() => {
+  fetchUidList();
+});
+</script>
 <style scoped>
-.user-portrait {
-  max-width: 800px;
-  margin: 0 auto;
+.user-analysis-container {
   padding: 20px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.message-section {
+  margin-top: 20px;
+}
+
+.comments-section {
+  margin-top: 20px;
 }
 </style> 

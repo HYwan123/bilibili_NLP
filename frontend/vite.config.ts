@@ -33,10 +33,7 @@ export default defineConfig({
         target: 'http://localhost:5480',
         changeOrigin: true,
       },
-      '/user': {
-        target: 'http://localhost:5480',
-        changeOrigin: true,
-      }
+
     }
   }
 })

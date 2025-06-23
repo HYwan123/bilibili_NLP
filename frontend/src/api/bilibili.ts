@@ -8,6 +8,12 @@ export function getComments(bv: string) {
   })
 }
 
+export function getuids() {
+  return request({
+    url: `/api/get_uids`,
+    method: 'get'
+  })
+}
 /**
  * 获取用户评论并保存到数据库
  * @param uid 用户ID

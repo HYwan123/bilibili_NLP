@@ -160,6 +160,11 @@ async def get_history(current_user: User = Depends(get_current_user)):
         content={'code': 200, 'message': 'success', 'data': history_data}
     )
 
+@api_router.get("/get_uids")
+async def get_uids(current_user: User = Depends(get_current_user)):
+    data = database.get_user_report()
+    return {"code": 200, "data": data, "message": "成功"}
+
 @api_router.post("/user/comments/{uid}")
 async def get_user_comments(uid: int, current_user: User = Depends(get_current_user)):
     """

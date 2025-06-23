@@ -43,20 +43,24 @@ def get_user_by_username(username: str):
     conn.close()
     return user
 
-def get_user_report(username: str):
-    """Fetches a single user from the database by their username."""
+def get_user_report():
+    """Fetches all user reports from the database."""
     conn = get_db_connection()
     if not conn:
         return None
-    
-    cursor = conn.cursor(dictionary=True)
-    query = "SELECT * FROM report_history"
-    cursor.execute(query)
-    uuids = cursor.fetchone()
-    
-    cursor.close()
-    conn.close()
-    return uuids
+
+    try:
+        cursor = conn.cursor(dictionary=True)  # dictionary=True 返回字典格式结果
+        query = "SELECT * FROM report_history"  # 或你需要的字段
+        cursor.execute(query)
+        results = cursor.fetchall()  # 读取全部结果，返回列表
+    finally:
+        cursor.close()
+        conn.close()
+
+    return results
+
+
 
 def create_user(username: str, password: str):
     """Creates a new user in the database."""
