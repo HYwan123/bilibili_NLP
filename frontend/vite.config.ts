@@ -28,12 +28,15 @@ export default defineConfig({
     host: '0.0.0.0', // Allow access from network
     port: 5173,      // You can specify a port
     proxy: {
-      // Proxying both /api and /user to the backend server
+      // Proxying both /api and /user/ to the backend server
       '/api': {
         target: 'http://localhost:5480',
         changeOrigin: true,
       },
-
+      '/user/': {
+        target: 'http://localhost:5480',
+        changeOrigin: true,
+      }
     }
   }
 })
