@@ -1,6 +1,7 @@
 import mysql.connector
 from mysql.connector import errorcode
 from passlib.context import CryptContext
+from typing import List, Dict, Any
 
 # --- Configuration ---
 DB_CONFIG = {
@@ -213,4 +214,80 @@ def get_history_by_user(user_id: int):
         conn.close()
         
     return {"bv_history": bv_history, "uuid_history": uuid_history}
+
+def save_user_comments(uid: int, username: str, comments: List[Dict[str, Any]]) -> bool:
+    """
+    保存用户评论到数据库
+    """
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    cursor = conn.cursor()
+    
+    try:
+        # 首先检查是否存在user_comments表，如果不存在则创建
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_comments (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                uid INT NOT NULL,
+                username VARCHAR(255) NOT NULL,
+                comment_text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_uid (uid),
+                INDEX idx_username (username)
+            )
+        """)
+        
+        # 删除该用户之前的评论数据（可选，取决于是否需要保留历史）
+        cursor.execute("DELETE FROM user_comments WHERE uid = %s", (uid,))
+        
+        # 插入新的评论数据
+        for comment in comments:
+            comment_text = comment.get('comment_text', '')
+            if comment_text:
+                cursor.execute(
+                    "INSERT INTO user_comments (uid, username, comment_text) VALUES (%s, %s, %s)",
+                    (uid, username, comment_text)
+                )
+        
+        conn.commit()
+        print(f"成功保存 {len(comments)} 条评论到数据库，UID: {uid}")
+        return True
+        
+    except mysql.connector.Error as err:
+        print(f"保存用户评论失败: {err}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_user_comments(uid: int) -> List[Dict[str, Any]]:
+    """
+    从数据库获取用户评论
+    """
+    conn = get_db_connection()
+    if not conn:
+        return []
+    
+    cursor = conn.cursor(dictionary=True)
+    
+    try:
+        cursor.execute(
+            "SELECT comment_text FROM user_comments WHERE uid = %s ORDER BY created_at DESC",
+            (uid,)
+        )
+        comments = cursor.fetchall()
+        
+        # 转换为标准格式
+        result = [{'comment_text': comment['comment_text']} for comment in comments]
+        return result
+        
+    except mysql.connector.Error as err:
+        print(f"获取用户评论失败: {err}")
+        return []
+    finally:
+        cursor.close()
+        conn.close()
 

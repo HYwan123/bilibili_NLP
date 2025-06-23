@@ -4,8 +4,6 @@ python-multipart
 passlib[bcrypt]
 python-jose[cryptography]
 pymysql
-pymilvus
-sentence-transformers
 redis
 requests
 mysql-connector-python
@@ -13,7 +11,7 @@ python-dotenv
 bilibili-api-python
 pandas
 jieba
-scikit-learn
 numpy
 uvloop
-httptools 
+httptools
+aiohttp 

@@ -9,10 +9,10 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 import uuid
 import json
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 
-from . import bilibili, database, vector_db, sql_use
+import bilibili
+import database
+import sql_use
 
 # --- Configuration ---
 SECRET_KEY = "your_super_secret_key"
@@ -89,9 +89,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     return User(id=token_data.id, username=token_data.username)
 
-# --- Thread Pool for Background Tasks ---
-executor = ThreadPoolExecutor(max_workers=4)
-
 # --- API Routers ---
 user_router = APIRouter(prefix="/user", tags=["user"])
 api_router = APIRouter(prefix="/api", tags=["api"])
@@ -155,65 +152,6 @@ async def select_BV(BV: str, current_user: User = Depends(get_current_user)):
     else:
         return JSONResponse(status_code=404, content={'code': 404, 'message': 'Not Found', 'data': None})
 
-@api_router.post("/user/analysis/{uid}")
-async def get_user_analysis(uid: int, current_user: User = Depends(get_current_user)):
-    job_id = str(uuid.uuid4())
-    
-    # Record history with job_id
-    try:
-        database.add_uuid_history(uid=uid, username=current_user.username, job_id=job_id)
-    except Exception as e:
-        print(f"Error adding UUID history to database: {e}")
-
-    redis_handler = sql_use.SQL_redis()
-    
-    # Set initial status in Redis
-    initial_status = {"status": "Queued", "progress": 5, "details": "任务已加入队列，等待处理..."}
-    redis_handler.set_job_status(job_id, initial_status)
-
-    # Start background task
-    asyncio.create_task(process_user_analysis(uid, job_id))
-    
-    return JSONResponse(
-        status_code=status.HTTP_202_ACCEPTED,
-        content={'code': 202, 'message': 'Analysis request accepted.', 'data': {'job_id': job_id}}
-    )
-
-async def process_user_analysis(uid: int, job_id: str):
-    """Background task to process user analysis"""
-    redis_handler = sql_use.SQL_redis()
-    
-    try:
-        # Update status to processing
-        status_update = {"status": "Processing", "progress": 20, "details": f"开始处理用户 {uid} 的分析任务..."}
-        redis_handler.set_job_status(job_id, status_update)
-        
-        # Run the analysis in a thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(executor, bilibili.user_select, uid, job_id)
-        
-        # Update status to completed
-        final_status = {"status": "Complete", "progress": 100, "details": "分析完成，可以获取结果。"}
-        redis_handler.set_job_status(job_id, final_status)
-        
-    except Exception as e:
-        print(f"Error processing user analysis for UID {uid}: {e}")
-        error_status = {"status": "Failed", "progress": -1, "details": f"处理失败: {str(e)}"}
-        redis_handler.set_job_status(job_id, error_status)
-
-@api_router.get("/job/status/{job_id}")
-async def get_job_status(job_id: str, current_user: User = Depends(get_current_user)):
-    """
-    Retrieves the status of a background job from Redis.
-    """
-    redis_handler = sql_use.SQL_redis()
-    status_info = redis_handler.get_job_status(job_id)
-
-    if status_info:
-        return JSONResponse(status_code=200, content={'code': 200, 'message': 'success', 'data': status_info})
-    else:
-        return JSONResponse(status_code=404, content={'code': 404, 'message': 'Job not found or has expired.'})
-
 @api_router.get("/history")
 async def get_history(current_user: User = Depends(get_current_user)):
     history_data = database.get_history_by_user(current_user.id)
@@ -222,23 +160,159 @@ async def get_history(current_user: User = Depends(get_current_user)):
         content={'code': 200, 'message': 'success', 'data': history_data}
     )
 
-@api_router.get("/user/comments/{uid}")
+@api_router.post("/user/comments/{uid}")
 async def get_user_comments(uid: int, current_user: User = Depends(get_current_user)):
     """
-    从Redis中获取指定uid的用户评论数据
+    直接获取用户评论并保存到数据库
     """
-    redis_handler = sql_use.SQL_redis()
-    comments_data = redis_handler.redis_select(str(uid))
-    
-    if comments_data:
+    try:
+        print(f"用户 {current_user.username} 请求获取用户 {uid} 的评论")
+        
+        # 直接调用评论获取函数
+        comments = bilibili.get_user_comments_simple(uid)
+        
+        if comments:
+            print(f"成功获取 {len(comments)} 条评论，准备保存到数据库")
+            # 保存到数据库
+            success = database.save_user_comments(uid, current_user.username, comments)
+            
+            if success:
+                print(f"评论数据已成功保存到数据库")
+                return JSONResponse(
+                    status_code=200,
+                    content={
+                        'code': 200, 
+                        'message': 'success', 
+                        'data': {
+                            'uid': uid,
+                            'comment_count': len(comments),
+                            'comments': comments
+                        }
+                    }
+                )
+            else:
+                print(f"保存到数据库失败")
+                return JSONResponse(
+                    status_code=500,
+                    content={'code': 500, 'message': '保存到数据库失败', 'data': None}
+                )
+        else:
+            print(f"未获取到用户 {uid} 的评论数据")
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到该用户的评论数据，可能是API访问限制或用户无评论', 'data': None}
+            )
+            
+    except Exception as e:
+        print(f"获取用户评论失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取评论失败: {str(e)}', 'data': None}
+        )
+
+@api_router.get("/user/comments/{uid}")
+async def get_saved_user_comments(uid: int, current_user: User = Depends(get_current_user)):
+    """
+    从数据库获取已保存的用户评论数据
+    """
+    try:
+        comments = database.get_user_comments(uid)
+        
+        if comments:
+            return JSONResponse(
+                status_code=200,
+                content={'code': 200, 'message': 'success', 'data': comments}
+            )
+        else:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到该用户的评论数据', 'data': None}
+            )
+            
+    except Exception as e:
+        print(f"获取保存的评论失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取评论失败: {str(e)}', 'data': None}
+        )
+
+@api_router.get("/user/comments/redis/{uid}")
+async def get_user_comments_redis(uid: int, current_user: User = Depends(get_current_user)):
+    """
+    从Redis获取已保存的用户评论数据
+    """
+    try:
+        from bilibili import get_user_comments_from_redis
+        comments = get_user_comments_from_redis(uid)
+        if comments:
+            return JSONResponse(
+                status_code=200,
+                content={'code': 200, 'message': 'success', 'data': comments}
+            )
+        else:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到该用户的评论数据', 'data': None}
+            )
+    except Exception as e:
+        print(f"获取Redis评论失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取评论失败: {str(e)}', 'data': None}
+        )
+
+@api_router.post("/user/analyze/{uid}")
+async def analyze_user_portrait(uid: int, current_user: User = Depends(get_current_user)):
+    """
+    分析用户评论，生成用户画像
+    """
+    try:
+        from bilibili import analyze_user_comments
+        result = analyze_user_comments(uid)
+        
+        if "error" in result:
+            return JSONResponse(
+                status_code=400,
+                content={'code': 400, 'message': result["error"], 'data': None}
+            )
+        
         return JSONResponse(
             status_code=200,
-            content={'code': 200, 'message': 'success', 'data': comments_data}
+            content={'code': 200, 'message': '分析完成', 'data': result}
         )
-    else:
+        
+    except Exception as e:
+        print(f"用户画像分析失败: {e}")
         return JSONResponse(
-            status_code=404,
-            content={'code': 404, 'message': '未找到该用户的评论数据', 'data': None}
+            status_code=500,
+            content={'code': 500, 'message': f'分析失败: {str(e)}', 'data': None}
+        )
+
+@api_router.get("/user/analysis/{uid}")
+async def get_user_analysis(uid: int, current_user: User = Depends(get_current_user)):
+    """
+    获取用户画像分析结果
+    """
+    try:
+        from bilibili import get_user_analysis_from_redis
+        result = get_user_analysis_from_redis(uid)
+        
+        if result:
+            return JSONResponse(
+                status_code=200,
+                content={'code': 200, 'message': 'success', 'data': result}
+            )
+        else:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到分析结果', 'data': None}
+            )
+            
+    except Exception as e:
+        print(f"获取分析结果失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取失败: {str(e)}', 'data': None}
         )
 
 # --- Mount Routers to the App ---

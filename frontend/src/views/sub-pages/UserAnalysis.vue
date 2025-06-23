@@ -3,32 +3,53 @@
     <el-card class="box-card">
       <template #header>
         <div class="card-header">
-          <span>用户画像分析</span>
+          <span>用户评论获取</span>
         </div>
       </template>
       <el-form :model="form" label-width="80px">
         <el-form-item label="用户UID">
-          <el-input v-model="form.uid" placeholder="请输入B站用户UID"></el-input>
+          <el-input 
+            v-model="form.uid" 
+            placeholder="请输入B站用户UID"
+            :disabled="loading"
+            clearable
+          ></el-input>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="submitTask" :loading="loading">提交分析任务</el-button>
+          <el-button 
+            type="primary" 
+            @click="fetchComments" 
+            :loading="loading"
+            :disabled="!form.uid"
+            size="large"
+          >
+            {{ loading ? '获取中...' : '获取用户评论' }}
+          </el-button>
+          <el-button 
+            type="success" 
+            @click="getSavedComments" 
+            :loading="loadingSaved"
+            :disabled="!form.uid"
+            size="large"
+            style="margin-left: 10px;"
+          >
+            {{ loadingSaved ? '加载中...' : '查看已保存评论' }}
+          </el-button>
         </el-form-item>
       </el-form>
 
-      <div v-if="jobId" class="progress-section">
-        <el-progress :percentage="progress" :text-inside="true" :stroke-width="20" status="success" />
-        <p class="status-text">{{ statusText }}</p>
-      </div>
-
-      <div v-if="analysisResult" class="result-section">
-        <h3>分析结果</h3>
-        <p>用户的平均画像向量 (前10维):</p>
-        <pre class="vector-pre">{{ analysisResult.average_vector.slice(0, 10) }}...</pre>
+      <div v-if="message" class="message-section">
+        <el-alert 
+          :title="message" 
+          :type="messageType" 
+          :closable="false"
+          show-icon
+        />
       </div>
 
       <div v-if="retrievedComments.length > 0" class="comments-section">
-        <h3>用户近期评论</h3>
-        <el-table :data="retrievedComments" stripe style="width: 100%" height="300">
+        <h3>用户评论列表 (共{{ retrievedComments.length }}条)</h3>
+        <el-table :data="retrievedComments" stripe style="width: 100%" height="400">
           <el-table-column type="index" width="50" />
           <el-table-column prop="comment_text" label="评论内容" />
         </el-table>
@@ -40,80 +61,97 @@
 <script setup>
 import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
-import { userAnalysis, getJobStatus } from '@/api/bilibili';
+import { getUserComments, getSavedUserComments } from '@/api/bilibili';
 
 const form = ref({
   uid: '66143532', // Default UID for testing
 });
 
 const loading = ref(false);
-const jobId = ref('');
-const progress = ref(0);
-const statusText = ref('');
-const analysisResult = ref(null);
+const loadingSaved = ref(false);
 const retrievedComments = ref([]);
-let pollTimer = null;
+const message = ref('');
+const messageType = ref('info');
 
-const submitTask = async () => {
+const fetchComments = async () => {
   if (!form.value.uid) {
     ElMessage.error('请输入用户UID');
     return;
   }
-  loading.value = true;
-  jobId.value = '';
-  progress.value = 0;
-  statusText.value = '正在提交任务...';
-  analysisResult.value = null;
-  retrievedComments.value = [];
-  if (pollTimer) {
-    clearInterval(pollTimer);
+  
+  // 验证UID格式
+  const uid = parseInt(form.value.uid);
+  if (isNaN(uid) || uid <= 0) {
+    ElMessage.error('请输入有效的用户UID（正整数）');
+    return;
   }
+  
+  loading.value = true;
+  message.value = '';
+  retrievedComments.value = [];
 
   try {
-    const response = await userAnalysis(form.value.uid);
-    jobId.value = response.data.job_id;
-    statusText.value = '任务已提交，等待处理...';
-    ElMessage.success('任务提交成功！');
-    pollJobStatus();
+    console.log('开始获取用户评论，UID:', uid);
+    const response = await getUserComments(uid);
+    console.log('获取评论响应:', response);
+    
+    if (response.data && response.data.comments) {
+      retrievedComments.value = response.data.comments;
+      message.value = `成功获取 ${response.data.comment_count} 条评论并保存到数据库`;
+      messageType.value = 'success';
+      ElMessage.success('用户评论获取成功！');
+    } else {
+      message.value = '未获取到评论数据';
+      messageType.value = 'warning';
+    }
   } catch (error) {
-    console.error('任务提交失败:', error);
-    ElMessage.error('任务提交失败，请查看控制台');
-    statusText.value = '任务提交失败';
+    console.error('获取评论失败:', error);
+    message.value = `获取评论失败: ${error.response?.data?.message || error.message}`;
+    messageType.value = 'error';
+    ElMessage.error(`获取评论失败: ${error.response?.data?.message || error.message}`);
   } finally {
     loading.value = false;
   }
 };
 
-const pollJobStatus = () => {
-  pollTimer = setInterval(async () => {
-    if (!jobId.value) {
-      clearInterval(pollTimer);
-      return;
-    }
-    try {
-      const response = await getJobStatus(jobId.value);
-      const data = response.data;
-      progress.value = data.progress || 0;
-      statusText.value = data.details || '...';
+const getSavedComments = async () => {
+  if (!form.value.uid) {
+    ElMessage.error('请输入用户UID');
+    return;
+  }
+  
+  const uid = parseInt(form.value.uid);
+  if (isNaN(uid) || uid <= 0) {
+    ElMessage.error('请输入有效的用户UID（正整数）');
+    return;
+  }
+  
+  loadingSaved.value = true;
+  message.value = '';
+  retrievedComments.value = [];
 
-      if (data.status === 'Completed') {
-        clearInterval(pollTimer);
-        statusText.value = '分析完成！';
-        analysisResult.value = data.result;
-        retrievedComments.value = data.result.comments || [];
-        ElMessage.success('用户画像分析已完成！');
-      } else if (data.status === 'Failed') {
-        clearInterval(pollTimer);
-        statusText.value = `任务失败: ${data.details}`;
-        ElMessage.error(`任务失败: ${data.details}`);
-      }
-    } catch (error) {
-      clearInterval(pollTimer);
-      console.error('轮询状态失败:', error);
-      statusText.value = '轮询状态失败';
-      ElMessage.error('获取任务状态失败');
+  try {
+    console.log('开始获取已保存的评论，UID:', uid);
+    const response = await getSavedUserComments(uid);
+    console.log('获取已保存评论响应:', response);
+    
+    if (response.data && response.data.length > 0) {
+      retrievedComments.value = response.data;
+      message.value = `从数据库获取到 ${response.data.length} 条已保存的评论`;
+      messageType.value = 'success';
+      ElMessage.success('已保存评论获取成功！');
+    } else {
+      message.value = '数据库中未找到该用户的评论数据，请先获取评论';
+      messageType.value = 'info';
     }
-  }, 2000);
+  } catch (error) {
+    console.error('获取已保存评论失败:', error);
+    message.value = `获取已保存评论失败: ${error.response?.data?.message || error.message}`;
+    messageType.value = 'error';
+    ElMessage.error(`获取已保存评论失败: ${error.response?.data?.message || error.message}`);
+  } finally {
+    loadingSaved.value = false;
+  }
 };
 </script>
 
@@ -128,26 +166,8 @@ const pollJobStatus = () => {
   align-items: center;
 }
 
-.progress-section {
+.message-section {
   margin-top: 20px;
-}
-
-.status-text {
-  margin-top: 10px;
-  color: #606266;
-  text-align: center;
-}
-
-.result-section {
-  margin-top: 20px;
-}
-
-.vector-pre {
-  background-color: #f5f5f5;
-  padding: 10px;
-  border-radius: 4px;
-  white-space: pre-wrap;
-  word-wrap: break-word;
 }
 
 .comments-section {

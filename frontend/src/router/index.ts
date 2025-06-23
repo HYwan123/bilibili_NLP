@@ -36,9 +36,21 @@ const router = createRouter({
           component: () => import('../views/sub-pages/HistoryManagement.vue')
         },
         {
-          path: 'analysis',
-          name: 'analysis',
+          path: 'user-analysis',
+          name: 'user-analysis',
           component: () => import('../views/sub-pages/UserAnalysis.vue')
+        },
+        {
+          path: 'user-portrait',
+          name: 'UserPortrait',
+          component: () => import('@/views/sub-pages/UserPortrait.vue'),
+          meta: { title: '用户画像分析', requiresAuth: true }
+        },
+        {
+          path: 'analysis-history',
+          name: 'AnalysisHistory',
+          component: () => import('@/views/sub-pages/AnalysisHistory.vue'),
+          meta: { title: '分析记录', requiresAuth: true }
         }
       ]
     }

@@ -9,13 +9,24 @@ export function getComments(bv: string) {
 }
 
 /**
- * 提交用户分析任务
+ * 获取用户评论并保存到数据库
  * @param uid 用户ID
  */
-export function userAnalysis(uid: number) {
+export function getUserComments(uid: number) {
   return request({
-    url: `/api/user/analysis/${uid}`,
+    url: `/api/user/comments/${uid}`,
     method: 'post'
+  })
+}
+
+/**
+ * 从数据库获取已保存的用户评论
+ * @param uid 用户ID
+ */
+export function getSavedUserComments(uid: number) {
+  return request({
+    url: `/api/user/comments/${uid}`,
+    method: 'get'
   })
 }
 
@@ -37,12 +48,12 @@ export function getJobStatus(jobId: string) {
 }
 
 /**
- * 获取用户评论数据
+ * 提交用户评论获取任务
  * @param uid 用户ID
  */
-export function getUserComments(uid: number) {
+export function userAnalysis(uid: string | number) {
   return request({
-    url: `/api/user/comments/${uid}`,
-    method: 'get'
+    url: `/api/user/analysis/${uid}`,
+    method: 'post'
   })
 } 

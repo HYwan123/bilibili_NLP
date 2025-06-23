@@ -1,28 +1,25 @@
 # B站NLP分析系统 (简化版)
 
-一个基于FastAPI和Vue.js的B站用户评论分析系统，支持用户评论爬取、情感分析和数据可视化。
+一个基于FastAPI和Vue.js的B站用户评论分析系统，支持用户评论爬取和数据可视化。
 
 ## 功能特性
 
 - 🔐 用户认证系统（注册/登录）
 - 📊 B站视频评论数据爬取
-- 🤖 用户评论情感分析
 - 📈 数据可视化展示
 - 📝 查询历史记录管理
-- 🔄 异步任务处理（FastAPI后台任务）
-- 🗄️ 向量数据库存储
+- 🔄 异步任务处理（Redis消息队列）
 - 💾 Redis缓存支持
+- 👥 用户评论获取和存储
 
 ## 技术栈
 
 ### 后端
 - **FastAPI** - 现代Python Web框架
 - **SQLAlchemy** - ORM数据库操作
-- **Redis** - 缓存和任务状态管理
-- **Milvus** - 向量数据库
+- **Redis** - 缓存和消息队列
 - **JWT** - 用户认证
 - **Bilibili API** - B站数据爬取
-- **Sentence Transformers** - 文本向量化
 
 ### 前端
 - **Vue 3** - 渐进式JavaScript框架
@@ -39,7 +36,6 @@ bilibili_NLP/
 │   ├── routers/            # API路由
 │   ├── database.py         # 数据库操作
 │   ├── bilibili.py         # B站API封装
-│   ├── vector_db.py        # 向量数据库操作
 │   ├── sql_use.py          # Redis操作
 │   └── main.py             # 主应用入口
 ├── frontend/               # 前端代码
@@ -61,7 +57,6 @@ bilibili_NLP/
 - Node.js 16+
 - Redis
 - MySQL/PostgreSQL
-- Milvus (可选，用于向量存储)
 
 ### 后端设置
 
@@ -121,7 +116,7 @@ npm run dev
 
 ### 数据分析
 - `GET /api/select/{BV}` - 获取视频评论数据
-- `POST /api/user/analysis/{uid}` - 提交用户分析任务
+- `POST /api/user/analysis/{uid}` - 提交用户评论获取任务
 - `GET /api/job/status/{job_id}` - 获取任务状态
 - `GET /api/history` - 获取查询历史
 - `GET /api/user/comments/{uid}` - 获取用户评论数据
@@ -129,17 +124,18 @@ npm run dev
 ## 架构说明
 
 ### 简化后的架构特点
-- **移除Kafka**：不再使用消息队列，改用FastAPI的异步任务
-- **简化部署**：减少了外部依赖，更容易部署和维护
-- **保持功能**：核心功能保持不变，包括用户分析、向量存储等
-- **Redis缓存**：继续使用Redis进行数据缓存和任务状态管理
+- **Redis消息队列**：使用Redis作为消息队列处理异步任务
+- **简化功能**：专注于评论数据获取和存储，移除复杂的AI分析
+- **易于部署**：减少了外部依赖，更容易部署和维护
+- **Redis缓存**：使用Redis进行数据缓存和任务状态管理
 
 ### 任务处理流程
-1. 用户提交分析请求
-2. 系统创建后台任务
-3. 使用ThreadPoolExecutor处理耗时操作
-4. 通过Redis更新任务状态
-5. 前端轮询获取任务进度
+1. 用户提交评论获取请求
+2. 系统将任务推送到Redis队列
+3. 后台进程从队列中获取任务
+4. 使用ThreadPoolExecutor处理耗时操作
+5. 通过Redis更新任务状态
+6. 前端轮询获取任务进度
 
 ## 开发指南
 

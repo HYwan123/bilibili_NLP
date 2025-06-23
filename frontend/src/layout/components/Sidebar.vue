@@ -14,6 +14,10 @@
         <el-icon><Search /></el-icon>
         <template #title><span>评论查询</span></template>
       </el-menu-item>
+      <el-menu-item index="/user-analysis">
+        <el-icon><User /></el-icon>
+        <template #title><span>用户评论获取</span></template>
+      </el-menu-item>
       <el-menu-item index="/structure">
         <el-icon><DataLine /></el-icon>
         <template #title><span>AI 结构</span></template>
@@ -22,9 +26,12 @@
         <el-icon><Tickets /></el-icon>
         <template #title><span>历史记录</span></template>
       </el-menu-item>
-      <el-menu-item index="/analysis">
-        <el-icon><User /></el-icon>
-        <template #title><span>用户画像</span></template>
+      <el-menu-item index="/user-portrait">
+        <span>用户画像分析</span>
+      </el-menu-item>
+      <el-menu-item index="/analysis-history">
+        <el-icon><Document /></el-icon>
+        <template #title><span>分析记录</span></template>
       </el-menu-item>
     </el-menu>
   </el-aside>
@@ -34,7 +41,7 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useLayoutStore } from '@/stores/layout';
-import { Search, DataLine, Tickets, User } from '@element-plus/icons-vue';
+import { Search, DataLine, Tickets, User, Document } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const layoutStore = useLayoutStore();

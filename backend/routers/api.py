@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
-from .. import sql_use, database, vector_db
-from ..main import get_current_user, User
+import sql_use
+import database
+import vector_db
 import uuid
 import json
 
 api_router = APIRouter()
 
 @api_router.post("/user/analysis/{uid}")
-async def analysis(uid: int, current_user: User = Depends(get_current_user)):
+async def analysis(uid: int, current_user=None):
     """
     Submits a user analysis job.
     """

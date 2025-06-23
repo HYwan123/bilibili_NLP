@@ -6,7 +6,7 @@ import router from '@/router';
 // Create a new Axios instance
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL, // Use environment variables for base URL
-  timeout: 10000, // Request timeout
+  timeout: 600000, // Request timeout，60秒
 });
 
 // Request interceptor
