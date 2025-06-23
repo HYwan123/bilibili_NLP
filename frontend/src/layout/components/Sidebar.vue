@@ -14,6 +14,10 @@
         <el-icon><Search /></el-icon>
         <template #title><span>视频评论查询</span></template>
       </el-menu-item>      
+      <el-menu-item index="/comment-analysis">
+        <el-icon><DataAnalysis /></el-icon>
+        <template #title><span>评论分析</span></template>
+      </el-menu-item>
       <el-menu-item index="/history">
         <el-icon><Tickets /></el-icon>
         <template #title><span>视频查询历史记录</span></template>
@@ -40,7 +44,7 @@
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useLayoutStore } from '@/stores/layout';
-import { Search, DataLine, Tickets, User, Document } from '@element-plus/icons-vue';
+import { Search, DataLine, Tickets, User, Document, DataAnalysis } from '@element-plus/icons-vue';
 
 const route = useRoute();
 const layoutStore = useLayoutStore();

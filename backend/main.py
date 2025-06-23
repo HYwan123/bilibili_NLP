@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import Depends, FastAPI, HTTPException, status, APIRouter
+from fastapi import Depends, FastAPI, HTTPException, status, APIRouter, BackgroundTasks
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -13,6 +13,7 @@ import json
 import bilibili
 import database
 import sql_use
+import comment_analysis
 
 # --- Configuration ---
 SECRET_KEY = "your_super_secret_key"
@@ -348,6 +349,111 @@ async def get_user_analysis(uid: int, current_user: User = Depends(get_current_u
             
     except Exception as e:
         print(f"获取分析结果失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取失败: {str(e)}', 'data': None}
+        )
+
+# --- Background Task for Comment Analysis ---
+def run_comment_analysis_task(bv_id: str, job_id: str):
+    """
+    The actual analysis function that runs in the background.
+    """
+    redis_handler = sql_use.SQL_redis()
+    try:
+        # 1. Update status: Fetching comments
+        status_update = {"status": "Processing", "progress": 20, "details": f"正在获取视频 {bv_id} 的评论..."}
+        redis_handler.set_job_status(job_id, status_update)
+        
+        comments = bilibili.select_by_BV(bv_id)
+        if not comments:
+            raise ValueError(f"未找到视频 {bv_id} 的评论数据，请检查BV号是否正确或稍后再试。")
+
+        # 2. Update status: Analyzing comments
+        status_update = {"status": "Processing", "progress": 60, "details": f"已获取 {len(comments)} 条评论，正在进行AI分析..."}
+        redis_handler.set_job_status(job_id, status_update)
+
+        analysis_result = comment_analysis.analyze_bv_comments(bv_id, comments)
+        
+        if "error" in analysis_result:
+             raise Exception(analysis_result["error"])
+        
+        # 3. Update status: Completed
+        status_update = {
+            "status": "Completed", 
+            "progress": 100, 
+            "details": f"视频 {bv_id} 评论分析完成",
+            "result": analysis_result
+        }
+        redis_handler.set_job_status(job_id, status_update)
+
+    except Exception as e:
+        error_message = f"评论分析任务失败: {e}"
+        print(error_message)
+        status_update = {"status": "Failed", "progress": 100, "details": error_message}
+        redis_handler.set_job_status(job_id, status_update)
+    finally:
+        # Task finished, always release the lock
+        lock_key = f"lock:analyze_bv:{bv_id}"
+        redis_handler.release_lock(lock_key)
+        print(f"Released lock for BV: {bv_id}")
+
+# --- 评论分析相关API ---
+@api_router.post("/comments/analyze/submit/{bv_id}")
+async def submit_comment_analysis_job(bv_id: str, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user)):
+    """
+    Submits a comment analysis job. Checks for cached results first.
+    If no cache, runs the job in the background and prevents duplicates with a lock.
+    """
+    # 1. Check for a cached result first
+    cached_result = comment_analysis.get_bv_analysis(bv_id)
+    if cached_result:
+        print(f"Cache hit for analysis of BV: {bv_id}. Returning cached result.")
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={'code': 200, 'message': '已从缓存获取分析结果', 'data': cached_result}
+        )
+        
+    # 2. If no cache, proceed with locking and job submission
+    redis_handler = sql_use.SQL_redis()
+    lock_key = f"lock:analyze_bv:{bv_id}"
+    job_id = f"analyze_bv_{bv_id}_{uuid.uuid4().hex[:8]}"
+    
+    if not redis_handler.acquire_lock(lock_key, job_id, timeout=300):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={'code': 409, 'message': '该视频的分析任务已在进行中，请稍后再试。', 'data': None}
+        )
+
+    background_tasks.add_task(run_comment_analysis_task, bv_id, job_id)
+    
+    return JSONResponse(
+        status_code=202, # HTTP 202 Accepted
+        content={'code': 202, 'message': '分析任务已提交，将在后台进行处理。', 'data': {'job_id': job_id}}
+    )
+
+@api_router.get("/comments/analysis/{bv_id}")
+async def get_comment_analysis(bv_id: str, current_user: User = Depends(get_current_user)):
+    """
+    获取指定BV视频的评论分析结果
+    """
+    try:
+        from comment_analysis import get_bv_analysis
+        result = get_bv_analysis(bv_id)
+        
+        if result:
+            return JSONResponse(
+                status_code=200,
+                content={'code': 200, 'message': 'success', 'data': result}
+            )
+        else:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到评论分析结果', 'data': None}
+            )
+            
+    except Exception as e:
+        print(f"获取评论分析结果失败: {e}")
         return JSONResponse(
             status_code=500,
             content={'code': 500, 'message': f'获取失败: {str(e)}', 'data': None}

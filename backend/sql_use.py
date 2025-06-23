@@ -39,6 +39,10 @@ class SQL_redis:
                 print(f"Failed to connect to Redis: {e}")
                 self.redis_client = None
 
+    def get_client(self) -> Optional[redis.Redis]:
+        """Returns the raw Redis client instance."""
+        return self.redis_client
+
     def redis_insert(self, name: str, value: List[Dict[str, Any]]):
         if not self.redis_client: return
         serialized_value = json.dumps(value)
@@ -64,6 +68,21 @@ class SQL_redis:
         if value:
             return json.loads(value)
         return None
+
+    def acquire_lock(self, lock_key: str, value: str, timeout: int = 300) -> bool:
+        """
+        Tries to acquire a lock using SET NX.
+        Returns True if the lock was acquired, False otherwise.
+        """
+        if not self.redis_client:
+            return False
+        # set with nx=True makes it atomic.
+        return self.redis_client.set(lock_key, value, ex=timeout, nx=True)
+
+    def release_lock(self, lock_key: str):
+        """Releases the specified lock."""
+        if self.redis_client:
+            self.redis_client.delete(lock_key)
 
     def __del__(self):
         if hasattr(self, 'redis_client') and self.redis_client:

@@ -26,6 +26,12 @@ const router = createRouter({
           component: () => import('../views/sub-pages/CommentQuery.vue')
         },
         {
+          path: 'comment-analysis',
+          name: 'comment-analysis',
+          component: () => import('../views/sub-pages/CommentAnalysis.vue'),
+          meta: { title: '评论分析', requiresAuth: true }
+        },
+        {
           path: 'structure',
           name: 'structure',
           component: () => import('../views/sub-pages/AiStructure.vue')

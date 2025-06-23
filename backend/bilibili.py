@@ -3,7 +3,6 @@ import json
 import sql_use
 from typing import List, Optional, Dict, Any
 import subprocess
-import vector_db
 import os
 import aiohttp
 import asyncio
@@ -109,12 +108,12 @@ def user_select(uid: int, job_id: str) -> Optional[List[Dict[str, Any]]]:
     
     # 5. Perform vector analysis and storage
     try:
-        # Step 5a: Process texts, embed, and store in Milvus. This is the correct function name.
-        vector_db.process_and_store_comments(uid, user_comments)
+        # Step 5a: 以前这里会处理文本并存储到Milvus，现已移除
+        # vector_db.process_and_store_comments(uid, user_comments)
         
-        # Step 5b: Calculate the average vector after storing.
-        avg_vector = vector_db.get_user_avg_vector(uid)
-        avg_vector_list = avg_vector.tolist() if avg_vector.size > 0 else []
+        # Step 5b: 以前这里会计算平均向量，现已移除
+        # avg_vector = vector_db.get_user_avg_vector(uid)
+        avg_vector_list = []
 
     except Exception as e:
         print(f"Vector analysis for UID {uid} failed: {e}")
@@ -344,7 +343,7 @@ def select_by_BV(BV: str) -> List[dict]:
 
     # 2. If cache miss, fetch from source
     print(f"Cache miss for BV: {BV}. Fetching from source.")
-    new_comments = get_comments(BV, 1)  # Fetch first page of comments
+    new_comments = get_comments(BV, 10)  # Fetch first page of comments
 
     # 3. Store in cache if data is fetched
     if new_comments:

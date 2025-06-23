@@ -62,4 +62,26 @@ export function userAnalysis(uid: string | number) {
     url: `/api/user/analysis/${uid}`,
     method: 'post'
   })
+}
+
+/**
+ * 提交评论分析任务
+ * @param bv_id BV视频ID
+ */
+export function submitCommentAnalysis(bv_id: string) {
+  return request({
+    url: `/api/comments/analyze/submit/${bv_id}`,
+    method: 'post'
+  })
+}
+
+/**
+ * 获取指定BV视频的评论分析结果 (从缓存中)
+ * @param bv_id BV视频ID
+ */
+export function getCommentAnalysis(bv_id: string) {
+  return request({
+    url: `/api/comments/analysis/${bv_id}`,
+    method: 'get'
+  })
 } 

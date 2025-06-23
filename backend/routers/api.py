@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 import sql_use
 import database
-import vector_db
 import uuid
 import json
 
