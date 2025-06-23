@@ -30,10 +30,7 @@
         <el-icon><Document /></el-icon>
         <span>用户画像分析</span>
       </el-menu-item>
-      <el-menu-item index="/structure">
-        <el-icon><DataLine /></el-icon>
-        <template #title><span>AI 结构</span></template>
-      </el-menu-item>
+
 
 
     </el-menu>

@@ -3,6 +3,7 @@ from mysql.connector import errorcode
 from passlib.context import CryptContext
 from typing import List, Dict, Any
 import json
+import redis
 # --- Configuration ---
 DB_CONFIG = {
     'user': 'wan',
@@ -219,6 +220,7 @@ def get_history_by_user(user_id: int):
     
     # Use dictionary=True to get rows as dicts
     cursor = conn.cursor(dictionary=True)
+    redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
     
     try:
         # First, get the username from user_id
@@ -245,13 +247,36 @@ def get_history_by_user(user_id: int):
         cursor.execute("SELECT uuid as uid, job_id, time as query_time FROM uuid_history WHERE user = %s ORDER BY time DESC", (username,))
         uuid_history = cursor.fetchall()
         
-        # Convert datetime objects to string for JSON serialization
-        for item in bv_history:
-            if 'query_time' in item and hasattr(item['query_time'], 'isoformat'):
-                item['query_time'] = item['query_time'].isoformat()
+        bv_history = [dict(row) for row in bv_history]
+        uuid_history = [dict(row) for row in uuid_history]
+        # 为每条uuid_history补充sample_comments
         for item in uuid_history:
-            if 'query_time' in item and hasattr(item['query_time'], 'isoformat'):
-                item['query_time'] = item['query_time'].isoformat()
+            item['sample_comments'] = []
+            job_id = item.get('job_id')
+            if job_id:
+                # 先查 job_status:{job_id}，再查 {uid}_result
+                redis_keys = [f"job_status:{job_id}", f"{item['uid']}_result", f"analysis_{item['uid']}"]
+                for key in redis_keys:
+                    data = redis_client.get(key)
+                    if data:
+                        try:
+                            result = json.loads(data)
+                            sc = result.get('sample_comments')
+                            if isinstance(sc, list):
+                                item['sample_comments'] = sc
+                                break
+                        except Exception:
+                            continue
+        # Convert datetime objects to string for JSON serialization
+        from datetime import datetime
+        for item in bv_history:
+            if isinstance(item, dict) and 'query_time' in item:
+                if isinstance(item['query_time'], datetime):
+                    item['query_time'] = item['query_time'].isoformat()
+        for item in uuid_history:
+            if isinstance(item, dict) and 'query_time' in item:
+                if isinstance(item['query_time'], datetime):
+                    item['query_time'] = item['query_time'].isoformat()
 
     except mysql.connector.Error as err:
         print(f"Failed to get history by user: {err}")

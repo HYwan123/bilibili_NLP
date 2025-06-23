@@ -44,12 +44,18 @@
             {{ analysisResult.analysis }}
           </div>
         </div>
-        <div v-if="analysisResult.sample_comments && analysisResult.sample_comments.length > 0" style="margin-top: 15px;">
+        <div v-if="sampleCommentsToShow.length > 0" style="margin-top: 15px;">
           <h4>样本评论:</h4>
-          <el-table :data="analysisResult.sample_comments" style="width: 100%;">
+          <el-table :data="sampleCommentsToShow" style="width: 100%;">
             <el-table-column type="index" width="50" />
-            <el-table-column prop="comment_text" label="评论内容" />
+            <el-table-column v-if="isStringArray" label="评论内容">
+              <template #default="scope">{{ scope.row }}</template>
+            </el-table-column>
+            <el-table-column v-else prop="comment_text" label="评论内容" />
           </el-table>
+          <div v-if="showExpandBtn" style="margin-top: 8px; text-align: right;">
+            <el-button size="small" @click="toggleExpand">{{ expanded ? '收起' : '展开全部' }}</el-button>
+          </div>
         </div>
       </el-card>
     </div>
@@ -61,13 +67,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import request from '@/utils/request';
 
 const searchUid = ref('');
 const loading = ref(false);
 const error = ref('');
 const analysisResult = ref<any>(null);
+
+const expanded = ref(false);
+const maxShow = 3;
+
+const isStringArray = computed(() => {
+  const arr = analysisResult.value?.sample_comments;
+  return Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'string';
+});
+
+const sampleCommentsToShow = computed(() => {
+  const arr = analysisResult.value?.sample_comments || [];
+  if (!expanded.value) {
+    return arr.slice(0, maxShow);
+  }
+  return arr;
+});
+
+const showExpandBtn = computed(() => {
+  const arr = analysisResult.value?.sample_comments || [];
+  return arr.length > maxShow;
+});
+
+const toggleExpand = () => {
+  expanded.value = !expanded.value;
+};
 
 const searchAnalysis = async () => {
   if (!searchUid.value) {
@@ -78,6 +109,7 @@ const searchAnalysis = async () => {
   loading.value = true;
   error.value = '';
   analysisResult.value = null;
+  expanded.value = false;
   
   try {
     const res = await request.get(`/api/user/analysis/${searchUid.value}`);
