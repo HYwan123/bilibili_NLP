@@ -2,7 +2,7 @@ import mysql.connector
 from mysql.connector import errorcode
 from passlib.context import CryptContext
 from typing import List, Dict, Any
-
+import json
 # --- Configuration ---
 DB_CONFIG = {
     'user': 'wan',
@@ -43,6 +43,21 @@ def get_user_by_username(username: str):
     conn.close()
     return user
 
+def get_user_report(username: str):
+    """Fetches a single user from the database by their username."""
+    conn = get_db_connection()
+    if not conn:
+        return None
+    
+    cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM report_history"
+    cursor.execute(query)
+    uuids = cursor.fetchone()
+    
+    cursor.close()
+    conn.close()
+    return uuids
+
 def create_user(username: str, password: str):
     """Creates a new user in the database."""
     conn = get_db_connection()
@@ -64,6 +79,34 @@ def create_user(username: str, password: str):
     finally:
         cursor.close()
         conn.close()
+
+
+
+def add_report_history(uid: int):
+    """Adds a BV search to the user's history."""
+    conn = get_db_connection()
+    if not conn:
+        return False
+    
+    try:
+        cursor = conn.cursor()
+        query = """
+            INSERT INTO report_history (uid)
+            VALUES (%s)
+        """
+        
+        cursor.execute(query, (uid,))
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Failed to insert report history: {e}")
+        return False
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
 
 # --- History Management Functions ---
 

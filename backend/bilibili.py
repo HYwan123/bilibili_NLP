@@ -12,6 +12,11 @@ from datetime import datetime
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
+
+def lpush(uid: int) -> bool:
+    redis_client.lpush('uids', uid)
+    return True
+
 def get_url(BV: str, page: int) -> str:
     url_base = ('https://api.bilibili.com/x/v2/reply/main?')
     url_page = (f'next={page}&type=1&')
