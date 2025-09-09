@@ -277,7 +277,7 @@ class CommentAnalyzer:
         data = redis_client.get(f"comment_analysis_{bv_id}")
         if data:
             try:
-                return json.loads(data)
+                return json.loads(data) # type: ignore
             except Exception as e:
                 print(f"Redis数据解析失败: {e}")
                 return {}

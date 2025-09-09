@@ -35,7 +35,7 @@ class SQL_redis:
                 self.redis_client = redis.Redis(host=host, port=port, db=db, decode_responses=False)
                 self.redis_client.ping()
                 print("Successfully connected to Redis.")
-            except redis.exceptions.ConnectionError as e:
+            except redis.exceptions.ConnectionError as e: # type: ignore
                 print(f"Failed to connect to Redis: {e}")
                 self.redis_client = None
 
@@ -48,11 +48,29 @@ class SQL_redis:
         serialized_value = json.dumps(value)
         self.redis_client.set(name, serialized_value)
 
+    def redis_select_by_key(self, name: str) -> Any:
+        if not self.redis_client: return None
+        return self.redis_client.get(name)
+
+    def redis_set_by_key(self, name: str, value: Any) -> bool:
+        if not self.redis_client: return False
+        self.redis_client.set(name, value)
+        return True
+
+    def redis_value_add(self, name: str) -> bool:
+        try:
+            tmp = int(self.redis_select_by_key(name))
+            tmp += 1
+            self.redis_set_by_key(name, tmp)
+            return True
+        except:
+            return False
+
     def redis_select(self, name: str) -> Optional[List[Dict[str, Any]]]:
         if not self.redis_client: return None
         serialized_value = self.redis_client.get(name)
         if serialized_value:
-            return json.loads(serialized_value)
+            return json.loads(serialized_value) # type: ignore
         return None
 
     def set_job_status(self, job_id: str, status: Dict[str, Any], ttl: int = 3600):
@@ -66,7 +84,7 @@ class SQL_redis:
         key = f"job_status:{job_id}"
         value = self.redis_client.get(key)
         if value:
-            return json.loads(value)
+            return json.loads(value) # type: ignore
         return None
 
     def acquire_lock(self, lock_key: str, value: str, timeout: int = 300) -> bool:
@@ -77,7 +95,7 @@ class SQL_redis:
         if not self.redis_client:
             return False
         # set with nx=True makes it atomic.
-        return self.redis_client.set(lock_key, value, ex=timeout, nx=True)
+        return self.redis_client.set(lock_key, value, ex=timeout, nx=True) # type: ignore
 
     def release_lock(self, lock_key: str):
         """Releases the specified lock."""

@@ -80,7 +80,7 @@ def analyze_user_comments(uid: int) -> Dict[str, Any]:
         }
         
         print(f"开始分析用户 {uid} 的评论...")
-        response = requests.post(api_url, headers=headers, json=data, timeout=60)
+        response = requests.post(api_url, headers=headers, json=data, timeout=160)
         
         if response.status_code == 200:
             result = response.json()

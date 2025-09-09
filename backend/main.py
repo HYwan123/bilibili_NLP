@@ -14,16 +14,17 @@ import bilibili
 import database
 import sql_use
 import comment_analysis
+import recommendation_model
 
-# --- Configuration ---
+#密钥,用于认证
 SECRET_KEY = "your_super_secret_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-# --- FastAPI App Initialization ---
+#run
 app = FastAPI()
-
-# --- CORS Middleware ---
+global_redis = sql_use.SQL_redis()
+#CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -32,7 +33,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- Pydantic Models ---
+#数据包模型
 class UserBase(BaseModel):
     username: str
 
@@ -52,7 +53,7 @@ class TokenData(BaseModel):
     username: Optional[str] = None
     id: Optional[int] = None
 
-# --- Security and Authentication ---
+#登陆相关
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/user/login")
 
@@ -130,13 +131,10 @@ def register_user(user_data: UserCreate):
 @api_router.get("/select/{BV}")
 async def select_BV(BV: str, current_user: User = Depends(get_current_user)):
     result = bilibili.select_by_BV(BV)
-    
-    # Prepare data for history record
+    global_redis.redis_value_add('leiji')
     if result:
-        # Extract comment texts and create a summary
         comment_texts = [comment.get('comment_text', '') for comment in result if comment.get('comment_text')]
         if comment_texts:
-            # Create a summary of the first few comments (limit to avoid too long data)
             summary = f"爬取到 {len(comment_texts)} 条评论，前3条: " + " | ".join(comment_texts[:3])
             if len(comment_texts) > 3:
                 summary += f" ... (还有 {len(comment_texts) - 3} 条)"
@@ -144,14 +142,40 @@ async def select_BV(BV: str, current_user: User = Depends(get_current_user)):
             summary = "未获取到评论内容"
     else:
         summary = "查询失败，未获取到数据"
-    
-    # Add to history with the summary data
     database.add_bv_history(BV, current_user.username, summary)
     
     if result:
         return JSONResponse(status_code=200, content={'code': 200, 'message': 'success', 'data': result})
     else:
         return JSONResponse(status_code=404, content={'code': 404, 'message': 'Not Found', 'data': None})
+
+@api_router.get("/history_data")
+async def history_data():
+
+
+    history_data = {
+        "leiji": int(global_redis.redis_select_by_key('leiji')), # type: ignore
+        "chuli": int(global_redis.redis_select_by_key('chuli')), # type: ignore
+        "huaxiang": int(global_redis.redis_select_by_key('huaxiang')) # type: ignore
+    }
+    return JSONResponse(
+        status_code=200,
+        content={'code': 200, 'message': 'success', 'data': history_data}
+    )
+
+@api_router.get("/get_cookies")
+async def get_cookies():
+
+
+    cookies = {
+        "cookie": str(global_redis.redis_select_by_key('cookie')), # type: ignore
+        "video_select_cookie": str(global_redis.redis_select_by_key('video_select_cookie')), # type: ignore
+
+    }
+    return JSONResponse(
+        status_code=200,
+        content={'code': 200, 'message': 'success', 'data': cookies}
+    )
 
 @api_router.get("/history")
 async def get_history(current_user: User = Depends(get_current_user)):
@@ -166,8 +190,18 @@ async def get_uids(current_user: User = Depends(get_current_user)):
     data = database.get_user_report()
     return {"code": 200, "data": data, "message": "成功"}
 
+class CookieData(BaseModel):
+    cookie: str
+
+@api_router.post("/change_cookie_user")
+async def change_user_cookie(data: CookieData):
+    print(data.cookie)
+    return {"code": 200, "message": "修改成功"}
+
 @api_router.post("/user/comments/{uid}")
 async def get_user_comments(uid: int, current_user: User = Depends(get_current_user)):
+    global_redis.redis_value_add('leiji')
+    
     """
     直接获取用户评论并保存到数据库
     """
@@ -244,6 +278,7 @@ async def get_saved_user_comments(uid: int, current_user: User = Depends(get_cur
 
 @api_router.get("/user/comments/redis/{uid}")
 async def get_user_comments_redis(uid: int, current_user: User = Depends(get_current_user)):
+    global_redis.redis_value_add('leiji')
     """
     从Redis获取已保存的用户评论数据
     """
@@ -272,6 +307,7 @@ async def analyze_user_portrait(uid: int, current_user: User = Depends(get_curre
     """
     分析用户评论，生成用户画像
     """
+    global_redis.redis_value_add('huaxiang')
     bilibili.lpush(uid)
     
         
@@ -287,14 +323,14 @@ async def analyze_user_portrait(uid: int, current_user: User = Depends(get_curre
         else:
             return JSONResponse(
                 status_code=404,
-                content={'code': 404, 'message': '未找到分析结果可能还在分析中', 'data': None}
+                content={'code': 404, 'message': '未找到分析结果可能还在分析中', 'data': '分析中'}
             )
             
     except Exception as e:
         print(f"获取分析结果失败: {e}")
         return JSONResponse(
             status_code=500,
-            content={'code': 500, 'message': f'获取失败: {str(e)}', 'data': None}
+            content={'code': 500, 'message': f'获取失败: {str(e)}', 'data': '出错了'}
         )
 
 
@@ -329,6 +365,7 @@ async def analyze_user_portrait(uid: int, current_user: User = Depends(get_curre
 """
 @api_router.get("/user/analysis/{uid}")
 async def get_user_analysis(uid: int, current_user: User = Depends(get_current_user)):
+    global_redis.redis_value_add('huaxiang')
     """
     获取用户画像分析结果
     """
@@ -406,6 +443,7 @@ async def submit_comment_analysis_job(bv_id: str, background_tasks: BackgroundTa
     If no cache, runs the job in the background and prevents duplicates with a lock.
     """
     # 1. Check for a cached result first
+    global_redis.redis_value_add('chuli')
     cached_result = comment_analysis.get_bv_analysis(bv_id)
     if cached_result:
         print(f"Cache hit for analysis of BV: {bv_id}. Returning cached result.")
@@ -434,6 +472,7 @@ async def submit_comment_analysis_job(bv_id: str, background_tasks: BackgroundTa
 
 @api_router.get("/comments/analysis/{bv_id}")
 async def get_comment_analysis(bv_id: str, current_user: User = Depends(get_current_user)):
+    global_redis.redis_value_add('chuli')
     """
     获取指定BV视频的评论分析结果
     """
@@ -457,6 +496,117 @@ async def get_comment_analysis(bv_id: str, current_user: User = Depends(get_curr
         return JSONResponse(
             status_code=500,
             content={'code': 500, 'message': f'获取失败: {str(e)}', 'data': None}
+        )
+
+# --- 内容推荐相关API ---
+@api_router.post("/recommendations/generate/{uid}")
+async def generate_user_recommendations(uid: int, current_user: User = Depends(get_current_user)):
+    global_redis.redis_value_add('chuli')
+    """
+    为指定用户生成内容推荐
+    """
+    try:
+        # 获取用户评论数据
+        comments = database.get_user_comments(uid)
+        
+        if not comments:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到该用户的评论数据，请先获取用户评论', 'data': None}
+            )
+        
+        # 生成推荐
+        result = recommendation_model.recommend_for_user(uid, comments)
+        
+        # 记录推荐历史
+        database.add_uuid_history(uid, current_user.username, f"rec_{uid}", f"为用户 {uid} 生成了 {result['total_recommendations']} 个推荐")
+        
+        return JSONResponse(
+            status_code=200,
+            content={'code': 200, 'message': '推荐生成成功', 'data': result}
+        )
+        
+    except Exception as e:
+        print(f"生成推荐失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'生成推荐失败: {str(e)}', 'data': None}
+        )
+
+@api_router.get("/recommendations/{uid}")
+async def get_user_recommendations(uid: int, current_user: User = Depends(get_current_user)):
+    """
+    获取用户的推荐结果
+    """
+    try:
+        model = recommendation_model.ContentRecommendationModel()
+        recommendations = model.get_recommendations_from_redis(uid)
+        
+        if recommendations:
+            return JSONResponse(
+                status_code=200,
+                content={'code': 200, 'message': 'success', 'data': recommendations}
+            )
+        else:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到推荐结果，请先生成推荐', 'data': None}
+            )
+            
+    except Exception as e:
+        print(f"获取推荐失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取推荐失败: {str(e)}', 'data': None}
+        )
+
+@api_router.get("/recommendations/preferences/{uid}")
+async def get_user_preferences(uid: int, current_user: User = Depends(get_current_user)):
+    """
+    获取用户偏好分析结果
+    """
+    try:
+        # 获取用户评论数据
+        comments = database.get_user_comments(uid)
+        
+        if not comments:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到该用户的评论数据', 'data': None}
+            )
+        
+        # 分析用户偏好
+        model = recommendation_model.ContentRecommendationModel()
+        preferences = model.analyze_user_preferences(comments)
+        
+        return JSONResponse(
+            status_code=200,
+            content={'code': 200, 'message': 'success', 'data': preferences}
+        )
+        
+    except Exception as e:
+        print(f"获取用户偏好失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取用户偏好失败: {str(e)}', 'data': None}
+        )
+
+@api_router.get("/recommendations/sample-videos")
+async def get_sample_videos(current_user: User = Depends(get_current_user)):
+    """
+    获取示例视频数据
+    """
+    try:
+        sample_videos = recommendation_model.get_sample_video_data()
+        return JSONResponse(
+            status_code=200,
+            content={'code': 200, 'message': 'success', 'data': sample_videos}
+        )
+    except Exception as e:
+        print(f"获取示例视频失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取示例视频失败: {str(e)}', 'data': None}
         )
 
 # --- Mount Routers to the App ---

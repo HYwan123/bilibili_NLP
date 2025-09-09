@@ -4,6 +4,7 @@ from passlib.context import CryptContext
 from typing import List, Dict, Any
 import json
 import redis
+
 # --- Configuration ---
 DB_CONFIG = {
     'user': 'wan',
@@ -125,7 +126,7 @@ def add_bv_history(bv: str, username: str, data: str = "BV comment query"):
     # Check if BV_history table has a data column
     try:
         cursor.execute("DESCRIBE BV_history")
-        columns = [column[0] for column in cursor.fetchall()]  # Use index access for non-dictionary cursor
+        columns = [column[0] for column in cursor.fetchall()]  # type: ignore # Use index access for non-dictionary cursor
         has_data_column = 'data' in columns
         
         if has_data_column:
@@ -204,8 +205,8 @@ def get_uuid_history(username: str):
         history = cursor.fetchall()
         # Convert datetime objects to string for JSON serialization
         for item in history:
-            if 'time' in item and hasattr(item['time'], 'isoformat'):
-                item['time'] = item['time'].isoformat()
+            if 'time' in item and hasattr(item['time'], 'isoformat'): # type: ignore
+                item['time'] = item['time'].isoformat() # type: ignore
         return history
     except mysql.connector.Error as err:
         print(f"Failed to get UID history: {err}")
@@ -229,41 +230,41 @@ def get_history_by_user(user_id: int):
         if not user_result:
             return {"bv_history": [], "uuid_history": []}
         
-        username = user_result['username']
+        username = user_result['username'] # type: ignore
         
         # Fetch BV history - using username instead of user_id
         # Check if BV_history table has a data column
         cursor.execute("DESCRIBE BV_history")
-        columns = [column['Field'] for column in cursor.fetchall()]
+        columns = [column['Field'] for column in cursor.fetchall()] # type: ignore
         has_data_column = 'data' in columns
         
         if has_data_column:
-            cursor.execute("SELECT BV as bv, time as query_time, data FROM BV_history WHERE user = %s ORDER BY time DESC", (username,))
+            cursor.execute("SELECT BV as bv, time as query_time, data FROM BV_history WHERE user = %s ORDER BY time DESC", (username,)) # type: ignore
         else:
-            cursor.execute("SELECT BV as bv, time as query_time FROM BV_history WHERE user = %s ORDER BY time DESC", (username,))
+            cursor.execute("SELECT BV as bv, time as query_time FROM BV_history WHERE user = %s ORDER BY time DESC", (username,)) # type: ignore
         bv_history = cursor.fetchall()
 
         # Fetch UID history - using username instead of user_id
-        cursor.execute("SELECT uuid as uid, job_id, time as query_time FROM uuid_history WHERE user = %s ORDER BY time DESC", (username,))
+        cursor.execute("SELECT uuid as uid, job_id, time as query_time FROM uuid_history WHERE user = %s ORDER BY time DESC", (username,)) # type: ignore
         uuid_history = cursor.fetchall()
         
-        bv_history = [dict(row) for row in bv_history]
-        uuid_history = [dict(row) for row in uuid_history]
+        bv_history = [dict(row) for row in bv_history] # type: ignore
+        uuid_history = [dict(row) for row in uuid_history] # type: ignore
         # 为每条uuid_history补充sample_comments
         for item in uuid_history:
-            item['sample_comments'] = []
-            job_id = item.get('job_id')
+            item['sample_comments'] = [] # type: ignore
+            job_id = item.get('job_id') # type: ignore
             if job_id:
                 # 先查 job_status:{job_id}，再查 {uid}_result
-                redis_keys = [f"job_status:{job_id}", f"{item['uid']}_result", f"analysis_{item['uid']}"]
+                redis_keys = [f"job_status:{job_id}", f"{item['uid']}_result", f"analysis_{item['uid']}"] # type: ignore
                 for key in redis_keys:
                     data = redis_client.get(key)
                     if data:
                         try:
-                            result = json.loads(data)
+                            result = json.loads(data) # type: ignore
                             sc = result.get('sample_comments')
                             if isinstance(sc, list):
-                                item['sample_comments'] = sc
+                                item['sample_comments'] = sc # type: ignore
                                 break
                         except Exception:
                             continue
@@ -271,12 +272,12 @@ def get_history_by_user(user_id: int):
         from datetime import datetime
         for item in bv_history:
             if isinstance(item, dict) and 'query_time' in item:
-                if isinstance(item['query_time'], datetime):
-                    item['query_time'] = item['query_time'].isoformat()
+                if isinstance(item['query_time'], datetime): # type: ignore
+                    item['query_time'] = item['query_time'].isoformat() # type: ignore
         for item in uuid_history:
             if isinstance(item, dict) and 'query_time' in item:
-                if isinstance(item['query_time'], datetime):
-                    item['query_time'] = item['query_time'].isoformat()
+                if isinstance(item['query_time'], datetime): # type: ignore
+                    item['query_time'] = item['query_time'].isoformat() # type: ignore
 
     except mysql.connector.Error as err:
         print(f"Failed to get history by user: {err}")
@@ -353,7 +354,7 @@ def get_user_comments(uid: int) -> List[Dict[str, Any]]:
         comments = cursor.fetchall()
         
         # 转换为标准格式
-        result = [{'comment_text': comment['comment_text']} for comment in comments]
+        result = [{'comment_text': comment['comment_text']} for comment in comments] # type: ignore
         return result
         
     except mysql.connector.Error as err:

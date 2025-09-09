@@ -19,21 +19,33 @@ def lpush(uid: int) -> bool:
 def get_url(BV: str, page: int) -> str:
     url_base = ('https://api.bilibili.com/x/v2/reply/main?')
     url_page = (f'next={page}&type=1&')
-    url_BV = (f'oid={BV}&mode=3')
+    url_BV = (f'oid={BV}&mode=3&ps=20')
     return url_base+url_page+url_BV
 
+def get_cookie() -> str:
+    return redis_client.get('cookie') # type: ignore
+
+def set_cookie(cookie: str) -> None:
+    redis_client.set('cookie', cookie)
+
 def get_comments(BV: str, page_many: int) -> list[dict]:
+    try:
+        cookie = get_cookie()
+        print(cookie)
+    except:
+        cookie = "buvid3=44209DC6-8F36-21E9-E2DD-293916C709B523950infoc; b_nut=1756613223; _uuid=68AB106DE-B678-F26C-B1F9-97947CA5ED6266013infoc; enable_web_push=DISABLE; buvid4=785B80FE-5720-9135-61F3-62A87F54713024946-025083112-gbmnyNGGAgQhJoYQQQoq2A%3D%3D; bili_jct=986fbe7483bb350ca6b1e8a5564347ab; DedeUserID=66143532; DedeUserID__ckMd5=71c2b65aa4ec6104; theme-tip-show=SHOWED; theme-avatar-tip-show=SHOWED; theme-switch-show=SHOWED; theme_style=dark; hit-dyn-v2=1; rpdid=|(um~kJRmkl)0J'u~lYYRlRYm; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTcwNzQzOTQsImlhdCI6MTc1NjgxNTEzNCwicGx0IjotMX0.HTMOpZSE4oDOH3TM3KP2vyuClhY80DxOSPtwSbSwXIY; bili_ticket_expires=1757074334; CURRENT_QUALITY=116; fingerprint=c538929c04b4400b1cc8cd12b5f1597b; buvid_fp_plain=undefined; buvid_fp=c538929c04b4400b1cc8cd12b5f1597b; bp_t_offset_66143532=1108380039457538048; b_lsid=437B19E9_19911FE1E25; bmg_af_switch=1; bmg_src_def_domain=i0.hdslb.com; bsource=search_google; sid=579q033f; CURRENT_FNVAL=4048; home_feed_column=5; browser_resolution=1412-985"
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/xx.xx.xx.xx Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
         'Referer': f'https://www.bilibili.com/video/{BV}',
         'Accept-Language': 'zh-CN,zh;q=0.9',
         'Connection': 'keep-alive',
-        'Cookie': "buvid3=22F3D67F-CD39-FF6A-7ADB-33AD9046131D92805infoc; b_nut=1723609892; _uuid=5210472E10-F387-9210E-1B22-E11734F8229591662infoc; enable_web_push=DISABLE; rpdid=|(JYYkYR)~m)0J'u~kJY|mm|~; buvid4=92701556-67AA-8ED4-2B50-61B34E41F4CC78670-023093020-wBy%2Br%2Fnp5uiSs%2BjLtOaZpQ%3D%3D; buvid_fp_plain=undefined; hit-dyn-v2=1; LIVE_BUVID=AUTO3517264644735245; is-2022-channel=1; DedeUserID=66143532; DedeUserID__ckMd5=71c2b65aa4ec6104; SESSDATA=b33bc351%2C1752329042%2Cc4d71%2A11CjBE8WxfW-PJf5Y1wosSGSl3LJ8uyWtCYscDS0t6i2sk0z7vnJ3wVU-dEYle2JzxdiQSVjVWWkRIX0tOd0M2eUR3dmhSdnZObzlqMWhKelIySHpTYXVUcFJBRXN4Z0hna0Jfam4zUW1sQ0J4ZHkxTEpja0RGWWhrMGhSSEdBVnlGbE44SHA5MFNBIIEC; bili_jct=872ea96c57ed1e5f46c12b685c1f6dbd; enable_feed_channel=ENABLE; header_theme_version=OPEN; theme-tip-show=SHOWED; theme-avatar-tip-show=SHOWED; CURRENT_QUALITY=120; bili_ticket=eyJhbGciOiJIUzI1NiIsImtpZCI6InMwMyIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDk5ODU3NjYsImlhdCI6MTc0OTcyNjUwNiwicGx0IjotMX0.4SmgtVyrkjAnxLbJFXcuRLnOhO3E0vdKa5u_VujC6OQ; bili_ticket_expires=1749985706; home_feed_column=5; b_lsid=45E46954_1976E1B5F4D; fingerprint=656ce9aa7b0b83bb03761b98efd43ea9; sid=8qeu1cpx; browser_resolution=2552-1330; bp_t_offset_66143532=1078307369940680704; buvid_fp=656ce9aa7b0b83bb03761b98efd43ea9; PVID=2; CURRENT_FNVAL=4048"
-    }
+        'Cookie': cookie
+        }
     comments = []
     for page in range(page_many):
         request_output = requests.get(get_url(BV, page), headers = headers)
         request_output.encoding = 'utf-8'
+        print(request_output.text)
         text2json = json.loads(request_output.text)
         if text2json['message'] == '0':
             if text2json['data']['replies']:
@@ -329,23 +341,23 @@ async def user_select_simple_async(uid: int, job_id: str) -> Optional[List[Dict[
 
 def select_by_BV(BV: str) -> List[dict]:
     """
-    Selects comments for a given Bilibili video BV ID.
-    First, it checks for cached data in Redis. If not found,
-    it fetches the comments, caches them, and then returns them.
+    根据指定的 Bilibili 视频 BV 号获取评论。
+    函数会先检查 Redis 中是否有缓存数据；
+    如果有，则直接返回缓存数据；
+    如果没有，则从源接口获取评论，并写入缓存，再返回结果。
     """
     sql_redis_handler = sql_use.SQL_redis()
-    
-    # 1. Check cache first
+    # 1. 先检查缓存
     cached_data = sql_redis_handler.redis_select(BV)
     if cached_data:
         print(f"Cache hit for BV: {BV}")
         return cached_data
 
-    # 2. If cache miss, fetch from source
+    # 2. 如果缓存未命中，则从源获取
     print(f"Cache miss for BV: {BV}. Fetching from source.")
-    new_comments = get_comments(BV, 10)  # Fetch first page of comments
+    new_comments = get_comments(BV, 20)  # Fetch first page of comments
 
-    # 3. Store in cache if data is fetched
+    # 3. 如果获取到了评论，就写入缓存
     if new_comments:
         print(f"Storing {len(new_comments)} new comments for BV: {BV} in cache.")
         sql_redis_handler.redis_insert(BV, new_comments)
