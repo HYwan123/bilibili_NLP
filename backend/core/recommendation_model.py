@@ -9,7 +9,7 @@ import jieba
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
-import sql_use
+import core.sql_use as sql_use
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
