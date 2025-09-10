@@ -1,5 +1,5 @@
 import uuid
-from fastapi import Depends, FastAPI, HTTPException, status, APIRouter, BackgroundTasks
+from fastapi import Depends, status, APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse
 
 from api.user import get_current_user
@@ -189,38 +189,9 @@ async def analyze_user_portrait(uid: int, current_user: User = Depends(get_curre
     分析用户评论，生成用户画像
     """
     global_redis.redis_value_add('huaxiang')
-    bilibili.lpush(uid)
     
-        
     try:
-        from core.bilibili import get_user_analysis_from_redis
-        result = get_user_analysis_from_redis(uid)
-        
-        if result:
-            return JSONResponse(
-                status_code=200,
-                content={'code': 200, 'message': 'success', 'data': result}
-            )
-        else:
-            return JSONResponse(
-                status_code=404,
-                content={'code': 404, 'message': '未找到分析结果可能还在分析中', 'data': '分析中'}
-            )
-            
-    except Exception as e:
-        print(f"获取分析结果失败: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={'code': 500, 'message': f'获取失败: {str(e)}', 'data': '出错了'}
-        )
-
-
-"""
-@router.post("/user/analyze/{uid}")
-async def analyze_user_portrait(uid: int, current_user: User = Depends(get_current_user)):
-
-    try:
-        from bilibili import analyze_user_comments
+        from core.bilibili import analyze_user_comments
         result = analyze_user_comments(uid)
         
         if "error" in result:
@@ -239,11 +210,7 @@ async def analyze_user_portrait(uid: int, current_user: User = Depends(get_curre
         return JSONResponse(
             status_code=500,
             content={'code': 500, 'message': f'分析失败: {str(e)}', 'data': None}
-
-
-
-
-"""
+        )
 @router.get("/user/analysis/{uid}")
 async def get_user_analysis(uid: int, current_user: User = Depends(get_current_user)):
     global_redis.redis_value_add('huaxiang')

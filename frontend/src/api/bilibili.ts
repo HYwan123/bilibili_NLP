@@ -8,6 +8,21 @@ export function getComments(bv: string) {
   })
 }
 
+export function getCookies() {
+  return request({
+    url: `/api/get_cookies`,
+    method: 'get'
+  })
+}
+
+export function changeUserCookie(cookie: string) {
+  return request({
+    url: `/api/change_cookie_user`,
+    method: 'post' ,
+    data: { cookie }
+  })
+}
+
 export function getuids() {
   return request({
     url: `/api/get_uids`,
@@ -62,7 +77,7 @@ export function userAnalysis(uid: string | number) {
     url: `/api/user/analysis/${uid}`,
     method: 'post'
   })
-}
+} 
 
 /**
  * 提交评论分析任务
@@ -84,4 +99,65 @@ export function getCommentAnalysis(bv_id: string) {
     url: `/api/comments/analysis/${bv_id}`,
     method: 'get'
   })
-} 
+}
+
+
+export function get_history_data() {
+  return request({
+    url: `/api/history_data`,
+    method: 'get'
+  })
+}
+
+/**
+ * 为指定用户生成内容推荐
+ * @param uid 用户ID
+ */
+export function generateUserRecommendations(uid: number) {
+  return request({
+    url: `/api/recommendations/generate/${uid}`,
+    method: 'post'
+  })
+}
+
+/**
+ * 获取用户的推荐结果
+ * @param uid 用户ID
+ */
+export function getUserRecommendations(uid: number) {
+  return request({
+    url: `/api/recommendations/${uid}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 获取用户偏好分析结果
+ * @param uid 用户ID
+ */
+export function getUserPreferences(uid: number) {
+  return request({
+    url: `/api/recommendations/preferences/${uid}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 获取可用的用户ID列表
+ */
+export function getAvailableUids() {
+  return request({
+    url: '/api/get_uids',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取示例视频数据
+ */
+export function getSampleVideos() {
+  return request({
+    url: '/api/recommendations/sample-videos',
+    method: 'get'
+  })
+}

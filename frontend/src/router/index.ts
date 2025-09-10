@@ -18,8 +18,13 @@ const router = createRouter({
     {
       path: '/',
       component: Layout,
-      redirect: '/query',
+      redirect: '/home',
       children: [
+        {
+          path: 'home',
+          name: 'home',
+          component: () => import('../views/Home.vue')
+        },
         {
           path: 'query',
           name: 'query',
@@ -57,6 +62,12 @@ const router = createRouter({
           name: 'AnalysisHistory',
           component: () => import('@/views/sub-pages/AnalysisHistory.vue'),
           meta: { title: '分析记录', requiresAuth: true }
+        },
+        {
+          path: 'content-recommendation',
+          name: 'ContentRecommendation',
+          component: () => import('@/views/sub-pages/ContentRecommendation.vue'),
+          meta: { title: '内容推荐', requiresAuth: true }
         }
       ]
     }

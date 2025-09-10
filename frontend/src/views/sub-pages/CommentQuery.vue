@@ -1,4 +1,19 @@
 <template>
+
+
+  <el-card class="cookie_view">
+    
+    <el-collapse v-model="viewUserCookie" @change="getCookie">
+      <el-collapse-item title="查看cookie" name="1">
+          <el-text>{{ cookie_user }}</el-text>
+          <br></br>
+          <el-button type="primary" @click="open">修改cookie</el-button>
+        </el-collapse-item>
+    </el-collapse>
+    {{ message_ }}
+</el-card>
+
+    <br></br>
   <el-card class="page-container">
     <template #header>
       <div class="card-header">
@@ -25,12 +40,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { getComments } from '@/api/bilibili';
+import { onMounted, ref } from 'vue';
+import { changeUserCookie, getComments, getCookies } from '@/api/bilibili';
 import { ElMessage } from 'element-plus';
 
 const bv = ref('');
 const comments = ref([]);
+const cookie_user = ref('');
+const viewUserCookie = ref(0)
+const message_ = ref('')
+
+const getCookie = async () => {
+  try {
+    const cookie_all = await getCookies();
+    cookie_user.value = cookie_all.data.cookie
+
+  } catch (error) {
+    console.error('Failed to fetch comments:', error);
+    ElMessage.error('查询失败');
+    cookie_user.value = "can not get cookie";
+  }
+};
+
+
 
 const fetchComments = async () => {
   if (!bv.value) {
@@ -45,6 +77,33 @@ const fetchComments = async () => {
     ElMessage.error('查询失败');
   }
 };
+
+const open = () => {
+  ElMessageBox.prompt('请输入新cookie', 'Tip', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputErrorMessage: 'cookie错误',
+  })
+    .then(async({ value }) => {
+      ElMessage({
+        type: 'success',
+        message: `Your email is:${value}`,
+      })
+      const result = await changeUserCookie(value);
+      message_.value = result.message || '暂无cookie';
+    })
+    .catch(() => {
+      ElMessage({
+        type: 'info',
+        message: 'Input canceled',
+      })
+    })
+}
+
+
+
+
+
 </script>
 
 <style scoped>
