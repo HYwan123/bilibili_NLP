@@ -649,9 +649,9 @@ def get_sample_video_data() -> List[Dict[str, Any]]:
                 "category": "科技",
                 "description": "爬取失败",
                 "view_count": 150000,
-                "pub_date": "2024-01-15T10:00:00Z",
+                "pub_date": "2025-09-15T10:00:00Z",
                 "author": "爬取失败",
-                "duration": "45:30",
+                "duration": "1145:14",
                 "pic": "",
                 "tag": "编程,Python,教程",
                 "keyword": "编程"

@@ -1,3 +1,4 @@
+import httpx
 import requests
 import json
 import core.sql_use as sql_use
@@ -7,7 +8,6 @@ import aiohttp
 import asyncio
 import redis
 from datetime import datetime
-
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
@@ -425,10 +425,18 @@ def get_user_comments_from_redis(uid: int) -> List[Dict[str, Any]]:
             return []
     return []
 
-def analyze_user_comments(uid: int) -> Dict[str, Any]:
+async def analyze_user_comments(uid: int) -> Dict[str, Any]:
     """
     使用大模型API分析用户评论，生成用户画像
     """
+    print("调用分析画像函数")
+    if redis_client.exists(f"analysis_{uid}"):
+        return {"msg": "分析过了"}
+    if uid == int(redis_client.get('last_huaxiang')): # type: ignore
+        print("重复提交")
+        return {"msg": "已经在分析了"}
+    redis_client.set('last_huaxiang', uid)
+
     try:
         # 从Redis获取评论
         comments = get_user_comments_from_redis(uid)
@@ -480,7 +488,8 @@ def analyze_user_comments(uid: int) -> Dict[str, Any]:
         }
         
         print(f"开始分析用户 {uid} 的评论...")
-        response = requests.post(api_url, headers=headers, json=data, timeout=60)
+        async with httpx.AsyncClient(timeout=600.0) as client:
+            response = await client.post(api_url, headers=headers, json=data)
         
         if response.status_code == 200:
             result = response.json()
@@ -508,11 +517,14 @@ def analyze_user_comments(uid: int) -> Dict[str, Any]:
     except Exception as e:
         print(f"分析用户评论时发生错误: {e}")
         return {"error": f"分析失败: {str(e)}"}
+    finally:
+        redis_client.set('last_huaxiang', 0)
 
 def get_user_analysis_from_redis(uid: int) -> Dict[str, Any]:
     """
     从Redis获取用户画像分析结果，优先查找{uid}_result，其次查analysis_{uid}
     """
+
     data = redis_client.get(f"{uid}_result")
     if not data:
         data = redis_client.get(f"analysis_{uid}")

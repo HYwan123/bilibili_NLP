@@ -192,14 +192,18 @@ async def analyze_user_portrait(uid: int, current_user: User = Depends(get_curre
     
     try:
         from core.bilibili import analyze_user_comments
-        result = analyze_user_comments(uid)
+        result = await analyze_user_comments(uid)
         
         if "error" in result:
             return JSONResponse(
                 status_code=400,
                 content={'code': 400, 'message': result["error"], 'data': None}
             )
-        
+        if "msg" in result:
+            return JSONResponse(
+                status_code=200,
+                content={'code': 200, 'message': result["msg"], 'data': global_redis.redis_select(f"analysis_{uid}")}
+            )
         return JSONResponse(
             status_code=200,
             content={'code': 200, 'message': '分析完成', 'data': result}

@@ -6,6 +6,9 @@ import re
 from datetime import datetime
 import jieba
 import redis
+import httpx
+from transformers import pipeline
+
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
@@ -103,7 +106,7 @@ class CommentAnalyzer:
                 "temperature": 0.3
             }
             
-            response = requests.post(self.api_url, headers=self.headers, json=data, timeout=30)
+            response = requests.post(self.api_url, headers=self.headers, json=data, timeout=300)
             
             if response.status_code == 200:
                 result = response.json()

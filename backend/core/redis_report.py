@@ -139,8 +139,8 @@ def create_report() -> None:
             print("分析过了")       
         else:
             if uid is not None:
-                analyze_user_portrait(uid)
-                database.add_report_history(uid)
+                analyze_user_portrait(uid) # type: ignore
+                database.add_report_history(uid) # type: ignore
 
     r.close()
 
