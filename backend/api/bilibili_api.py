@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 from fastapi import Depends, status, APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse
@@ -76,7 +77,7 @@ async def get_uids(current_user: User = Depends(get_current_user)):
 
 @router.post("/change_cookie_user")
 async def change_user_cookie(data: CookieData):
-    print(data.cookie)
+    global_redis.redis_set_by_key('cookie', data.cookie)
     return {"code": 200, "message": "修改成功"}
 
 @router.post("/user/comments/{uid}")
@@ -96,7 +97,7 @@ async def get_user_comments(uid: int, current_user: User = Depends(get_current_u
             print(f"成功获取 {len(comments)} 条评论，准备保存到数据库")
             # 保存到数据库
             success = database.save_user_comments(uid, current_user.username, comments)
-            
+            database.add_report_history(uid)
             if success:
                 print(f"评论数据已成功保存到数据库")
                 return JSONResponse(
@@ -244,7 +245,7 @@ async def get_user_analysis(uid: int, current_user: User = Depends(get_current_u
         )
 
 # --- Background Task for Comment Analysis ---
-def run_comment_analysis_task(bv_id: str, job_id: str):
+async def run_comment_analysis_task(bv_id: str, job_id: str):
     """
     The actual analysis function that runs in the background.
     """
@@ -262,7 +263,7 @@ def run_comment_analysis_task(bv_id: str, job_id: str):
         status_update = {"status": "Processing", "progress": 60, "details": f"已获取 {len(comments)} 条评论，正在进行AI分析..."}
         redis_handler.set_job_status(job_id, status_update)
 
-        analysis_result = comment_analysis.analyze_bv_comments(bv_id, comments)
+        analysis_result = await comment_analysis.analyze_bv_comments(bv_id, comments)
         
         if "error" in analysis_result:
              raise Exception(analysis_result["error"])

@@ -7,6 +7,7 @@ import router from '@/router';
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL, // Use environment variables for base URL
   timeout: 600000, // Request timeout，60秒
+  withCredentials: true, // Enable credentials for cross-origin requests
 });
 
 // Request interceptor
@@ -66,4 +67,4 @@ service.interceptors.response.use(
   }
 );
 
-export default service; 
+export default service;

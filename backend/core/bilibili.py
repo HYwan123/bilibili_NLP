@@ -8,6 +8,7 @@ import aiohttp
 import asyncio
 import redis
 from datetime import datetime
+import core.database as database_mysql
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 
@@ -109,6 +110,7 @@ def user_select(uid: int, job_id: str) -> Optional[List[Dict[str, Any]]]:
     try:
         # 存储原始评论数据到Redis，键为uid
         redis_handler.redis_insert(str(uid), user_comments)
+
         print(f"Stored {len(user_comments)} comments for UID {uid} in Redis cache")
     except Exception as e:
         print(f"Failed to store comments in Redis for UID {uid}: {e}")
@@ -355,7 +357,7 @@ def select_by_BV(BV: str) -> List[dict]:
 
     # 2. 如果缓存未命中，则从源获取
     print(f"Cache miss for BV: {BV}. Fetching from source.")
-    new_comments = get_comments(BV, 20)  # Fetch first page of comments
+    new_comments = get_comments(BV, 10)  # Fetch first page of comments
 
     # 3. 如果获取到了评论，就写入缓存
     if new_comments:

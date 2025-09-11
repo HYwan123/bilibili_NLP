@@ -13,7 +13,7 @@ from passlib.context import CryptContext
 #密钥,用于认证
 SECRET_KEY = "your_super_secret_key"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 300000
 
 #登陆相关
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
