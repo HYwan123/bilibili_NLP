@@ -7,7 +7,7 @@ from api import user, bilibili_api
 
 #run
 app = FastAPI()
-#CORS
+#CORS - Allow all domains and IPs
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Allow all origins

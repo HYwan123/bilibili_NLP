@@ -57,6 +57,7 @@ router = APIRouter()
 
 @router.post("/login")
 def login_for_access_token(form_data: UserCreate):
+    print(form_data)
     user_dict = database.get_user_by_username(username=form_data.username)
     if not user_dict or not isinstance(user_dict, dict) or 'password' not in user_dict or not verify_password(form_data.password, user_dict['password']):
         return JSONResponse(
