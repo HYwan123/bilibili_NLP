@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    EChartsWrapper: typeof import('./src/components/charts/EChartsWrapper.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElButton: typeof import('element-plus/es')['ElButton']
@@ -41,10 +42,15 @@ declare module 'vue' {
     ElTag: typeof import('element-plus/es')['ElTag']
     ElText: typeof import('element-plus/es')['ElText']
     ErrorStates: typeof import('./src/components/common/ErrorStates.vue')['default']
+    KeywordBarChart: typeof import('./src/components/charts/KeywordBarChart.vue')['default']
+    KeywordCloudChart: typeof import('./src/components/charts/KeywordCloudChart.vue')['default']
     LoadingStates: typeof import('./src/components/common/LoadingStates.vue')['default']
     ModernCharts: typeof import('./src/components/charts/ModernCharts.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SentimentPieChart: typeof import('./src/components/charts/SentimentPieChart.vue')['default']
+    TrendLineChart: typeof import('./src/components/charts/TrendLineChart.vue')['default']
+    UserActivityChart: typeof import('./src/components/charts/UserActivityChart.vue')['default']
   }
   export interface GlobalDirectives {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

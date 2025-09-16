@@ -4,7 +4,7 @@ from fastapi import Depends, status, APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse
 
 from api.user import get_current_user
-from core import bilibili, comment_analysis, database, recommendation_model, sql_use
+from core import bilibili, comment_analysis, database, recommendation_model, sql_use, bge_base_use, bilibili_video_info
 from schemas.api import CookieData
 from schemas.user import User
 
@@ -461,3 +461,35 @@ async def get_sample_videos(current_user: User = Depends(get_current_user)):
             status_code=500,
             content={'code': 500, 'message': f'获取示例视频失败: {str(e)}', 'data': None}
         )
+# --- 内容推荐相关API(V2) ---
+@router.post("/start_tuijian/{uid}")
+async def video_by_user(uid: str, current_user: User = Depends(get_current_user)):
+    global_redis.redis_value_add('chuli')
+ 
+    result = bge_base_use.get_tuijian_bvs(uid)
+    if result is not None:
+        global_redis.redis_set_by_key(f'{uid}_videos', result)
+        return JSONResponse(
+            status_code=200,
+            content={'code': 200, 'message': '推荐生成成功', 'data': result}
+        )
+          
+    else:
+        return JSONResponse(
+            status_code=404,
+            content={'code': 404, 'message': '推荐生成失败'}
+        )
+
+@router.get("/get_tuijian_video_info/{BVid}")
+async def get_video_by_user(uid: int, current_user: User = Depends(get_current_user)):
+    global_redis.redis_value_add('chuli')
+
+    bv_dict = {}
+    bvs = global_redis.redis_select_by_key(f'{uid}_videos')
+    for bv in bvs:
+        bv_dict[bv] = bilibili_video_info.get_video_info(bv)
+    return JSONResponse(
+            status_code=200,
+            content={'code': 200, 'message': '获取成功', 'data': bv_dict}
+        )
+

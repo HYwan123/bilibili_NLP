@@ -63,23 +63,14 @@ def get_comments(BV: str, page_many: int) -> list[dict]:
     return comments
 
 def user_select(uid: int, job_id: str) -> Optional[List[Dict[str, Any]]]:
-    """
-    Fetches user comments via an external API using curl, stores them, 
-    performs vector analysis, and updates job status in Redis.
-    """
     redis_handler = sql_use.SQL_redis()
-
-    # 1. Update status: Fetching comments
     status_update = {"status": "Processing", "progress": 40, "details": f"正在通过cURL获取用户 {uid} 的评论..."}
     redis_handler.set_job_status(job_id, status_update)
-
-    # 2. Fetch comments using curl via subprocess
     try:
         api_url = f'https://api.aicu.cc/api/v3/search/getreply?uid={uid}&ps=100&pn=1&mode=0&keyword='
-        # Using a list of arguments is safer. Add a User-Agent header to mimic a browser.
         command = [
             'curl',
-            '-s', # Silent mode
+            '-s',
             '-H', 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
             api_url
         ]
@@ -106,27 +97,18 @@ def user_select(uid: int, job_id: str) -> Optional[List[Dict[str, Any]]]:
         print(f"An unexpected error occurred during comment fetching for UID {uid}: {e}")
         raise Exception(f"获取评论时发生未知错误: {e}")
 
-    # 3. 将用户评论数据直接存储到Redis，键为uid
     try:
-        # 存储原始评论数据到Redis，键为uid
+        
         redis_handler.redis_insert(str(uid), user_comments)
 
         print(f"Stored {len(user_comments)} comments for UID {uid} in Redis cache")
     except Exception as e:
         print(f"Failed to store comments in Redis for UID {uid}: {e}")
-        # 不中断流程，继续执行
 
-    # 4. Update status: Processing and storing vectors
     status_update = {"status": "Processing", "progress": 70, "details": "获取评论成功，正在进行AI分析和存储..."}
     redis_handler.set_job_status(job_id, status_update)
     
-    # 5. Perform vector analysis and storage
     try:
-        # Step 5a: 以前这里会处理文本并存储到Milvus，现已移除
-        # vector_db.process_and_store_comments(uid, user_comments)
-        
-        # Step 5b: 以前这里会计算平均向量，现已移除
-        # avg_vector = vector_db.get_user_avg_vector(uid)
         avg_vector_list = []
 
     except Exception as e:
@@ -541,6 +523,7 @@ def get_user_analysis_from_redis(uid: int) -> Dict[str, Any]:
             print(f"Redis分析数据解析失败: {e}")
             return {}
     return {}
+
 
 def main():
     """测试函数"""

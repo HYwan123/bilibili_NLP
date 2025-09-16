@@ -58,28 +58,7 @@
         <template #header>
           <span>情感分析</span>
         </template>
-        <div class="sentiment-stats">
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <div class="sentiment-item negative">
-                <div class="sentiment-number">{{ analysisResult.sentiment_analysis?.negative || 0 }}</div>
-                <div class="sentiment-label">负面评论</div>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <div class="sentiment-item neutral">
-                <div class="sentiment-number">{{ analysisResult.sentiment_analysis?.neutral || 0 }}</div>
-                <div class="sentiment-label">中性评论</div>
-              </div>
-            </el-col>
-            <el-col :span="8">
-              <div class="sentiment-item positive">
-                <div class="sentiment-number">{{ analysisResult.sentiment_analysis?.positive || 0 }}</div>
-                <div class="sentiment-label">正面评论</div>
-              </div>
-            </el-col>
-          </el-row>
-        </div>
+        <SentimentPieChart :data="analysisResult.sentiment_analysis" width="100%" height="400px" />
         
         <!-- 评论示例 -->
         <div class="comment-examples" v-if="getCommentExamples.length > 0">
@@ -120,31 +99,59 @@
         <template #header>
           <span>关键词分析</span>
         </template>
-        <div class="keyword-section">
+        
+        <!-- 高频词汇显示 -->
+        <div class="keyword-section" v-if="analysisResult.keyword_analysis.top_keywords">
           <h4>高频词汇</h4>
           <div class="keyword-list">
-            <el-tag 
-              v-for="keyword in analysisResult.keyword_analysis.top_keywords?.slice(0, 10)" 
-              :key="keyword.word"
+            <el-tag
+              v-for="(keyword, index) in analysisResult.keyword_analysis.top_keywords.slice(0, 20)"
+              :key="index"
               class="keyword-tag"
-              :style="{ fontSize: getKeywordSize(keyword.count) }"
+              :size="getKeywordSize(keyword.count)"
+              type="primary"
             >
               {{ keyword.word }} ({{ keyword.count }})
             </el-tag>
           </div>
         </div>
+
+        <!-- 高频词汇词云 -->
+        <div class="keyword-section" v-if="analysisResult.keyword_analysis.top_keywords">
+          <h4>高频词汇词云</h4>
+          <KeywordCloudChart 
+            :data="analysisResult.keyword_analysis.top_keywords"
+            title="高频词汇分布"
+            width="100%"
+            height="400px"
+          />
+        </div>
+
+        <!-- 高频短语显示 -->
         <div class="keyword-section" v-if="analysisResult.keyword_analysis.top_phrases">
           <h4>高频短语</h4>
           <div class="keyword-list">
-            <el-tag 
-              v-for="phrase in analysisResult.keyword_analysis.top_phrases?.slice(0, 8)" 
-              :key="phrase.phrase"
-              type="success"
+            <el-tag
+              v-for="(phrase, index) in analysisResult.keyword_analysis.top_phrases.slice(0, 20)"
+              :key="index"
               class="keyword-tag"
+              :size="getKeywordSize(phrase.count)"
+              type="success"
             >
               {{ phrase.phrase }} ({{ phrase.count }})
             </el-tag>
           </div>
+        </div>
+
+        <!-- 高频短语词云 -->
+        <div class="keyword-section" v-if="analysisResult.keyword_analysis.top_phrases">
+          <h4>高频短语词云</h4>
+          <KeywordCloudChart 
+            :data="analysisResult.keyword_analysis.top_phrases.map((p: any) => ({ word: p.phrase, count: p.count }))"
+            title="高频短语分布"
+            width="100%"
+            height="400px"
+          />
         </div>
       </el-card>
 
@@ -199,6 +206,8 @@ import { ref, reactive, onUnmounted, computed } from 'vue'
 import { submitCommentAnalysis } from '@/api/bilibili'
 import { getJobStatus } from '@/api/bilibili' // 引入查询状态的API
 import { ElMessage } from 'element-plus'
+import SentimentPieChart from '@/components/charts/SentimentPieChart.vue'
+import KeywordCloudChart from '@/components/charts/KeywordCloudChart.vue'
 
 
 const form = reactive({
@@ -345,9 +354,9 @@ const getSentimentText = (sentiment: string) => {
 }
 
 const getKeywordSize = (count: number) => {
-  if (count >= 10) return '16px'
-  if (count >= 5) return '14px'
-  return '12px'
+  if (count >= 10) return 'large'
+  if (count >= 5) return 'default'
+  return 'small'
 }
 
 // 获取所有评论示例
@@ -517,52 +526,6 @@ const handleSizeChange = (size: number) => {
   color: #666;
 }
 
-/* 情感分析样式 */
-.sentiment-stats {
-  margin-bottom: 20px;
-}
-
-.sentiment-item {
-  text-align: center;
-  padding: 20px;
-  border-radius: 8px;
-  background: #f8f9fa;
-}
-
-.sentiment-item.negative {
-  border-left: 4px solid #f56c6c;
-}
-
-.sentiment-item.neutral {
-  border-left: 4px solid #e6a23c;
-}
-
-.sentiment-item.positive {
-  border-left: 4px solid #67c23a;
-}
-
-.sentiment-number {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.sentiment-item.negative .sentiment-number {
-  color: #f56c6c;
-}
-
-.sentiment-item.neutral .sentiment-number {
-  color: #e6a23c;
-}
-
-.sentiment-item.positive .sentiment-number {
-  color: #67c23a;
-}
-
-.sentiment-label {
-  font-size: 14px;
-  color: #666;
-}
 
 .comment-examples {
   margin-top: 20px;

@@ -154,7 +154,7 @@ def add_bv_history(bv: str, username: str, data: str = "BV comment query"):
         cursor.close()
         conn.close()
 
-def add_uuid_history(uid: int, username: str, job_id: str, data: str = "User profile query"):
+def add_uuid_history(uid: int|str, username: str, job_id: str, data: str = "User profile query"):
     """Adds a UID search to the user's history, now including job_id."""
     conn = get_db_connection()
     if not conn: return
@@ -336,7 +336,7 @@ def save_user_comments(uid: int, username: str, comments: List[Dict[str, Any]]) 
         cursor.close()
         conn.close()
 
-def get_user_comments(uid: int) -> List[Dict[str, Any]]:
+def get_user_comments(uid: int|str) -> List[Dict[str, Any]]:
     """
     从数据库获取用户评论
     """
