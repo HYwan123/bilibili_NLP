@@ -52,7 +52,7 @@ const goToRegister = () => {
 const login = async () => {
   if (!username.value || !password.value) {
     ElMessage.error('请输入用户名和密码');
-    return;
+    return; 
   }
   try {
     const response = await loginApi({ username: username.value, password: password.value });

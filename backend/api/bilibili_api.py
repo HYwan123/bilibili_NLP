@@ -1,4 +1,5 @@
 import asyncio
+import json
 import uuid
 from fastapi import Depends, status, APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse
@@ -467,7 +468,9 @@ async def video_by_user(uid: str, current_user: User = Depends(get_current_user)
     global_redis.redis_value_add('chuli')
  
     result = bge_base_use.get_tuijian_bvs(uid)
+    print(result)
     if result is not None:
+        
         global_redis.redis_set_by_key(f'{uid}_videos', result)
         return JSONResponse(
             status_code=200,
@@ -480,16 +483,85 @@ async def video_by_user(uid: str, current_user: User = Depends(get_current_user)
             content={'code': 404, 'message': '推荐生成失败'}
         )
 
-@router.get("/get_tuijian_video_info/{BVid}")
+@router.get("/get_tuijian_video_info/{uid}")
 async def get_video_by_user(uid: int, current_user: User = Depends(get_current_user)):
     global_redis.redis_value_add('chuli')
 
-    bv_dict = {}
-    bvs = global_redis.redis_select_by_key(f'{uid}_videos')
-    for bv in bvs:
-        bv_dict[bv] = bilibili_video_info.get_video_info(bv)
-    return JSONResponse(
+    try:
+        # 从Redis获取存储的BV列表
+        bv_data = global_redis.redis_select_by_key(f'{uid}_videos')
+        if not bv_data:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '未找到该用户的推荐视频数据，请先生成推荐'}
+            )
+        
+        # 解析JSON数据
+        bvs = json.loads(bv_data)
+        bv_dict = {}
+        
+        # 获取每个BV号的视频信息
+        for bv in bvs:
+            video_info = bilibili_video_info.get_video_info(bv)
+            if video_info:
+                bv_dict[bv] = video_info
+        
+        return JSONResponse(
             status_code=200,
             content={'code': 200, 'message': '获取成功', 'data': bv_dict}
         )
+        
+    except json.JSONDecodeError:
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': '数据格式错误，无法解析推荐视频数据'}
+        )
+    except Exception as e:
+        print(f"获取视频详情失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取视频详情失败: {str(e)}'}
+        )
 
+@router.post("/insert_vector/{bv_id}")
+async def insert_vector_by_bv(bv_id: str, current_user: User = Depends(get_current_user)):
+    """
+    将指定BV号的视频标签向量插入到向量数据库
+    """
+    try:
+        bge_base_use.insert_vector_by_BV(bv_id)
+        return JSONResponse(
+            status_code=200,
+            content={'code': 200, 'message': '向量插入成功', 'data': {'bv_id': bv_id}}
+        )
+    except Exception as e:
+        print(f"插入向量失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'插入向量失败: {str(e)}'}
+        )
+
+@router.get("/video/info/{bv_id}")
+async def get_video_info(bv_id: str, current_user: User = Depends(get_current_user)):
+    """
+    获取单个视频的详细信息
+    """
+    try:
+        video_info = bilibili_video_info.get_video_info(bv_id)
+        print(video_info)
+        if video_info.get('msg') == 'OK':
+            return JSONResponse(
+                status_code=200,
+                content={'code': 200, 'message': 'success', 'data': video_info}
+            )
+        else:
+            return JSONResponse(
+                status_code=404,
+                content={'code': 404, 'message': '获取视频信息失败', 'data': None}
+            )
+    except Exception as e:
+        print(f"获取视频信息失败: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={'code': 500, 'message': f'获取视频信息失败: {str(e)}', 'data': None}
+        )

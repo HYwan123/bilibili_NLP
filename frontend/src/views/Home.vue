@@ -42,153 +42,6 @@
         </div>
       </div>
     </div>
-<!--
-
-    <div class="features-section container">
-      <h2 class="section-title text-center mb-4">核心功能</h2>
-      <div class="features-grid grid grid-3">
-        <div class="feature-card modern-card slide-in-right" @click="goTo('/comment-analysis')" style="animation-delay: 0.1s">
-          <div class="feature-icon-wrapper">
-            <el-icon class="feature-icon"><DataAnalysis /></el-icon>
-          </div>
-          <h3 class="feature-title">智能评论分析</h3>
-          <p class="feature-desc">
-            AI驱动的情感分析、关键词提取、用户活跃度统计，深度洞察评论数据
-          </p>
-          <div class="feature-tags">
-            <span class="tag">情感分析</span>
-            <span class="tag">关键词提取</span>
-            <span class="tag">质量评估</span>
-          </div>
-        </div>
-
-        <div class="feature-card modern-card slide-in-right" @click="goTo('/user-portrait')" style="animation-delay: 0.2s">
-          <div class="feature-icon-wrapper">
-            <el-icon class="feature-icon"><User /></el-icon>
-          </div>
-          <h3 class="feature-title">用户画像分析</h3>
-          <p class="feature-desc">
-            精准构建用户兴趣模型，分析行为偏好，生成个性化用户画像报告
-          </p>
-          <div class="feature-tags">
-            <span class="tag">行为分析</span>
-            <span class="tag">兴趣建模</span>
-            <span class="tag">偏好识别</span>
-          </div>
-        </div>
-
-        <div class="feature-card modern-card slide-in-right" @click="goTo('/content-recommendation')" style="animation-delay: 0.3s">
-          <div class="feature-icon-wrapper">
-            <el-icon class="feature-icon"><Star /></el-icon>
-          </div>
-          <h3 class="feature-title">智能内容推荐</h3>
-          <p class="feature-desc">
-            基于用户画像和内容分析，提供个性化内容推荐和创作建议
-          </p>
-          <div class="feature-tags">
-            <span class="tag">个性推荐</span>
-            <span class="tag">协同过滤</span>
-            <span class="tag">内容匹配</span>
-          </div>
-        </div>
-
-        <div class="feature-card modern-card slide-in-right" @click="goTo('/query')" style="animation-delay: 0.4s">
-          <div class="feature-icon-wrapper">
-            <el-icon class="feature-icon"><Search /></el-icon>
-          </div>
-          <h3 class="feature-title">视频评论查询</h3>
-          <p class="feature-desc">
-            快速获取任意BV号视频的评论数据，支持批量处理和数据导出
-          </p>
-          <div class="feature-tags">
-            <span class="tag">快速查询</span>
-            <span class="tag">批量处理</span>
-            <span class="tag">数据导出</span>
-          </div>
-        </div>
-
-        <div class="feature-card modern-card slide-in-right" @click="goTo('/history')" style="animation-delay: 0.5s">
-          <div class="feature-icon-wrapper">
-            <el-icon class="feature-icon"><Tickets /></el-icon>
-          </div>
-          <h3 class="feature-title">历史记录管理</h3>
-          <p class="feature-desc">
-            智能管理分析历史，支持搜索过滤、数据对比和趋势分析
-          </p>
-          <div class="feature-tags">
-            <span class="tag">历史追踪</span>
-            <span class="tag">数据对比</span>
-            <span class="tag">趋势分析</span>
-          </div>
-        </div>
-
-        <div class="feature-card modern-card slide-in-right" @click="goTo('/user-analysis')" style="animation-delay: 0.6s">
-          <div class="feature-icon-wrapper">
-            <el-icon class="feature-icon"><Document /></el-icon>
-          </div>
-          <h3 class="feature-title">用户行为分析</h3>
-          <p class="feature-desc">
-            深度分析用户评论行为模式，识别活跃用户和意见领袖
-          </p>
-          <div class="feature-tags">
-            <span class="tag">行为模式</span>
-            <span class="tag">影响力分析</span>
-            <span class="tag">社交网络</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-    <div class="advantages-section">
-      <div class="container">
-        <h2 class="section-title text-center mb-4">技术优势</h2>
-        <div class="advantages-grid grid grid-2">
-          <div class="advantage-item fade-in" style="animation-delay: 0.2s">
-            <div class="advantage-icon">🚀</div>
-            <h4>高效处理</h4>
-            <p>Redis缓存 + 异步任务队列，秒级响应大量数据处理</p>
-          </div>
-          <div class="advantage-item fade-in" style="animation-delay: 0.3s">
-            <div class="advantage-icon">🤖</div>
-            <h4>AI智能</h4>
-            <p>集成先进NLP模型，提供精准的情感分析和内容理解</p>
-          </div>
-          <div class="advantage-item fade-in" style="animation-delay: 0.4s">
-            <div class="advantage-icon">📊</div>
-            <h4>可视化</h4>
-            <p>丰富的图表展示，直观呈现数据分析结果和趋势</p>
-          </div>
-          <div class="advantage-item fade-in" style="animation-delay: 0.5s">
-            <div class="advantage-icon">🔒</div>
-            <h4>安全可靠</h4>
-            <p>完善的用户认证和数据保护机制，确保信息安全</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-    <div class="cta-section">
-      <div class="container text-center">
-        <h2 class="cta-title">开始您的数据分析之旅</h2>
-        <p class="cta-subtitle">几分钟内即可获得专业的B站数据分析报告</p>
-        <div class="cta-buttons">
-          <el-button 
-            type="primary" 
-            size="large" 
-            @click="goTo('/comment-analysis')"
-            class="cta-button modern-button"
-          >
-            立即开始分析
-          </el-button>
-
-        </div>
-      </div>
-    </div>
--->
-
-
   </div>
 </template>
 
@@ -209,10 +62,12 @@ const loadHistoryData = async () => {
     console.error('获取用户列表失败:', err)
   }
 }
-// 统计数据
-const totalAnalysis = computed(() => history_data.value?.leiji ?? 0)
-const totalComments = computed(() => history_data.value?.chuli ?? 0)
-const totalUsers = computed(() => history_data.value?.huaxiang ?? 0)
+
+const totalAnalysis = ref(0)
+const totalComments = ref(0)
+const totalUsers = ref(0)
+
+
 
 // 页面跳转
 const goTo = (path: string) => {
@@ -243,14 +98,15 @@ const animateNumber = (target: any, endValue: number, duration = 2000) => {
 };
 
 // 组件挂载后启动数字动画
-onMounted(() => {
+onMounted(async () => {
+  await loadHistoryData()
+
   setTimeout(() => {
-    loadHistoryData()
-    animateNumber(totalAnalysis, 1208, 2000);
-    animateNumber(totalComments, 45672, 2500);
-    animateNumber(totalUsers, 3456, 2200);
-  }, 800);
-});
+    animateNumber(totalAnalysis, history_data.value?.leiji ?? 0, 2000)
+    animateNumber(totalComments, history_data.value?.chuli ?? 0, 2500)
+    animateNumber(totalUsers, history_data.value?.huaxiang ?? 0, 2200)
+  }, 800)
+})
 </script>
 
 <style scoped>

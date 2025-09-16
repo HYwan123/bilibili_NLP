@@ -30,16 +30,6 @@ export default defineConfig({
     allowedHosts: [
       'hywan416.top'  // 允许访问的域名
     ],
-    proxy: {
-      // Proxying both /api and /user/ to the backend server
-      '/api': {
-        target: 'http://localhost:5480',
-        changeOrigin: true,
-      },
-      '/user/': {
-        target: 'http://localhost:5480',
-        changeOrigin: true,
-      }
-    }
+
   }
 })

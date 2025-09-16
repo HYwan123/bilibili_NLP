@@ -68,6 +68,12 @@ const router = createRouter({
           name: 'ContentRecommendation',
           component: () => import('@/views/sub-pages/ContentRecommendation.vue'),
           meta: { title: '内容推荐', requiresAuth: true }
+        },
+        {
+          path: 'new-recommendation',
+          name: 'NewRecommendation',
+          component: () => import('@/views/sub-pages/NewRecommendation.vue'),
+          meta: { title: '新版推荐', requiresAuth: true }
         }
       ]
     }

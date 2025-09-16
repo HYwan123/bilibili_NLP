@@ -54,6 +54,12 @@ class SQL_redis:
 
     def redis_set_by_key(self, name: str, value: Any) -> bool:
         if not self.redis_client: return False
+        # 序列化非基本类型的数据
+        if isinstance(value, (list, dict)):
+            value = json.dumps(value)
+        # 确保值是bytes类型
+        if isinstance(value, str):
+            value = value.encode('utf-8')
         self.redis_client.set(name, value)
         return True
 

@@ -70,6 +70,11 @@
           <el-icon class="menu-icon"><Star /></el-icon>
           <span class="menu-text">内容推荐</span>
         </el-menu-item>
+
+        <el-menu-item index="/new-recommendation" class="modern-menu-item">
+          <el-icon class="menu-icon"><MagicStick /></el-icon>
+          <span class="menu-text">新版推荐</span>
+        </el-menu-item>
       </el-menu>
 
       <!-- 数据管理组 -->
@@ -107,7 +112,8 @@ import {
   Star,
   TrendCharts,
   Expand,
-  Fold
+  Fold,
+  MagicStick
 } from '@element-plus/icons-vue';
 
 const route = useRoute();

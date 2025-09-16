@@ -161,3 +161,47 @@ export function getSampleVideos() {
     method: 'get'
   })
 }
+
+/**
+ * 为用户生成推荐视频BV号 (新API)
+ * @param uid 用户ID
+ */
+export function generateVideoRecommendations(uid: string) {
+  return request({
+    url: `/api/start_tuijian/${uid}`,
+    method: 'post'
+  })
+}
+
+/**
+ * 获取推荐视频的详细信息 (新API)
+ * @param uid 用户ID
+ */
+export function getRecommendedVideosInfo(uid: number) {
+  return request({
+    url: `/api/get_tuijian_video_info/${uid}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 将指定BV号的视频标签向量插入到向量数据库
+ * @param bv_id BV视频ID
+ */
+export function insertVectorByBV(bv_id: string) {
+  return request({
+    url: `/api/insert_vector/${bv_id}`,
+    method: 'post'
+  })
+}
+
+/**
+ * 获取单个视频的详细信息
+ * @param bv_id BV视频ID
+ */
+export function getVideoInfo(bv_id: string) {
+  return request({
+    url: `/api/video/info/${bv_id}`,
+    method: 'get'
+  })
+}

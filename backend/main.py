@@ -10,7 +10,7 @@ app = FastAPI()
 #CORS - Allow all domains and IPs
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins
+    allow_origin_regex=".*",   # Allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
