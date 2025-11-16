@@ -10,8 +10,8 @@
       <!-- 输入 UID -->
       <el-form :model="form" label-width="80px">
         <el-form-item label="用户UID">
-          <el-input 
-            v-model="form.uid" 
+          <el-input
+            v-model="form.uid"
             placeholder="请输入B站用户UID"
             :disabled="loading"
             clearable
@@ -50,7 +50,7 @@
       <!-- 用户画像分析结果 -->
       <div v-if="analysisResult" style="margin-top: 20px;">
         <h3>用户画像分析结果</h3>
-      
+
           <div v-if="analysisResult.uid">
             <p><strong>用户UID:</strong> {{ analysisResult.uid }}</p>
             <p><strong>评论数量:</strong> {{ analysisResult.comment_count }}</p>
@@ -58,9 +58,21 @@
           </div>
           <div v-if="analysisResult.analysis" style="margin-top: 15px;">
             <h4>分析内容:</h4>
-            <div v-html="md.render(analysisResult.analysis)" class="markdown-content"></div>
+            <!-- View mode toggle -->
+            <div style="margin-bottom: 10px;">
+              <el-radio-group v-model="viewMode" size="small">
+                <el-radio-button label="markdown">Markdown</el-radio-button>
+                <el-radio-button label="mindmap">思维导图</el-radio-button>
+              </el-radio-group>
+            </div>
+
+            <!-- Markdown view -->
+            <div v-if="viewMode === 'markdown'" v-html="md.render(analysisResult.analysis)" class="markdown-content"></div>
+
+            <!-- Mind map view -->
+            <svg v-if="viewMode === 'mindmap'" ref="mindmapContainer" class="mindmap-container"></svg>
           </div>
-       
+
       </div>
     </el-card>
   </div>
@@ -68,11 +80,15 @@
 
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, watch, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getUserComments, getSavedUserComments } from '@/api/bilibili';
 import request from '@/utils/request';
 import MarkdownIt from 'markdown-it';
+
+// Import markmap libraries
+import { Transformer } from 'markmap-lib';
+import { Markmap } from 'markmap-view';
 
 const form = ref({
   uid: '66143532',
@@ -89,7 +105,17 @@ const analysisResult = ref(null);
 const message = ref('');
 const messageType = ref('info');
 
+// View mode toggle
+const viewMode = ref('markdown');
+
+// Mind map refs
+const mindmapContainer = ref(null);
+let mm = null; // Markmap instance
+
 const md = new MarkdownIt();
+
+// Initialize markmap transformer
+const transformer = new Transformer();
 
 // 获取评论（实时）
 const fetchComments = async () => {
@@ -165,6 +191,11 @@ const analyzeUser = async () => {
     if (res.code === 200) {
       analysisResult.value = res.data;
       ElMessage.success('用户画像分析成功');
+      // Initialize mind map when analysis result is available
+      await nextTick();
+      if (viewMode.value === 'mindmap' && analysisResult.value.analysis) {
+        initializeMindMap(analysisResult.value.analysis);
+      }
     } else {
       ElMessage.error(res.message || '分析失败');
     }
@@ -189,6 +220,11 @@ const getHistoryAnalysis = async () => {
     if (res.code === 200) {
       analysisResult.value = res.data;
       ElMessage.success('历史分析结果加载成功');
+      // Initialize mind map when analysis result is available
+      await nextTick();
+      if (viewMode.value === 'mindmap' && analysisResult.value.analysis) {
+        initializeMindMap(analysisResult.value.analysis);
+      }
     } else {
       ElMessage.warning(res.message || '未找到历史记录');
     }
@@ -203,6 +239,60 @@ const formatTime = (timestamp) => {
   if (!timestamp) return '';
   return new Date(timestamp).toLocaleString('zh-CN');
 };
+
+// Initialize mind map with markdown content
+const initializeMindMap = async (markdownContent) => {
+  if (!mindmapContainer.value) return;
+
+  try {
+    // Transform markdown to markmap data
+    const { root } = transformer.transform(markdownContent);
+
+    if (!mm) {
+      // Create new markmap instance if it doesn't exist
+      mm = Markmap.create(mindmapContainer.value, null, root);
+    } else {
+      // Update existing markmap instance
+      await mm.setData(root);
+      mm.fit();
+    }
+  } catch (error) {
+    console.error('Error initializing mind map:', error);
+    ElMessage.error('思维导图初始化失败: ' + error.message);
+  }
+};
+
+// Watch for view mode changes
+watch(viewMode, async (newMode) => {
+  if (newMode === 'mindmap' && analysisResult.value && analysisResult.value.analysis) {
+    await nextTick();
+    initializeMindMap(analysisResult.value.analysis);
+  }
+});
+
+// Watch for analysis result changes
+watch(analysisResult, async (newResult) => {
+  if (viewMode.value === 'mindmap' && newResult && newResult.analysis) {
+    await nextTick();
+    initializeMindMap(newResult.analysis);
+  }
+});
+
+// Handle window resize for mind map
+onMounted(() => {
+  const handleResize = () => {
+    if (mm && viewMode.value === 'mindmap') {
+      mm.fit(); // Adjust mind map to fit container
+    }
+  };
+
+  window.addEventListener('resize', handleResize);
+
+  // Cleanup event listener
+  return () => {
+    window.removeEventListener('resize', handleResize);
+  };
+});
 </script>
 
 
@@ -274,5 +364,15 @@ const formatTime = (timestamp) => {
   padding-left: 16px;
   margin: 8px 0;
   color: #666;
+}
+
+.mindmap-container {
+  width: 100%;
+  height: 600px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+  background: white;
+  margin-top: 10px;
 }
 </style> 
