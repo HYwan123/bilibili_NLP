@@ -58,7 +58,7 @@
           </div>
           <div v-if="analysisResult.analysis" style="margin-top: 15px;">
             <h4>分析内容:</h4>
-            <div style="white-space: pre-line; line-height: 1.6;">{{ analysisResult.analysis }}</div>
+            <div v-html="md.render(analysisResult.analysis)" class="markdown-content"></div>
           </div>
        
       </div>
@@ -72,6 +72,7 @@ import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { getUserComments, getSavedUserComments } from '@/api/bilibili';
 import request from '@/utils/request';
+import MarkdownIt from 'markdown-it';
 
 const form = ref({
   uid: '66143532',
@@ -87,6 +88,8 @@ const analysisResult = ref(null);
 
 const message = ref('');
 const messageType = ref('info');
+
+const md = new MarkdownIt();
 
 // 获取评论（实时）
 const fetchComments = async () => {
@@ -220,5 +223,56 @@ const formatTime = (timestamp) => {
 
 .comments-section {
   margin-top: 20px;
+}
+
+.markdown-content {
+  line-height: 1.6;
+  padding: 10px 0;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.markdown-content p {
+  margin: 8px 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.markdown-content li {
+  margin: 4px 0;
+}
+
+.markdown-content code {
+  background-color: #f4f4f4;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-content pre {
+  background-color: #f4f4f4;
+  padding: 10px;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 16px;
+  margin: 8px 0;
+  color: #666;
 }
 </style> 
