@@ -33,7 +33,19 @@
         <p><strong>分析时间:</strong> {{ formatTime(analysisResult.timestamp) }}</p>
         <div class="analysis-section">
           <h4>分析内容:</h4>
-          <div v-html="md.render(analysisResult.analysis)" class="markdown-content"></div>
+          <!-- View mode toggle -->
+          <div style="margin-bottom: 10px;">
+            <el-radio-group v-model="viewMode" size="small">
+              <el-radio-button label="markdown">Markdown</el-radio-button>
+              <el-radio-button label="mindmap">思维导图</el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <!-- Markdown view -->
+          <div v-if="viewMode === 'markdown'" v-html="md.render(analysisResult.analysis)" class="markdown-content"></div>
+
+          <!-- Mind map view -->
+          <svg v-if="viewMode === 'mindmap'" ref="mindmapContainer" class="mindmap-container"></svg>
         </div>
         <div v-if="sampleCommentsToShow.length > 0" style="margin-top: 15px;">
           <h4>样本评论:</h4>
@@ -66,9 +78,14 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ElMessage } from 'element-plus';
 import request from '@/utils/request';
 import MarkdownIt from 'markdown-it';
+
+// Import markmap libraries
+import { Transformer } from 'markmap-lib';
+import { Markmap } from 'markmap-view';
 
 const uidList = ref<{ uid: string }[]>([]);
 const analysisResult = ref<any>(null);
@@ -76,6 +93,13 @@ const dialogVisible = ref(false);
 const loadingHistory = ref(false);
 
 const error = ref('');
+
+// View mode toggle
+const viewMode = ref('markdown');
+
+// Mind map refs
+const mindmapContainer = ref<SVGSVGElement | null>(null);
+let mm: any = null; // Markmap instance
 
 const expanded = ref(false);
 const maxShow = 3;
@@ -167,6 +191,8 @@ const fetchUidList = async () => {
   }
 };
 
+// Initialize markmap transformer
+const transformer = new Transformer();
 
 // 查看某个 UID 的分析结果
 const viewAnalysis = async (uid: string) => {
@@ -176,6 +202,11 @@ const viewAnalysis = async (uid: string) => {
       analysisResult.value = res.data;
       dialogVisible.value = true;
       expanded.value = false;
+      // Initialize mind map when analysis result is available
+      await nextTick();
+      if (viewMode.value === 'mindmap' && analysisResult.value?.analysis) {
+        initializeMindMap(analysisResult.value.analysis);
+      }
     } else {
       error.value = res.message || '未找到分析记录';
     }
@@ -187,7 +218,50 @@ const viewAnalysis = async (uid: string) => {
 const handleCloseDialog = () => {
   dialogVisible.value = false;
   analysisResult.value = null;
+  // Clean up mind map instance
+  if (mm) {
+    mm.destroy?.();
+    mm = null;
+  }
 };
+
+// Initialize mind map with markdown content
+const initializeMindMap = async (markdownContent: string) => {
+  if (!mindmapContainer.value) return;
+
+  try {
+    // Transform markdown to markmap data
+    const { root } = transformer.transform(markdownContent);
+
+    if (!mm) {
+      // Create new markmap instance if it doesn't exist
+      mm = Markmap.create(mindmapContainer.value, null, root);
+    } else {
+      // Update existing markmap instance
+      await mm.setData(root);
+      mm.fit();
+    }
+  } catch (error) {
+    console.error('Error initializing mind map:', error);
+    ElMessage.error('思维导图初始化失败: ' + (error as Error).message);
+  }
+};
+
+// Watch for view mode changes
+watch(viewMode, async (newMode) => {
+  if (newMode === 'mindmap' && analysisResult.value && analysisResult.value.analysis) {
+    await nextTick();
+    initializeMindMap(analysisResult.value.analysis);
+  }
+});
+
+// Watch for analysis result changes
+watch(analysisResult, async (newResult) => {
+  if (viewMode.value === 'mindmap' && newResult && newResult.analysis) {
+    await nextTick();
+    initializeMindMap(newResult.analysis);
+  }
+});
 
 const md = new MarkdownIt();
 
@@ -290,5 +364,15 @@ onMounted(async () => {
   padding-left: 16px;
   margin: 8px 0;
   color: #666;
+}
+
+.mindmap-container {
+  width: 100%;
+  height: 500px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+  background: white;
+  margin-top: 10px;
 }
 </style>
