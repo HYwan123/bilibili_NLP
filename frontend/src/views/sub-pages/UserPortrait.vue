@@ -9,7 +9,7 @@
         <template #default="{ row }">
           <div v-if="commentPreviewMap[row.uid] && commentPreviewMap[row.uid].length > 0">
             <div v-for="(comment, idx) in commentPreviewMap[row.uid]" :key="idx" class="preview-comment">
-              <span style="color: #999;">{{ idx+1 }}.</span> {{ comment.comment_text }}
+              <span style="color: #999;">{{ idx + 1 }}.</span> {{ comment.comment_text }}
             </div>
           </div>
           <div v-else style="color: #ccc;">无</div>
@@ -27,13 +27,13 @@
 
     <!-- 弹出用户画像分析结果 -->
     <el-dialog v-model="dialogVisible" title="用户画像分析结果" width="600px" :before-close="handleCloseDialog">
-      <div v-if="analysisResult">
+      <div v-if="analysisResult" class="analysis-content">
         <p><strong>用户UID:</strong> {{ analysisResult.uid }}</p>
         <p><strong>评论数量:</strong> {{ analysisResult.comment_count }}</p>
         <p><strong>分析时间:</strong> {{ formatTime(analysisResult.timestamp) }}</p>
-        <div style="margin-top: 15px;">
+        <div class="analysis-section">
           <h4>分析内容:</h4>
-          <div style="white-space: pre-line; line-height: 1.6;">{{ analysisResult.analysis }}</div>
+          <div v-html="md.render(analysisResult.analysis)" class="markdown-content"></div>
         </div>
         <div v-if="sampleCommentsToShow.length > 0" style="margin-top: 15px;">
           <h4>样本评论:</h4>
@@ -68,6 +68,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
 import request from '@/utils/request';
+import MarkdownIt from 'markdown-it';
 
 const uidList = ref<{ uid: string }[]>([]);
 const analysisResult = ref<any>(null);
@@ -188,6 +189,8 @@ const handleCloseDialog = () => {
   analysisResult.value = null;
 };
 
+const md = new MarkdownIt();
+
 const formatTime = (timestamp: string) => {
   if (!timestamp) return '';
   return new Date(timestamp).toLocaleString('zh-CN');
@@ -229,4 +232,63 @@ onMounted(async () => {
   margin-bottom: 2px;
   word-break: break-all;
 }
-</style> 
+
+.analysis-content {
+  padding: 15px;
+}
+
+.analysis-section {
+  margin-top: 15px;
+}
+
+.markdown-content {
+  line-height: 1.6;
+  padding: 10px 0;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.markdown-content p {
+  margin: 8px 0;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.markdown-content li {
+  margin: 4px 0;
+}
+
+.markdown-content code {
+  background-color: #f4f4f4;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+.markdown-content pre {
+  background-color: #f4f4f4;
+  padding: 10px;
+  border-radius: 5px;
+  overflow-x: auto;
+}
+
+.markdown-content blockquote {
+  border-left: 4px solid #ddd;
+  padding-left: 16px;
+  margin: 8px 0;
+  color: #666;
+}
+</style>

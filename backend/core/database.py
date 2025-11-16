@@ -3,14 +3,21 @@ from mysql.connector import errorcode
 from passlib.context import CryptContext
 from typing import List, Dict, Any
 import json
-import redis
+import os
+import logging
+from core.database_pool import db_pool, DatabasePool
+from core.exceptions import DatabaseConnectionError
+from core.redis_pool import redis_pool, get_redis_client
 
-# --- Configuration ---
+# Configure logging
+logger = logging.getLogger(__name__)
+
+# Database configuration using environment variables (fallback to original values)
 DB_CONFIG = {
-    'user': 'wan',
-    'password': 'Qqwe123123',
-    'host': '192.168.2.118',
-    'database': 'bilibili_NLP',
+    'user': os.getenv('DB_USER', 'wan'),
+    'password': os.getenv('DB_PASSWORD', 'Qqwe123123'),
+    'host': os.getenv('DB_HOST', '192.168.2.118'),
+    'database': os.getenv('DB_NAME', 'bilibili_NLP'),
 }
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -21,12 +28,15 @@ def get_password_hash(password):
 
 # --- Database Connection ---
 def get_db_connection():
-    """Establishes and returns a database connection."""
+    """Establishes and returns a database connection from the pool."""
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = db_pool.get_connection()
+        if not conn:
+            logger.error("Failed to get database connection from pool")
+            return None
         return conn
-    except mysql.connector.Error as err:
-        print(f"Error connecting to database: {err}")
+    except Exception as err:
+        logger.error(f"Error connecting to database: {err}")
         return None
 
 # --- User Management Functions ---
@@ -79,7 +89,7 @@ def create_user(username: str, password: str):
         conn.commit()
         return True # Indicates success
     except mysql.connector.Error as err:
-        print(f"Failed to create user: {err}")
+        logger.error(f"Failed to create user: {err}")
         conn.rollback()
         return False # Indicates failure
     finally:
@@ -105,7 +115,7 @@ def add_report_history(uid: int):
         conn.commit()
         return True
     except Exception as e:
-        print(f"Failed to insert report history: {e}")
+        logger.error(f"Failed to insert report history: {e}")
         return False
     finally:
         if cursor:
@@ -148,7 +158,7 @@ def add_bv_history(bv: str, username: str, data: str = "BV comment query"):
             
         conn.commit()
     except mysql.connector.Error as err:
-        print(f"Failed to add BV history: {err}")
+        logger.error(f"Failed to add BV history: {err}")
         conn.rollback()
     finally:
         cursor.close()
@@ -169,7 +179,7 @@ def add_uuid_history(uid: int|str, username: str, job_id: str, data: str = "User
         cursor.execute(query, (uid, username, data, job_id, username, data, job_id))
         conn.commit()
     except mysql.connector.Error as err:
-        print(f"Failed to add UID history: {err}")
+        logger.error(f"Failed to add UID history: {err}")
         conn.rollback()
     finally:
         cursor.close()
@@ -187,7 +197,7 @@ def get_bv_history(username: str):
         history = cursor.fetchall()
         return history
     except mysql.connector.Error as err:
-        print(f"Failed to get BV history: {err}")
+        logger.error(f"Failed to get BV history: {err}")
         return []
     finally:
         cursor.close()
@@ -209,7 +219,7 @@ def get_uuid_history(username: str):
                 item['time'] = item['time'].isoformat() # type: ignore
         return history
     except mysql.connector.Error as err:
-        print(f"Failed to get UID history: {err}")
+        logger.error(f"Failed to get UID history: {err}")
         return []
     finally:
         cursor.close()
@@ -218,10 +228,10 @@ def get_uuid_history(username: str):
 def get_history_by_user(user_id: int):
     conn = get_db_connection()
     if not conn: return {"bv_history": [], "uuid_history": []}
-    
+
     # Use dictionary=True to get rows as dicts
     cursor = conn.cursor(dictionary=True)
-    redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+    redis_client = get_redis_client()
     
     try:
         # First, get the username from user_id
@@ -258,7 +268,7 @@ def get_history_by_user(user_id: int):
                 # 先查 job_status:{job_id}，再查 {uid}_result
                 redis_keys = [f"job_status:{job_id}", f"{item['uid']}_result", f"analysis_{item['uid']}"] # type: ignore
                 for key in redis_keys:
-                    data = redis_client.get(key)
+                    data = redis_client.get(key) #type:ignore
                     if data:
                         try:
                             result = json.loads(data) # type: ignore
@@ -280,7 +290,7 @@ def get_history_by_user(user_id: int):
                     item['query_time'] = item['query_time'].isoformat() # type: ignore
 
     except mysql.connector.Error as err:
-        print(f"Failed to get history by user: {err}")
+        logger.error(f"Failed to get history by user: {err}")
         return {"bv_history": [], "uuid_history": []}
     finally:
         cursor.close()
@@ -325,11 +335,11 @@ def save_user_comments(uid: int, username: str, comments: List[Dict[str, Any]]) 
                 )
         
         conn.commit()
-        print(f"成功保存 {len(comments)} 条评论到数据库，UID: {uid}")
+        logger.info(f"成功保存 {len(comments)} 条评论到数据库，UID: {uid}")
         return True
         
     except mysql.connector.Error as err:
-        print(f"保存用户评论失败: {err}")
+        logger.error(f"保存用户评论失败: {err}")
         conn.rollback()
         return False
     finally:
@@ -358,7 +368,7 @@ def get_user_comments(uid: int|str) -> List[Dict[str, Any]]:
         return result
         
     except mysql.connector.Error as err:
-        print(f"获取用户评论失败: {err}")
+        logger.error(f"获取用户评论失败: {err}")
         return []
     finally:
         cursor.close()

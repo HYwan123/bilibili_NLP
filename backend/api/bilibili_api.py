@@ -3,11 +3,16 @@ import json
 import uuid
 from fastapi import Depends, status, APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse
+import logging
 
 from api.user import get_current_user
 from core import bilibili, comment_analysis, database, recommendation_model, sql_use, bge_base_use, bilibili_video_info
+from core.exceptions import create_error_response, log_error
 from schemas.api import CookieData
 from schemas.user import User
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter()
@@ -15,24 +20,38 @@ global_redis = sql_use.SQL_redis()
 
 @router.get("/select/{BV}")
 async def select_BV(BV: str, current_user: User = Depends(get_current_user)):
-    result = bilibili.select_by_BV(BV)
-    global_redis.redis_value_add('leiji')
-    if result:
-        comment_texts = [comment.get('comment_text', '') for comment in result if comment.get('comment_text')]
-        if comment_texts:
-            summary = f"爬取到 {len(comment_texts)} 条评论，前3条: " + " | ".join(comment_texts[:3])
-            if len(comment_texts) > 3:
-                summary += f" ... (还有 {len(comment_texts) - 3} 条)"
+    try:
+        logger.info(f"Select BV request by user {current_user.username} for BV: {BV}")
+        result = bilibili.select_by_BV(BV)
+        global_redis.redis_value_add('leiji')
+        if result:
+            comment_texts = [comment.get('comment_text', '') for comment in result if comment.get('comment_text')]
+            if comment_texts:
+                summary = f"爬取到 {len(comment_texts)} 条评论，前3条: " + " | ".join(comment_texts[:3])
+                if len(comment_texts) > 3:
+                    summary += f" ... (还有 {len(comment_texts) - 3} 条)"
+            else:
+                summary = "未获取到评论内容"
         else:
-            summary = "未获取到评论内容"
-    else:
-        summary = "查询失败，未获取到数据"
-    database.add_bv_history(BV, current_user.username, summary)
-    
-    if result:
-        return JSONResponse(status_code=200, content={'code': 200, 'message': 'success', 'data': result})
-    else:
-        return JSONResponse(status_code=404, content={'code': 404, 'message': 'Not Found', 'data': None})
+            summary = "查询失败，未获取到数据"
+        database.add_bv_history(BV, current_user.username, summary)
+
+        if result:
+            logger.info(f"Successfully retrieved comments for BV: {BV}")
+            return JSONResponse(status_code=200, content={'code': 200, 'message': 'success', 'data': result})
+        else:
+            logger.warning(f"No data found for BV: {BV}")
+            return create_error_response(
+                404,
+                'Not Found'
+            )
+    except Exception as e:
+        logger.error(f"Error retrieving BV {BV}: {e}")
+        log_error(e, "select_BV")
+        return create_error_response(
+            500,
+            f'服务器内部错误: {str(e)}'
+        )
 
 @router.get("/history_data")
 async def history_data():
@@ -84,28 +103,28 @@ async def change_user_cookie(data: CookieData):
 @router.post("/user/comments/{uid}")
 async def get_user_comments(uid: int, current_user: User = Depends(get_current_user)):
     global_redis.redis_value_add('leiji')
-    
+
     """
     直接获取用户评论并保存到数据库
     """
     try:
-        print(f"用户 {current_user.username} 请求获取用户 {uid} 的评论")
-        
+        logger.info(f"用户 {current_user.username} 请求获取用户 {uid} 的评论")
+
         # 直接调用评论获取函数
         comments = bilibili.get_user_comments_simple(uid)
-        
+
         if comments:
-            print(f"成功获取 {len(comments)} 条评论，准备保存到数据库")
+            logger.info(f"成功获取 {len(comments)} 条评论，准备保存到数据库")
             # 保存到数据库
             success = database.save_user_comments(uid, current_user.username, comments)
             database.add_report_history(uid)
             if success:
-                print(f"评论数据已成功保存到数据库")
+                logger.info(f"评论数据已成功保存到数据库")
                 return JSONResponse(
                     status_code=200,
                     content={
-                        'code': 200, 
-                        'message': 'success', 
+                        'code': 200,
+                        'message': 'success',
                         'data': {
                             'uid': uid,
                             'comment_count': len(comments),
@@ -114,23 +133,24 @@ async def get_user_comments(uid: int, current_user: User = Depends(get_current_u
                     }
                 )
             else:
-                print(f"保存到数据库失败")
-                return JSONResponse(
-                    status_code=500,
-                    content={'code': 500, 'message': '保存到数据库失败', 'data': None}
+                logger.error(f"保存到数据库失败 for user {uid}")
+                return create_error_response(
+                    500,
+                    '保存到数据库失败'
                 )
         else:
-            print(f"未获取到用户 {uid} 的评论数据")
-            return JSONResponse(
-                status_code=404,
-                content={'code': 404, 'message': '未找到该用户的评论数据，可能是API访问限制或用户无评论', 'data': None}
+            logger.warning(f"未获取到用户 {uid} 的评论数据")
+            return create_error_response(
+                404,
+                '未找到该用户的评论数据，可能是API访问限制或用户无评论'
             )
-            
+
     except Exception as e:
-        print(f"获取用户评论失败: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={'code': 500, 'message': f'获取评论失败: {str(e)}', 'data': None}
+        logger.error(f"获取用户评论失败: {e}")
+        log_error(e, "get_user_comments")
+        return create_error_response(
+            500,
+            f'获取评论失败: {str(e)}'
         )
 
 @router.get("/user/comments/{uid}")
@@ -191,31 +211,36 @@ async def analyze_user_portrait(uid: int, current_user: User = Depends(get_curre
     分析用户评论，生成用户画像
     """
     global_redis.redis_value_add('huaxiang')
-    
+
     try:
+        logger.info(f"用户画像分析请求 by user {current_user.username} for uid: {uid}")
         from core.bilibili import analyze_user_comments
         result = await analyze_user_comments(uid)
-        
+
         if "error" in result:
-            return JSONResponse(
-                status_code=400,
-                content={'code': 400, 'message': result["error"], 'data': None}
+            logger.warning(f"用户画像分析错误 for uid {uid}: {result['error']}")
+            return create_error_response(
+                400,
+                result["error"]
             )
         if "msg" in result:
+            logger.info(f"用户画像分析完成 for uid {uid}")
             return JSONResponse(
                 status_code=200,
                 content={'code': 200, 'message': result["msg"], 'data': global_redis.redis_select(f"analysis_{uid}")}
             )
+        logger.info(f"用户画像分析成功 for uid {uid}")
         return JSONResponse(
             status_code=200,
             content={'code': 200, 'message': '分析完成', 'data': result}
         )
-        
+
     except Exception as e:
-        print(f"用户画像分析失败: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={'code': 500, 'message': f'分析失败: {str(e)}', 'data': None}
+        logger.error(f"用户画像分析失败: {e}")
+        log_error(e, "analyze_user_portrait")
+        return create_error_response(
+            500,
+            f'分析失败: {str(e)}'
         )
 @router.get("/user/analysis/{uid}")
 async def get_user_analysis(uid: int, current_user: User = Depends(get_current_user)):
@@ -252,10 +277,11 @@ async def run_comment_analysis_task(bv_id: str, job_id: str):
     """
     redis_handler = sql_use.SQL_redis()
     try:
+        logger.info(f"Starting comment analysis task for BV: {bv_id}, job_id: {job_id}")
         # 1. Update status: Fetching comments
         status_update = {"status": "Processing", "progress": 20, "details": f"正在获取视频 {bv_id} 的评论..."}
         redis_handler.set_job_status(job_id, status_update)
-        
+
         comments = bilibili.select_by_BV(bv_id)
         if not comments:
             raise ValueError(f"未找到视频 {bv_id} 的评论数据，请检查BV号是否正确或稍后再试。")
@@ -265,29 +291,31 @@ async def run_comment_analysis_task(bv_id: str, job_id: str):
         redis_handler.set_job_status(job_id, status_update)
 
         analysis_result = await comment_analysis.analyze_bv_comments(bv_id, comments)
-        
+
         if "error" in analysis_result:
              raise Exception(analysis_result["error"])
-        
+
         # 3. Update status: Completed
         status_update = {
-            "status": "Completed", 
-            "progress": 100, 
+            "status": "Completed",
+            "progress": 100,
             "details": f"视频 {bv_id} 评论分析完成",
             "result": analysis_result
         }
         redis_handler.set_job_status(job_id, status_update)
+        logger.info(f"Comment analysis completed successfully for BV: {bv_id}")
 
     except Exception as e:
         error_message = f"评论分析任务失败: {e}"
-        print(error_message)
+        logger.error(error_message)
+        log_error(e, "run_comment_analysis_task")
         status_update = {"status": "Failed", "progress": 100, "details": error_message}
         redis_handler.set_job_status(job_id, status_update)
     finally:
         # Task finished, always release the lock
         lock_key = f"lock:analyze_bv:{bv_id}"
         redis_handler.release_lock(lock_key)
-        print(f"Released lock for BV: {bv_id}")
+        logger.info(f"Released lock for BV: {bv_id}")
 
 # --- 评论分析相关API ---
 @router.post("/comments/analyze/submit/{bv_id}")
