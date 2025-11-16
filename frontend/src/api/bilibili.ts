@@ -205,3 +205,23 @@ export function getVideoInfo(bv_id: string) {
     method: 'get'
   })
 }
+
+/**
+ * Generate Bilibili login QR code
+ */
+export function generateBilibiliQRCode() {
+  return request({
+    url: `/api/bilibili/qrcode/generate`,
+    method: 'post'
+  })
+}
+
+/**
+ * Poll Bilibili login status
+ */
+export function pollBilibiliLogin() {
+  return request({
+    url: `/api/bilibili/qrcode/poll`,
+    method: 'post'
+  })
+}

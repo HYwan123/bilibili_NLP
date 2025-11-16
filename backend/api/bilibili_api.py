@@ -593,3 +593,126 @@ async def get_video_info(bv_id: str, current_user: User = Depends(get_current_us
             status_code=500,
             content={'code': 500, 'message': f'获取视频信息失败: {str(e)}', 'data': None}
         )
+
+# --- Bilibili QR Code Login Endpoints ---
+@router.post("/bilibili/qrcode/generate")
+async def generate_bilibili_qrcode_endpoint(current_user: User = Depends(get_current_user)):
+    """
+    生成Bilibili登录二维码
+    """
+    try:
+        logger.info(f"用户 {current_user.username} 请求生成Bilibili登录二维码")
+        qrcode_data = bilibili.generate_bilibili_qrcode()
+
+        # Store qrcode_key in Redis with user ID for later polling
+        global_redis.redis_set_by_key(f"qrcode_key_{current_user.id}", qrcode_data['qrcode_key'])
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                'code': 200,
+                'message': '二维码生成成功',
+                'data': {
+                    'qrcode_key': qrcode_data['qrcode_key'],
+                    'url': qrcode_data['url']
+                }
+            }
+        )
+    except Exception as e:
+        logger.error(f"生成Bilibili二维码失败: {e}")
+        log_error(e, "generate_bilibili_qrcode_endpoint")
+        return create_error_response(
+            500,
+            f'生成二维码失败: {str(e)}'
+        )
+
+@router.post("/bilibili/qrcode/poll")
+async def poll_bilibili_login_endpoint(current_user: User = Depends(get_current_user)):
+    """
+    轮询Bilibili登录状态
+    """
+    try:
+        logger.info(f"用户 {current_user.username} 请求轮询Bilibili登录状态")
+
+        # Get qrcode_key from Redis using user ID
+        qrcode_key = global_redis.redis_select_by_key(f"qrcode_key_{current_user.id}").decode("utf-8")
+        logger.info(qrcode_key)
+        if not qrcode_key:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    'code': 400,
+                    'message': '未找到二维码密钥，请先生成二维码',
+                    'data': None
+                }
+            )
+
+        # Poll login status
+        login_result = bilibili.poll_bilibili_login(qrcode_key)
+
+        # Check if login was successful (code 0 in data)
+        if login_result['data'].get('code') == 0 and login_result['data'].get('url'):
+            # Extract SESSDATA and bili_jct from the login URL
+            url = login_result['data']['url']
+            session_data = bilibili.extract_sessdata_from_url(url)
+
+            if session_data:
+                # Update the cookie in Redis with the new SESSDATA and bili_jct
+                # Get existing cookie and update it
+                existing_cookie = global_redis.redis_select_by_key('cookie') or ""
+                if isinstance(existing_cookie, bytes):
+                    existing_cookie = existing_cookie.decode('utf-8')
+
+                # Create new cookie string with updated SESSDATA and bili_jct
+                if existing_cookie:
+                    # Parse existing cookie and update SESSDATA and bili_jct
+                    cookie_pairs = existing_cookie.split('; ')
+                    updated_pairs = []
+                    sessdata_updated = False
+                    bili_jct_updated = False
+
+                    for pair in cookie_pairs:
+                        if pair.startswith('SESSDATA='):
+                            updated_pairs.append(f"SESSDATA={session_data['sessdata']}")
+                            sessdata_updated = True
+                        elif pair.startswith('bili_jct='):
+                            updated_pairs.append(f"bili_jct={session_data['bili_jct']}")
+                            bili_jct_updated = True
+                        else:
+                            updated_pairs.append(pair)
+
+                    # Add SESSDATA and bili_jct if they weren't in the existing cookie
+                    if not sessdata_updated:
+                        updated_pairs.append(f"SESSDATA={session_data['sessdata']}")
+                    if not bili_jct_updated:
+                        updated_pairs.append(f"bili_jct={session_data['bili_jct']}")
+
+                    new_cookie = '; '.join(updated_pairs)
+                else:
+                    # Create new cookie with just SESSDATA and bili_jct
+                    new_cookie = f"SESSDATA={session_data['sessdata']}; bili_jct={session_data['bili_jct']}"
+
+                # Save the updated cookie to Redis
+                global_redis.redis_set_by_key('cookie', new_cookie)
+
+                logger.info(f"用户 {current_user.username} Bilibili登录成功，已更新cookie")
+
+                # Return success response with session data
+                login_result['data']['session_data'] = session_data
+                login_result['data']['cookie_updated'] = True
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                'code': 200,
+                'message': '轮询成功',
+                'data': login_result['data']
+            }
+        )
+    except Exception as e:
+        logger.error(f"轮询Bilibili登录状态失败: {e}")
+        log_error(e, "poll_bilibili_login_endpoint")
+        return create_error_response(
+            500,
+            f'轮询登录状态失败: {str(e)}'
+        )
