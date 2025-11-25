@@ -31,8 +31,8 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   (response) => {
     const res = response.data;
-    // Check for custom backend code. `0` or `200` are typical success codes.
-    if (res.code && res.code !== 200) {
+    // Check for custom backend code. `0`, `200` or `201` are typical success codes.
+    if (res.code && res.code !== 200 && res.code !== 201) {
        ElMessage({
         message: res.message || 'Error',
         type: 'error',

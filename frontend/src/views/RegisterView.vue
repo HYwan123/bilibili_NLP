@@ -17,6 +17,15 @@
           <el-form-item label="用户名" prop="username">
             <el-input v-model="form.username" placeholder="请输入用户名" size="large" />
           </el-form-item>
+          <!-- API 错误信息显示 -->
+          <el-form-item v-if="apiError" style="margin-bottom: 10px;">
+            <el-alert
+              :title="apiError"
+              type="error"
+              show-icon
+              :closable="false">
+            </el-alert>
+          </el-form-item>
           <el-form-item label="密码" prop="password">
             <el-input type="password" v-model="form.password" placeholder="请输入密码" show-password size="large"/>
           </el-form-item>
@@ -24,7 +33,7 @@
             <el-input type="password" v-model="form.confirmPassword" placeholder="请再次输入密码" show-password size="large"/>
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="handleRegister" style="width: 100%;" size="large">注 册</el-button>
+            <el-button type="primary" @click="handleRegister" :loading="loading" style="width: 100%;" size="large">注 册</el-button>
           </el-form-item>
            <div class="login-link">
             <span>已有账户?</span>
@@ -42,6 +51,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElNotification } from 'element-plus';
 import type { FormInstance, FormRules } from 'element-plus';
 import { register as registerApi } from '@/api/auth';
+import { useAuthStore } from '@/stores/auth';
 
 const router = useRouter();
 const formRef = ref<FormInstance>();
@@ -97,22 +107,41 @@ const rules = reactive<FormRules>({
   confirmPassword: [{ required: true, validator: validatePass2, trigger: 'blur' }],
 });
 
+// 添加加载状态
+const loading = ref(false);
+
 const handleRegister = async () => {
   if (!formRef.value) return;
-  // 清除上一次的 API 错误
-  apiError.value = '';
-  formRef.value.validateField('username'); // 触发一次验证来清除旧消息
-
+  
+  // 防止重复提交
+  if (loading.value) return;
+  
+  loading.value = true;
+  
   try {
+    // 清除上一次的 API 错误
+    apiError.value = '';
+    formRef.value.validateField('username'); // 触发一次验证来清除旧消息
+
     await formRef.value.validate();
-    await registerApi({ username: form.username, password: form.password });
+    const response = await registerApi({ username: form.username, password: form.password });
+    
+    // 获取auth store实例
+    const authStore = useAuthStore();
+    
+    // 检查响应中是否包含token
+    if (response.data && response.data.token) {
+      // 设置token，自动登录用户
+      authStore.setToken(response.data.token);
+    }
+    
     ElNotification({
       title: '成功',
-      message: '注册成功！正在跳转到登录页...',
+      message: '注册成功！正在跳转到首页...',
       type: 'success',
     });
     setTimeout(() => {
-      router.push('/login');
+      router.push('/home');
     }, 1500);
   } catch (error: any) {
     // 检查是否是后端返回的错误
@@ -122,6 +151,9 @@ const handleRegister = async () => {
     } else {
       console.error('Validation or registration failed:', error);
     }
+  } finally {
+    // 重置加载状态
+    loading.value = false;
   }
 };
 
@@ -184,4 +216,4 @@ const cardClicked = () => {
   margin-top: 15px;
   text-align: center;
 }
-</style> 
+</style>
