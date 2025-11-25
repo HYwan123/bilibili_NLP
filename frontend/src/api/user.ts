@@ -15,4 +15,26 @@ export const register = (data: RegisterData) => {
     url: '/user/register',
     data
   });
+};
+
+export const getUserProfile = () => {
+  return request({
+    method: 'GET',
+    url: '/user/profile'
+  });
+};
+
+export const updateUserProfile = (profileData: any) => {
+  return request({
+    method: 'POST',
+    url: '/user/profile',
+    data: profileData
+  });
+};
+
+export const getUserProfileById = (userId: number) => {
+  return request({
+    method: 'GET',
+    url: `/user/profile/${userId}`
+  });
 }; 

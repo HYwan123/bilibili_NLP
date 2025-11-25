@@ -353,23 +353,171 @@ def get_user_comments(uid: int|str) -> List[Dict[str, Any]]:
     conn = get_db_connection()
     if not conn:
         return []
-    
+
     cursor = conn.cursor(dictionary=True)
-    
+
     try:
         cursor.execute(
             "SELECT comment_text FROM user_comments WHERE uid = %s ORDER BY created_at DESC",
             (uid,)
         )
         comments = cursor.fetchall()
-        
+
         # 转换为标准格式
         result = [{'comment_text': comment['comment_text']} for comment in comments] # type: ignore
         return result
-        
+
     except mysql.connector.Error as err:
         logger.error(f"获取用户评论失败: {err}")
         return []
+    finally:
+        cursor.close()
+        conn.close()
+
+
+# --- User Profile Management Functions ---
+def create_user_profile_table():
+    """创建用户个人资料表"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_profiles (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT UNIQUE NOT NULL,
+                nickname VARCHAR(255),
+                avatar VARCHAR(500),
+                email VARCHAR(255),
+                phone VARCHAR(20),
+                gender ENUM('male', 'female', 'other', 'not_set') DEFAULT 'not_set',
+                birth_date DATE,
+                bio TEXT,
+                location VARCHAR(255),
+                occupation VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                INDEX idx_user_id (user_id)
+            )
+        """)
+        conn.commit()
+        logger.info("用户个人资料表创建成功")
+        return True
+    except mysql.connector.Error as err:
+        logger.error(f"创建用户个人资料表失败: {err}")
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def get_user_profile(user_id: int):
+    """获取用户个人资料"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("""
+            SELECT id, user_id, nickname, avatar, email, phone, gender,
+                   DATE_FORMAT(birth_date, '%%Y-%%m-%%d') as birth_date,
+                   bio, location, occupation,
+                   DATE_FORMAT(created_at, '%%Y-%%m-%%d %%H:%%i:%%s') as created_at,
+                   DATE_FORMAT(updated_at, '%%Y-%%m-%%d %%H:%%i:%%s') as updated_at
+            FROM user_profiles
+            WHERE user_id = %s
+        """, (user_id,))
+        profile = cursor.fetchone()
+        return profile
+    except mysql.connector.Error as err:
+        logger.error(f"获取用户个人资料失败: {err}")
+        return None
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def create_user_profile(user_id: int, profile_data: Dict[str, Any]):
+    """创建用户个人资料"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+
+    cursor = conn.cursor()
+    try:
+        query = """
+            INSERT INTO user_profiles (user_id, nickname, avatar, email, phone, gender, birth_date, bio, location, occupation)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(query, (
+            user_id,
+            profile_data.get('nickname'),
+            profile_data.get('avatar'),
+            profile_data.get('email'),
+            profile_data.get('phone'),
+            profile_data.get('gender', 'not_set'),
+            profile_data.get('birth_date'),
+            profile_data.get('bio'),
+            profile_data.get('location'),
+            profile_data.get('occupation')
+        ))
+        conn.commit()
+        logger.info(f"用户 {user_id} 个人资料创建成功")
+        return True
+    except mysql.connector.Error as err:
+        logger.error(f"创建用户个人资料失败: {err}")
+        conn.rollback()
+        return False
+    finally:
+        cursor.close()
+        conn.close()
+
+
+def update_user_profile(user_id: int, profile_data: Dict[str, Any]):
+    """更新用户个人资料"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+
+    cursor = conn.cursor()
+    try:
+        # 构建动态更新语句
+        fields = []
+        values = []
+
+        for field in ['nickname', 'avatar', 'email', 'phone', 'gender', 'bio', 'location', 'occupation']:
+            if field in profile_data and profile_data[field] is not None:
+                fields.append(f"{field} = %s")
+                values.append(profile_data[field])
+
+        if 'birth_date' in profile_data and profile_data['birth_date'] is not None:
+            fields.append("birth_date = %s")
+            values.append(profile_data['birth_date'])
+
+        if not fields:
+            logger.warning("没有要更新的字段")
+            return False
+
+        values.append(user_id)  # user_id for WHERE clause
+        query = f"UPDATE user_profiles SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP WHERE user_id = %s"
+
+        cursor.execute(query, values)
+        conn.commit()
+
+        if cursor.rowcount > 0:
+            logger.info(f"用户 {user_id} 个人资料更新成功")
+            return True
+        else:
+            logger.warning(f"没有找到用户 {user_id} 或没有数据被更新")
+            return False
+    except mysql.connector.Error as err:
+        logger.error(f"更新用户个人资料失败: {err}")
+        conn.rollback()
+        return False
     finally:
         cursor.close()
         conn.close()

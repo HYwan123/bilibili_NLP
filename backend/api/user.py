@@ -9,7 +9,7 @@ import logging
 
 from core import database
 from core.exceptions import create_error_response, log_error
-from schemas.user import TokenData, User, UserCreate
+from schemas.user import TokenData, User, UserCreate, UserProfile, UserProfileUpdate
 from passlib.context import CryptContext
 
 # Configure logging
@@ -119,4 +119,146 @@ def register_user(user_data: UserCreate):
         return create_error_response(
             500,
             "Internal server error occurred during registration"
+        )
+
+
+@router.get("/profile", response_model=UserProfile)
+async def get_user_profile(current_user: User = Depends(get_current_user)):
+    """
+    获取当前用户的个人资料
+    """
+    try:
+        logger.info(f"User {current_user.username} ({current_user.id}) requesting profile")
+
+        # Ensure the user profile table exists
+        database.create_user_profile_table()
+
+        profile = database.get_user_profile(current_user.id)
+
+        if not profile:
+            # If user profile doesn't exist, create a default one
+            default_profile = {
+                'user_id': current_user.id,
+                'nickname': current_user.username,
+                'avatar': None,
+                'email': None,
+                'phone': None,
+                'gender': 'not_set',
+                'birth_date': None,
+                'bio': None,
+                'location': None,
+                'occupation': None
+            }
+
+            success = database.create_user_profile(current_user.id, default_profile)
+            if success:
+                profile = database.get_user_profile(current_user.id)
+
+        if profile:
+            return JSONResponse(
+                status_code=200,
+                content={"code": 200, "message": "Profile retrieved successfully", "data": profile}
+            )
+        else:
+            return create_error_response(
+                404,
+                "Profile not found"
+            )
+    except Exception as e:
+        logger.error(f"Error retrieving profile for user {current_user.id}: {e}")
+        log_error(e, "get_user_profile")
+        return create_error_response(
+            500,
+            "Internal server error occurred while retrieving profile"
+        )
+
+
+@router.post("/profile")
+async def create_or_update_user_profile(profile_data: UserProfileUpdate, current_user: User = Depends(get_current_user)):
+    """
+    创建或更新用户个人资料
+    """
+    try:
+        logger.info(f"User {current_user.username} ({current_user.id}) updating profile")
+
+        # Ensure the user profile table exists
+        database.create_user_profile_table()
+
+        # Prepare the profile data dictionary
+        profile_dict = profile_data.dict(exclude_unset=True)
+
+        # Check if profile exists
+        existing_profile = database.get_user_profile(current_user.id)
+        if existing_profile:
+            # Update existing profile
+            success = database.update_user_profile(current_user.id, profile_dict)
+            if success:
+                # Get updated profile to return
+                updated_profile = database.get_user_profile(current_user.id)
+                return JSONResponse(
+                    status_code=200,
+                    content={"code": 200, "message": "Profile updated successfully", "data": updated_profile}
+                )
+            else:
+                return create_error_response(
+                    400,
+                    "Failed to update profile"
+                )
+        else:
+            # Create new profile
+            profile_dict['user_id'] = current_user.id
+            success = database.create_user_profile(current_user.id, profile_dict)
+            if success:
+                # Get created profile to return
+                created_profile = database.get_user_profile(current_user.id)
+                return JSONResponse(
+                    status_code=201,
+                    content={"code": 201, "message": "Profile created successfully", "data": created_profile}
+                )
+            else:
+                return create_error_response(
+                    400,
+                    "Failed to create profile"
+                )
+    except Exception as e:
+        logger.error(f"Error updating profile for user {current_user.id}: {e}")
+        log_error(e, "create_or_update_user_profile")
+        return create_error_response(
+            500,
+            "Internal server error occurred while updating profile"
+        )
+
+
+@router.get("/profile/{user_id}", response_model=UserProfile)
+async def get_user_profile_by_id(user_id: int, current_user: User = Depends(get_current_user)):
+    """
+    获取指定用户的个人资料
+    """
+    try:
+        logger.info(f"User {current_user.username} ({current_user.id}) requesting profile for user_id {user_id}")
+
+        # Only allow users to access their own profile for now (can be extended with permissions)
+        if current_user.id != user_id:
+            return create_error_response(
+                403,
+                "Access denied. You can only access your own profile."
+            )
+
+        profile = database.get_user_profile(user_id)
+        if profile:
+            return JSONResponse(
+                status_code=200,
+                content={"code": 200, "message": "Profile retrieved successfully", "data": profile}
+            )
+        else:
+            return create_error_response(
+                404,
+                "Profile not found"
+            )
+    except Exception as e:
+        logger.error(f"Error retrieving profile for user_id {user_id}: {e}")
+        log_error(e, "get_user_profile_by_id")
+        return create_error_response(
+            500,
+            "Internal server error occurred while retrieving profile"
         )
