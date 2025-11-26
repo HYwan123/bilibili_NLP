@@ -1,6 +1,7 @@
 import asyncio
 import json
 import uuid
+from typing import Optional
 from fastapi import Depends, status, APIRouter, BackgroundTasks
 from fastapi.responses import JSONResponse
 import logging
@@ -205,8 +206,10 @@ async def get_user_comments_redis(uid: int, current_user: User = Depends(get_cur
             content={'code': 500, 'message': f'获取评论失败: {str(e)}', 'data': None}
         )
 
+from typing import Optional
+
 @router.post("/user/analyze/{uid}")
-async def analyze_user_portrait(uid: int, current_user: User = Depends(get_current_user)):
+async def analyze_user_portrait(uid: int, api_key: Optional[str] = None, api_url: Optional[str] = None, model_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
     """
     分析用户评论，生成用户画像
     """
@@ -215,7 +218,7 @@ async def analyze_user_portrait(uid: int, current_user: User = Depends(get_curre
     try:
         logger.info(f"用户画像分析请求 by user {current_user.username} for uid: {uid}")
         from core.bilibili import analyze_user_comments
-        result = await analyze_user_comments(uid)
+        result = await analyze_user_comments(uid, api_key, api_url, model_id)
 
         if "error" in result:
             logger.warning(f"用户画像分析错误 for uid {uid}: {result['error']}")

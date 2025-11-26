@@ -8,8 +8,10 @@ class MilvusClient:
         self.collection = Collection(self.collection_name, using=self.alias)
         print(f"已连接集合: {self.collection_name}")
 
-    def insert_vector(self, ids: list[str], embeddings: list[list[float]]) -> None:
-        self.collection.insert([ids, embeddings])
+    def insert_vector(self, video_ids: list[str], embeddings: list[list[float]]) -> None:
+        # 只插入video_id和embedding，id字段会自动生成
+        entities = [video_ids, embeddings]
+        self.collection.insert(entities)
         self.collection.flush()
         self.collection.load()
 
@@ -19,16 +21,14 @@ class MilvusClient:
             anns_field="embedding",
             param={"metric_type": "COSINE", "params": {"nprobe": 10}},
             limit=top_k,
-            output_fields=["id"],
+            output_fields=["video_id"],
         )
-        bvs = []
+        video_ids = []
         for hits in results: # type: ignore
             for hit in hits:
-                bvs.append(hit.id)
-        return bvs
+                video_ids.append(hit.video_id)
+        return video_ids
 
     def __del__(self):
         connections.disconnect(self.alias)
         print("关闭 Milvus 连接")
-
-

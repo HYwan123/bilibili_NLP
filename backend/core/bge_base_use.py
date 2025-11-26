@@ -21,5 +21,3 @@ def get_tuijian_bvs(user_id: str) -> list[str] | None:
     all_text = " ".join(comment["comment_text"] for comment in comments)
     results = millvus.search_similar(model.encode(all_text).tolist())
     return results
-
-

@@ -80,30 +80,7 @@
       </div>
     </el-card>
 
-    <br></br>
-  <el-card class="page-container">
-    <template #header>
-      <div class="card-header">
-        <span>评论查询</span>
-      </div>
-    </template>
 
-    <el-form :inline="true" @submit.prevent="fetchComments">
-      <el-form-item label="视频BV号">
-        <el-input v-model="bv" placeholder="请输入B站视频BV号"></el-input>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="fetchComments">查询</el-button>
-      </el-form-item>
-    </el-form>
-
-    <el-table :data="comments" stripe style="width: 100%">
-      <el-table-column prop="user_name" label="用户"></el-table-column>
-      <el-table-column prop="comment_text" label="评论"></el-table-column>
-      <el-table-column prop="bert_label" label="分类"></el-table-column>
-    </el-table>
-
-  </el-card>
 
   <!-- Cookie Modification Dialog -->
   <el-dialog

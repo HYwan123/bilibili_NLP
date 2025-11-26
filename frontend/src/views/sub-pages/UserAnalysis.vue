@@ -7,6 +7,32 @@
         </div>
       </template>
 
+      <!-- API配置 -->
+      <el-form :model="apiConfig" label-width="100px" style="margin-bottom: 20px;">
+        <el-form-item label="API Key">
+          <el-input
+            v-model="apiConfig.apiKey"
+            type="password"
+            placeholder="请输入API Key"
+            clearable
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="API 网址">
+          <el-input
+            v-model="apiConfig.apiUrl"
+            placeholder="请输入API网址，例如：https://api.openai.com/v1"
+            clearable
+          ></el-input>
+        </el-form-item>
+        <el-form-item label="模型ID">
+          <el-input
+            v-model="apiConfig.modelId"
+            placeholder="请输入模型ID，例如：gpt-4o"
+            clearable
+          ></el-input>
+        </el-form-item>
+      </el-form>
+
       <!-- 输入 UID -->
       <el-form :model="form" label-width="80px">
         <el-form-item label="用户UID">
@@ -94,6 +120,12 @@ const form = ref({
   uid: '66143532',
 });
 
+const apiConfig = ref({
+  apiKey: '',
+  apiUrl: '',
+  modelId: ''
+});
+
 const loading = ref(false);
 const loadingSaved = ref(false);
 const loadingHistory = ref(false);
@@ -116,6 +148,31 @@ const md = new MarkdownIt();
 
 // Initialize markmap transformer
 const transformer = new Transformer();
+
+// Load saved API config from localStorage on component mount
+onMounted(() => {
+  const savedConfig = localStorage.getItem('userAnalysisApiConfig');
+  if (savedConfig) {
+    try {
+      const config = JSON.parse(savedConfig);
+      apiConfig.value = {
+        ...apiConfig.value,
+        ...config
+      };
+    } catch (e) {
+      console.error('Failed to parse saved API config:', e);
+    }
+  }
+});
+
+// Save API config to localStorage whenever it changes
+watch(apiConfig.value, (newConfig) => {
+  try {
+    localStorage.setItem('userAnalysisApiConfig', JSON.stringify(newConfig));
+  } catch (e) {
+    console.error('Failed to save API config:', e);
+  }
+}, { deep: true });
 
 // 获取评论（实时）
 const fetchComments = async () => {
@@ -185,9 +242,19 @@ const analyzeUser = async () => {
     return;
   }
 
+  // 检查API配置
+  if (!apiConfig.value.apiKey || !apiConfig.value.apiUrl) {
+    ElMessage.warning('请先配置API Key和API网址');
+    return;
+  }
+
   analyzing.value = true;
   try {
-    const res = await request.post(`/api/user/analyze/${uid}`);
+    const res = await request.post(`/api/user/analyze/${uid}`, {
+      api_key: apiConfig.value.apiKey,
+      api_url: apiConfig.value.apiUrl,
+      model_id: apiConfig.value.modelId
+    });
     if (res.code === 200) {
       analysisResult.value = res.data;
       ElMessage.success('用户画像分析成功');
@@ -375,4 +442,4 @@ onMounted(() => {
   background: white;
   margin-top: 10px;
 }
-</style> 
+</style>

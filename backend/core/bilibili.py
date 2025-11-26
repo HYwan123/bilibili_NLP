@@ -409,7 +409,7 @@ def get_user_comments_from_redis(uid: int) -> List[Dict[str, Any]]:
             return []
     return []
 
-async def analyze_user_comments(uid: int) -> Dict[str, Any]:
+async def analyze_user_comments(uid: int, api_key: Optional[str] = None, api_url: Optional[str] = None, model_id: Optional[str] = None) -> Dict[str, Any]:
     """
     使用大模型API分析用户评论，生成用户画像
     """
@@ -450,15 +450,30 @@ async def analyze_user_comments(uid: int) -> Dict[str, Any]:
         # 构建分析提示词
         prompt = f"""请分析以下B站用户的评论内容，生成用户画像分析报告。请从以下几个方面进行分析：\n\n1. 用户兴趣偏好\n2. 活跃程度和参与度\n3. 评论风格和特点\n4. 可能关注的领域\n5. 用户性格特征\n\n用户评论内容：\n{comments_text}\n\n请用中文回答，格式要清晰易读。"""
 
-        # 调用大模型API
-        api_url = "https://api.siliconflow.cn/v1/chat/completions"
-        headers = {
-            "Authorization": "Bearer sk-skgydfquljaaecqxaqyumvbhnurbzqovgynlvcadxwpfifux",
-            "Content-Type": "application/json"
-        }
+        # 使用传入的API配置，如果未提供则使用默认配置
+        if api_key and api_url:
+            # 使用传入的API配置
+            api_base_url = api_url.rstrip('/')  # 移除末尾的斜杠
+            if not api_base_url.endswith('/v1'):
+                api_base_url += '/v1'
+            api_endpoint = f"{api_base_url}/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+        else:
+            # 使用默认配置
+            api_endpoint = "https://api.siliconflow.cn/v1/chat/completions"
+            headers = {
+                "Authorization": "Bearer sk-skgydfquljaaecqxaqyumvbhnurbzqovgynlvcadxwpfifux",
+                "Content-Type": "application/json"
+            }
+        
+        # 使用传入的模型ID，如果未提供则使用默认模型
+        model_to_use = model_id if model_id else "Qwen/QwQ-32B"
         
         data = {
-            "model": "Qwen/QwQ-32B",
+            "model": model_to_use,
             "messages": [
                 {
                     "role": "user",
@@ -473,7 +488,7 @@ async def analyze_user_comments(uid: int) -> Dict[str, Any]:
         
         print(f"开始分析用户 {uid} 的评论...")
         async with httpx.AsyncClient(timeout=600.0) as client:
-            response = await client.post(api_url, headers=headers, json=data)
+            response = await client.post(api_endpoint, headers=headers, json=data)
         
         if response.status_code == 200:
             result = response.json()

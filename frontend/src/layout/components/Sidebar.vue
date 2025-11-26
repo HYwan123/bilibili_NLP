@@ -35,7 +35,7 @@
         <el-menu-item index="/query" class="modern-menu-item">
           <el-icon class="menu-icon"><Search /></el-icon>
 
-          <span class="menu-text">评论查询</span>
+          <span class="menu-text">cookie管理</span>
         </el-menu-item>   
 
         <el-menu-item index="/comment-analysis" class="modern-menu-item">
@@ -56,11 +56,7 @@
         router
         :collapse-transition="true"
       >
-        <el-menu-item index="/user-portrait" class="modern-menu-item">
-          <el-icon class="menu-icon"><User /></el-icon>
-          <span class="menu-text">用户画像</span>
-        </el-menu-item>
-        
+
         <el-menu-item index="/user-analysis" class="modern-menu-item">
           <el-icon class="menu-icon"><UserFilled /></el-icon>
           <span class="menu-text">行为分析</span>
@@ -90,6 +86,10 @@
         <el-menu-item index="/history" class="modern-menu-item">
           <el-icon class="menu-icon"><Tickets /></el-icon>
           <span class="menu-text">历史记录</span>
+        </el-menu-item>
+            <el-menu-item index="/user-portrait" class="modern-menu-item">
+          <el-icon class="menu-icon"><User /></el-icon>
+          <span class="menu-text">用户画像</span>
         </el-menu-item>
       </el-menu>
     </div>
