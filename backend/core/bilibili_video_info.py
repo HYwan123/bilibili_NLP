@@ -1,9 +1,9 @@
-import requests
 from core import sql_use
+import httpx
 
 redis = sql_use.SQL_redis()
 
-def get_video_info(BVid: str) -> dict:
+async def get_video_info(BVid: str) -> dict:
     cookie = redis.redis_select_by_key('cookie_video_info')
     url = f"https://api.bilibili.com/x/web-interface/view?bvid={BVid}"
     headers = {
@@ -20,12 +20,13 @@ def get_video_info(BVid: str) -> dict:
         'Sec-Fetch-User': '?1',
         'Priority': 'u=0, i'
     }
-    response = requests.get(url, headers=headers)
+    async with httpx.AsyncClient() as requests:
+        response = await requests.get(url, headers=headers)
     print(f"API响应状态码: {response.status_code}")
     print(f"API响应内容: {response.text[:200]}...")  # 只打印前200字符避免过长
     
     if response.status_code == 200:
-        data = response.json()
+        data = await response.json()
         if data.get('code') == 0:  # B站API成功返回code=0
             video_data = data['data']
             return {
@@ -49,12 +50,14 @@ def get_video_info(BVid: str) -> dict:
         print(f"HTTP请求失败，状态码: {response.status_code}")
         return {'msg': 'fail'}
     
-def get_video_tags(BVid: str) -> list[str]:
+async def get_video_tags(BVid: str) -> list[str]:
     cookie = redis.redis_select_by_key('cookie_video_tages') 
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
         "Cookie": cookie
     }
-    json_data = requests.get(url=f'https://api.bilibili.com/x/tag/archive/tags?bvid={BVid}', headers=headers).json()
+    async with httpx.AsyncClient() as requests:
+        json_data = await requests.get(url=f'https://api.bilibili.com/x/tag/archive/tags?bvid={BVid}', headers=headers)
+    json_data = await json_data.json()
     tags = [tag["tag_name"] for tag in json_data["data"]]
     return tags

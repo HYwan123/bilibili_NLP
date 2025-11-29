@@ -6,8 +6,8 @@ redis = sql_use.SQL_redis()
 model = SentenceTransformer("BAAI/bge-base-zh")  # 768维
 millvus = millvus_use.MilvusClient()
 
-def insert_vector_by_BV(BVid: str) -> None:
-    tags = bilibili_video_info.get_video_tags(BVid)
+async def insert_vector_by_BV(BVid: str) -> None:
+    tags = await bilibili_video_info.get_video_tags(BVid)
     tags_str = " ".join(tags)
     embeddings = model.encode(tags_str).tolist()
     millvus.insert_vector([BVid], [embeddings])

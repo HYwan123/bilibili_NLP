@@ -1,6 +1,5 @@
 import asyncio
 import json
-import requests
 from typing import List, Dict, Any, Tuple
 from collections import Counter
 import re

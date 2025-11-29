@@ -1,5 +1,5 @@
 import json
-import requests
+import httpx
 from typing import List, Dict, Any, Tuple, Optional
 from collections import Counter, defaultdict
 import redis
@@ -324,7 +324,7 @@ class ContentRecommendationModel:
                 return []
         return []
     
-    def generate_content_based_recommendations(self, user_comments: List[Dict[str, Any]], 
+    async def generate_content_based_recommendations(self, user_comments: List[Dict[str, Any]], 
                                             available_videos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         基于内容的推荐算法
@@ -334,7 +334,7 @@ class ContentRecommendationModel:
             user_preferences = self.analyze_user_preferences(user_comments)
             
             # 使用AI模型生成智能推荐
-            ai_recommendations = self._generate_ai_recommendations(user_preferences, available_videos)
+            ai_recommendations = await self._generate_ai_recommendations(user_preferences, available_videos)
             
             # 结合传统算法和AI推荐
             content_recommendations = self.generate_recommendations(user_preferences, available_videos)
@@ -361,7 +361,7 @@ class ContentRecommendationModel:
             print(f"推荐生成失败: {e}")
             return []
     
-    def _generate_ai_recommendations(self, user_preferences: Dict[str, Any], 
+    async def _generate_ai_recommendations(self, user_preferences: Dict[str, Any], 
                                    available_videos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
         使用AI模型生成推荐
@@ -404,11 +404,11 @@ class ContentRecommendationModel:
                 "max_tokens": 1000,
                 "temperature": 0.3
             }
-            
-            response = requests.post(self.api_url, headers=self.headers, json=data, timeout=30)
+            async with httpx.AsyncClient() as requests:
+                response = await requests.post(self.api_url, headers=self.headers, json=data, timeout=30)
             
             if response.status_code == 200:
-                result = response.json()
+                result = await response.json()
                 content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
                 
                 try:
@@ -470,7 +470,7 @@ class ContentRecommendationModel:
         return "; ".join(profile_parts)
 
 
-def recommend_for_user(user_id: int, user_comments: List[Dict[str, Any]], 
+async def recommend_for_user(user_id: int, user_comments: List[Dict[str, Any]], 
                       available_content: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """
     为用户生成推荐的便捷函数
@@ -479,10 +479,10 @@ def recommend_for_user(user_id: int, user_comments: List[Dict[str, Any]],
     
     # 如果没有提供可用内容，使用默认示例数据
     if not available_content:
-        available_content = get_sample_video_data()
+        available_content = await get_sample_video_data()
     
     # 生成推荐
-    recommendations = model.generate_content_based_recommendations(user_comments, available_content)
+    recommendations = await model.generate_content_based_recommendations(user_comments, available_content)
     
     # 分析用户偏好
     user_preferences = model.analyze_user_preferences(user_comments)
@@ -501,14 +501,14 @@ def recommend_for_user(user_id: int, user_comments: List[Dict[str, Any]],
     return result
 
 
-def get_sample_video_data() -> List[Dict[str, Any]]:
+async def get_sample_video_data() -> List[Dict[str, Any]]:
     """
     爬取B站热门视频数据
     """
     import time
     import random
     
-    def fetch_bilibili_videos(search_keywords: Optional[List[str]] = None, max_videos: int = 20) -> List[Dict[str, Any]]:
+    async def fetch_bilibili_videos(search_keywords: Optional[List[str]] = None, max_videos: int = 20) -> List[Dict[str, Any]]:
         """
         爬取B站视频数据
         """
@@ -533,11 +533,11 @@ def get_sample_video_data() -> List[Dict[str, Any]]:
                     # B站搜索API
                     search_url = f"https://api.bilibili.com/x/web-interface/search/type?search_type=video&keyword={keyword}&page=1&page_size=20"
 
-                    
-                    response = requests.get(search_url, headers=headers, timeout=10)
+                    async with httpx.AsyncClient() as requests:
+                        response = await requests.get(search_url, headers=headers, timeout=10)
                     
                     if response.status_code == 200:
-                        data = response.json()
+                        data = await response.json()
                         print(data)
                         if data.get('code') == 0 and 'data' in data:
                             result_data = data['data']
@@ -662,7 +662,7 @@ def get_sample_video_data() -> List[Dict[str, Any]]:
     # 执行爬取
     try:
         print("开始爬取B站视频数据...")
-        videos = fetch_bilibili_videos()
+        videos = await fetch_bilibili_videos()
         print(f"成功爬取 {len(videos)} 个视频")
         return videos
     except Exception as e:

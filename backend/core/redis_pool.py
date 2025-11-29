@@ -35,7 +35,7 @@ class RedisPool:
             logger.error(f"Error creating Redis connection pool: {e}")
             raise
 
-    def get_client(self):
+    def get_client(self) -> redis.Redis:
         """Get a Redis client from the pool"""
         if not self.client:
             self._create_pool()
@@ -54,29 +54,32 @@ class RedisPool:
         try:
             if isinstance(value, (dict, list)):
                 value = json.dumps(value, ensure_ascii=False)
-            result = self.get_client().set(key, value, ex=ex)
-            return result
+            self.get_client().set(key, value, ex=ex)
+            return True
         except Exception as e:
             logger.error(f"Error setting key {key} in Redis: {e}")
             return False
 
-    def delete(self, key: str) -> int:
+    def delete(self, key: str) -> bool:
         """Delete key from Redis"""
         try:
-            return self.get_client().delete(key)
+            self.get_client().delete(key)
+            return True
         except Exception as e:
             logger.error(f"Error deleting key {key} from Redis: {e}")
-            return 0
+            return False
 
-    def lpush(self, key: str, value: Any) -> int:
+    def lpush(self, key: str, value: Any) -> bool:
         """Push value to the left of a list in Redis"""
         try:
             if isinstance(value, (dict, list)):
                 value = json.dumps(value, ensure_ascii=False)
-            return self.get_client().lpush(key, value)
+                self.get_client().lpush(key, value)
+                return True
         except Exception as e:
             logger.error(f"Error pushing to list {key} in Redis: {e}")
-            return 0
+            return False
+        return False
 
     def lpop(self, key: str) -> Optional[Any]:
         """Pop value from the left of a list in Redis"""

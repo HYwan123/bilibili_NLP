@@ -1,5 +1,4 @@
 import httpx
-import requests
 import json
 import core.sql_use as sql_use
 from typing import List, Optional, Dict, Any
@@ -29,7 +28,7 @@ def get_cookie() -> str:
 def set_cookie(cookie: str) -> None:
     redis_client.set('cookie', cookie)
 
-def get_comments(BV: str, page_many: int) -> list[dict]:
+async def get_comments(BV: str, page_many: int) -> list[dict]:
     try:
         cookie = get_cookie()
         print(cookie)
@@ -44,7 +43,8 @@ def get_comments(BV: str, page_many: int) -> list[dict]:
         }
     comments = []
     for page in range(page_many):
-        request_output = requests.get(get_url(BV, page), headers = headers)
+        async with httpx.AsyncClient() as request:
+            request_output = await request.get(get_url(BV, page), headers = headers)
         request_output.encoding = 'utf-8'
         print(request_output.text)
         text2json = json.loads(request_output.text)
@@ -323,7 +323,7 @@ async def user_select_simple_async(uid: int, job_id: str) -> Optional[List[Dict[
 
     return user_comments
 
-def select_by_BV(BV: str) -> List[dict]:
+async def select_by_BV(BV: str) -> List[dict]:
     """
     根据指定的 Bilibili 视频 BV 号获取评论。
     函数会先检查 Redis 中是否有缓存数据；
@@ -339,7 +339,7 @@ def select_by_BV(BV: str) -> List[dict]:
 
     # 2. 如果缓存未命中，则从源获取
     print(f"Cache miss for BV: {BV}. Fetching from source.")
-    new_comments = get_comments(BV, 10)  # Fetch first page of comments
+    new_comments = await get_comments(BV, 10)  # Fetch first page of comments
 
     # 3. 如果获取到了评论，就写入缓存
     if new_comments:
@@ -491,7 +491,7 @@ async def analyze_user_comments(uid: int, api_key: Optional[str] = None, api_url
             response = await client.post(api_endpoint, headers=headers, json=data)
         
         if response.status_code == 200:
-            result = response.json()
+            result = await response.json()
             analysis_content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
             
             analysis_result = {
@@ -540,7 +540,7 @@ def get_user_analysis_from_redis(uid: int) -> Dict[str, Any]:
     return {}
 
 
-def generate_bilibili_qrcode() -> Dict[str, str]:
+async def generate_bilibili_qrcode() -> Dict[str, str]:
     """
     Generate Bilibili QR code for login
     Returns: dict with 'qrcode_key' and 'url'
@@ -553,9 +553,10 @@ def generate_bilibili_qrcode() -> Dict[str, str]:
     url = "https://passport.bilibili.com/x/passport-login/web/qrcode/generate?source=main-fe-header&go_url=https:%2F%2Fwww.bilibili.com%2F%3Fspm_id_from%3D333.1387.0.0&web_location=333.1007"
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        async with httpx.AsyncClient() as requests:
+            response = await requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        data = response.json()
+        data = await response.json()
 
         if data.get('code') != 0:
             raise Exception(f"生成二维码失败: {data.get('message', '未知错误')}")
@@ -569,7 +570,7 @@ def generate_bilibili_qrcode() -> Dict[str, str]:
         raise Exception(f"生成二维码失败: {str(e)}")
 
 
-def poll_bilibili_login(qrcode_key: str) -> Dict[str, Any]:
+async def poll_bilibili_login(qrcode_key: str) -> Dict[str, Any]:
     """
     Poll Bilibili login status
     Returns: dict with login status information
@@ -582,9 +583,10 @@ def poll_bilibili_login(qrcode_key: str) -> Dict[str, Any]:
     url = f"https://passport.bilibili.com/x/passport-login/web/qrcode/poll?qrcode_key={qrcode_key}"
 
     try:
-        response = requests.get(url, headers=headers, timeout=10)
+        async with httpx.AsyncClient() as requests:
+            response = await requests.get(url, headers=headers, timeout=10)
         response.raise_for_status()
-        data = response.json()
+        data = await response.json()
 
         # Bilibili returns the login status in data.data.code:
         # 0 = success, 86101 = not scanned yet, 86090 = scanned, 86038 = expired

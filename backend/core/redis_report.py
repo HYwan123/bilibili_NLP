@@ -1,4 +1,3 @@
-import requests
 import json
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -7,6 +6,7 @@ import database
 from core.redis_pool import get_redis_client
 from core.exceptions import log_error
 import logging
+import httpx
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def get_user_comments_from_redis(uid: int) -> List[Dict[str, Any]]:
             return []
     return []
 
-def analyze_user_comments(uid: int) -> Dict[str, Any]:
+async def analyze_user_comments(uid: int) -> Dict[str, Any]:
     """
     使用大模型API分析用户评论，生成用户画像
     """
@@ -86,10 +86,11 @@ def analyze_user_comments(uid: int) -> Dict[str, Any]:
         }
 
         logger.info(f"开始分析用户 {uid} 的评论...")
-        response = requests.post(api_url, headers=headers, json=data, timeout=160)
+        async with httpx.AsyncClient() as requests:
+            response = await requests.post(api_url, headers=headers, json=data, timeout=160)
 
         if response.status_code == 200:
-            result = response.json()
+            result = await response.json()
             analysis_content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
 
             analysis_result = {
@@ -119,12 +120,12 @@ def analyze_user_comments(uid: int) -> Dict[str, Any]:
 
 
 
-def analyze_user_portrait(uid: int):
+async def analyze_user_portrait(uid: int):
     """
     分析用户评论，生成用户画像
     """
     try:
-        result = analyze_user_comments(uid)
+        result = await analyze_user_comments(uid)
 
         if "error" in result:
             return 'error'
