@@ -23,7 +23,7 @@ global_redis = sql_use.SQL_redis()
 async def select_BV(BV: str, current_user: User = Depends(get_current_user)):
     try:
         logger.info(f"Select BV request by user {current_user.username} for BV: {BV}")
-        result = bilibili.select_by_BV(BV)
+        result = await bilibili.select_by_BV(BV)
         global_redis.redis_value_add('leiji')
         if result:
             comment_texts = [comment.get('comment_text', '') for comment in result if comment.get('comment_text')]
@@ -285,7 +285,7 @@ async def run_comment_analysis_task(bv_id: str, job_id: str):
         status_update = {"status": "Processing", "progress": 20, "details": f"正在获取视频 {bv_id} 的评论..."}
         redis_handler.set_job_status(job_id, status_update)
 
-        comments = bilibili.select_by_BV(bv_id)
+        comments = await bilibili.select_by_BV(bv_id)
         if not comments:
             raise ValueError(f"未找到视频 {bv_id} 的评论数据，请检查BV号是否正确或稍后再试。")
 
@@ -401,7 +401,7 @@ async def generate_user_recommendations(uid: int, current_user: User = Depends(g
             )
         
         # 生成推荐
-        result = recommendation_model.recommend_for_user(uid, comments)
+        result = await recommendation_model.recommend_for_user(uid, comments)
         
         # 记录推荐历史
         database.add_uuid_history(uid, current_user.username, f"rec_{uid}", f"为用户 {uid} 生成了 {result['total_recommendations']} 个推荐")
@@ -560,7 +560,7 @@ async def insert_vector_by_bv(bv_id: str, current_user: User = Depends(get_curre
     将指定BV号的视频标签向量插入到向量数据库
     """
     try:
-        bge_base_use.insert_vector_by_BV(bv_id)
+        await bge_base_use.insert_vector_by_BV(bv_id)
         return JSONResponse(
             status_code=200,
             content={'code': 200, 'message': '向量插入成功', 'data': {'bv_id': bv_id}}
@@ -578,7 +578,7 @@ async def get_video_info(bv_id: str, current_user: User = Depends(get_current_us
     获取单个视频的详细信息
     """
     try:
-        video_info = bilibili_video_info.get_video_info(bv_id)
+        video_info = await bilibili_video_info.get_video_info(bv_id)
         print(video_info)
         if video_info.get('msg') == 'OK':
             return JSONResponse(
@@ -605,7 +605,7 @@ async def generate_bilibili_qrcode_endpoint(current_user: User = Depends(get_cur
     """
     try:
         logger.info(f"用户 {current_user.username} 请求生成Bilibili登录二维码")
-        qrcode_data = bilibili.generate_bilibili_qrcode()
+        qrcode_data = await bilibili.generate_bilibili_qrcode()
 
         # Store qrcode_key in Redis with user ID for later polling
         global_redis.redis_set_by_key(f"qrcode_key_{current_user.id}", qrcode_data['qrcode_key'])
@@ -651,7 +651,7 @@ async def poll_bilibili_login_endpoint(current_user: User = Depends(get_current_
             )
 
         # Poll login status
-        login_result = bilibili.poll_bilibili_login(qrcode_key)
+        login_result = await bilibili.poll_bilibili_login(qrcode_key)
 
         # Check if login was successful (code 0 in data)
         if login_result['data'].get('code') == 0 and login_result['data'].get('url'):
