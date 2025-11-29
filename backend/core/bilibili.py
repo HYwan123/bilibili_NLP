@@ -487,7 +487,7 @@ async def analyze_user_comments(uid: int, api_key: Optional[str] = None, api_url
         }
         
         print(f"开始分析用户 {uid} 的评论...")
-        async with httpx.AsyncClient(timeout=600.0) as client:
+        async with httpx.AsyncClient(timeout=1600.0) as client:
             response = await client.post(api_endpoint, headers=headers, json=data)
         
         if response.status_code == 200:
