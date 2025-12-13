@@ -331,7 +331,7 @@ async def submit_comment_analysis_job(bv_id: str, background_tasks: BackgroundTa
     """
     # 1. Check for a cached result first
     global_redis.redis_value_add('chuli')
-    cached_result = comment_analysis.get_bv_analysis(bv_id)
+    cached_result = await comment_analysis.get_bv_analysis(bv_id)
     if cached_result:
         print(f"Cache hit for analysis of BV: {bv_id}. Returning cached result.")
         return JSONResponse(
@@ -365,7 +365,7 @@ async def get_comment_analysis(bv_id: str, current_user: User = Depends(get_curr
     """
     try:
 
-        result = comment_analysis.get_bv_analysis(bv_id)
+        result = await comment_analysis.get_bv_analysis(bv_id)
         
         if result:
             return JSONResponse(

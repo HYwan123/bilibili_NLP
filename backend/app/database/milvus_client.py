@@ -1,4 +1,5 @@
 from pymilvus import AsyncMilvusClient
+
 class MilvusClient:
     _instance = None
     _initialized = False
