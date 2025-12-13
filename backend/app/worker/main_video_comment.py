@@ -1,6 +1,6 @@
 import asyncio
 from app.database.redis_client_async import RedisClientAsync
-from backend.app.worker.utils import comment_analyzer
+from app.worker.utils import comment_analyzer
 import json
 
 STREAMS_NAME = "streams_analyze_video_comments"

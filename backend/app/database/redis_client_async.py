@@ -19,28 +19,30 @@ class RedisClientAsync:
         except Exception as e:
             print("Redis error:", e)
 
-    async def add_streams(self, stream_name: str, value: dict):
+    async def add_streams(self, stream_name: str, value: dict) -> bool:
         try:
-            return await self.redis_client.xadd(stream_name, value)
+            await self.redis_client.xadd(stream_name, value)
+            return True
         except Exception as e:
             print("Redis error:", e)
+            return False
 
     async def get(self, key):
         return await self.redis_client.get(key)
 
 
-    async def get_streams(self, stream_name):
+    async def get_streams(self, stream_name) -> list:
         return await self.redis_client.xread({stream_name: "$"}, count=1, block=0) # type: ignore
     
     async def del_stream_key(self, stream_name, msg_id):
         await self.redis_client.xdel(stream_name, msg_id)
 
     @staticmethod
-    def get_streams_dict(xread_result: list):
+    def get_streams_dict(xread_result: list) -> dict:
         return xread_result[0][1][0][1]
     
     @staticmethod
-    def get_streams_id(xread_result: list):
+    def get_streams_id(xread_result: list) -> int | str:
         return xread_result[0][1][0][0]
 
 async def main():

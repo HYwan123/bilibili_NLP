@@ -1,30 +1,25 @@
+from app.database.redis_client_async import RedisClientAsync
 import json
-from sentence_transformers import SentenceTransformer
-from app.database.milvus_client import MilvusClient
-from app.database.redis_client import RedisClient
 import httpx
+redis = RedisClientAsync()
 
-redis = RedisClient()
-model = SentenceTransformer("BAAI/bge-base-zh")  # 768维
-millvus = MilvusClient()
+VECTOR_INSRET = "streams_insert_bv"
+VECTOR_TUIJIAN = "streams_vector_tuijian"
+VECTOR_TUIJIAN_RESULT = "streams_vector_tuijian_RESULT"
 
 async def insert_vector_by_BV(BVid: str) -> None:
-    tags = await get_video_tags(BVid)
-    tags_str = " ".join(tags)
-    embeddings = model.encode(tags_str).tolist()
-    await millvus.insert_vector([BVid], [embeddings])
+    await redis.add_streams(VECTOR_INSRET, {"BV": BVid})
 
 async def get_tuijian_bvs(user_id: str) -> list[str] | None:
-    raw = redis.redis_select_by_key(user_id)  # bytes
-    if not raw:
-        return None
-    comments = json.loads(raw)
-    all_text = " ".join(comment["comment_text"] for comment in comments)
-    results = await millvus.search_similar(model.encode(all_text).tolist())
-    return results
+    await redis.add_streams(VECTOR_TUIJIAN, {"user_id": user_id})
+    while True:
+        data = await redis.get_streams(VECTOR_TUIJIAN_RESULT)
+        if redis.get_streams_dict(data)["user_id"] == user_id:
+            return json.loads(redis.get_streams_dict(data)["data"])
+
 
 async def get_video_info(BVid: str) -> dict:
-    cookie = redis.redis_select_by_key('cookie_video_info')
+    cookie = await redis.get('cookie_video_info')
     url = f"https://api.bilibili.com/x/web-interface/view?bvid={BVid}"
     headers = {
         'Cookie': cookie,
@@ -70,14 +65,4 @@ async def get_video_info(BVid: str) -> dict:
         print(f"HTTP请求失败，状态码: {response.status_code}")
         return {'msg': 'fail'}
     
-async def get_video_tags(BVid: str) -> list[str]:
-    cookie = redis.redis_select_by_key('cookie_video_info') 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
-        "Cookie": cookie
-    }
-    async with httpx.AsyncClient() as requests:
-        json_data = await requests.get(url=f'https://api.bilibili.com/x/tag/archive/tags?bvid={BVid}', headers=headers)
-    json_data = json_data.json()
-    tags = [tag["tag_name"] for tag in json_data["data"]]
-    return tags
+        
