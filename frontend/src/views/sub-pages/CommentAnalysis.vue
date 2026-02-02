@@ -414,12 +414,20 @@ const startAnalysis = async () => {
   analysisResult.value = null;
 
   try {
-    const res = await submitCommentAnalysis(form.value.bvId);
-    if (res.code === 200) {
-      const jobId = res.data.job_id;
+    const data = await submitCommentAnalysis(form.value.bvId);
+    
+    // 处理两种响应格式
+    let jobId = null;
+    if (data.code === 200 && data.data?.job_id) {
+      jobId = data.data.job_id;
+    } else if (data.job_id) {
+      jobId = data.job_id;
+    }
+    
+    if (jobId) {
       pollJobStatus(jobId);
     } else {
-      ElMessage.error(res.message || '提交分析失败');
+      ElMessage.error('获取任务ID失败');
       analyzing.value = false;
     }
   } catch (error) {
@@ -431,24 +439,26 @@ const startAnalysis = async () => {
 const pollJobStatus = async (jobId) => {
   const poll = async () => {
     try {
-      const res = await getJobStatus(jobId);
-      if (res.code === 200) {
-        jobProgress.value = res.data.progress || 0;
-        jobStatusText.value = res.data.status || '分析中...';
-        
-        if (res.data.status === 'completed') {
-          analysisResult.value = res.data.result;
-          analyzing.value = false;
-          ElMessage.success('分析完成！');
-        } else if (res.data.status === 'failed') {
-          analyzing.value = false;
-          ElMessage.error('分析失败：' + (res.data.error || '未知错误'));
-        } else {
-          setTimeout(() => poll(), 2000);
-        }
-      } else {
+      const data = await getJobStatus(jobId);
+      
+      // 处理两种响应格式
+      let result = data;
+      if (data.code === 200 && data.data) {
+        result = data.data;
+      }
+      
+      jobProgress.value = result.progress || 0;
+      jobStatusText.value = result.status || '分析中...';
+      
+      if (result.status === 'completed') {
+        analysisResult.value = result.result;
         analyzing.value = false;
-        ElMessage.error('获取任务状态失败');
+        ElMessage.success('分析完成！');
+      } else if (result.status === 'failed') {
+        analyzing.value = false;
+        ElMessage.error('分析失败：' + (result.error || '未知错误'));
+      } else {
+        setTimeout(() => poll(), 2000);
       }
     } catch (error) {
       analyzing.value = false;
