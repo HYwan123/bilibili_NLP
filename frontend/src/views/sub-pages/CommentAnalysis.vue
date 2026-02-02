@@ -416,19 +416,39 @@ const startAnalysis = async () => {
   try {
     const data = await submitCommentAnalysis(form.value.bvId);
     
-    // 处理两种响应格式
-    let jobId = null;
-    if (data.code === 200 && data.data?.job_id) {
-      jobId = data.data.job_id;
-    } else if (data.job_id) {
-      jobId = data.job_id;
+    // 检查是否是直接返回缓存结果（没有job_id，直接有分析结果）
+    let result = null;
+    if (data.code === 200 && data.data) {
+      // 有data字段，检查是否有分析结果
+      if (data.data.basic_stats || data.data.sentiment_analysis) {
+        result = data.data;
+      }
+    } else if (data.basic_stats || data.sentiment_analysis) {
+      // 直接返回结果
+      result = data;
     }
     
-    if (jobId) {
-      pollJobStatus(jobId);
-    } else {
-      ElMessage.error('获取任务ID失败');
+    if (result) {
+      // 直接显示结果（缓存命中）
+      analysisResult.value = result;
       analyzing.value = false;
+      jobProgress.value = 100;
+      ElMessage.success('已从缓存获取分析结果');
+    } else {
+      // 需要轮询获取结果
+      let jobId = null;
+      if (data.code === 200 && data.data?.job_id) {
+        jobId = data.data.job_id;
+      } else if (data.job_id) {
+        jobId = data.job_id;
+      }
+      
+      if (jobId) {
+        pollJobStatus(jobId);
+      } else {
+        ElMessage.error('获取任务ID失败');
+        analyzing.value = false;
+      }
     }
   } catch (error) {
     ElMessage.error('提交分析失败');
