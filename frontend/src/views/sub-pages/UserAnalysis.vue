@@ -449,18 +449,36 @@ const getSavedComments = async () => {
   loadingSaved.value = true;
   try {
     const res = await request.get(`/api/user/comments/${uid}`);
-    if (res.data && Array.isArray(res.data) && res.data.length > 0) {
-      retrievedComments.value = res.data;
+    
+    // 检查是否有数据
+    let comments = [];
+    if (Array.isArray(res.data)) {
+      comments = res.data;
+    } else if (res.data && Array.isArray(res.data.data)) {
+      comments = res.data.data;
+    }
+    
+    if (comments.length > 0) {
+      retrievedComments.value = comments;
       currentStep.value = 1;
-      message.value = `从数据库获取到 ${res.data.length} 条已保存评论`;
+      message.value = `从数据库获取到 ${comments.length} 条已保存评论`;
       messageType.value = 'success';
     } else {
-      message.value = '数据库中未找到该用户的评论记录';
+      // 数据库中没有，自动尝试实时获取
+      message.value = '数据库中未找到，正在尝试实时获取...';
       messageType.value = 'info';
+      await fetchComments();
     }
-  } catch (error) {
-    message.value = `获取失败: ${error.message || '网络错误'}`;
-    messageType.value = 'error';
+  } catch (error: any) {
+    // 404错误表示数据库中没有，尝试实时获取
+    if (error.response?.status === 404 || error.message?.includes('404')) {
+      message.value = '数据库中未找到，正在尝试实时获取...';
+      messageType.value = 'info';
+      await fetchComments();
+    } else {
+      message.value = `获取失败: ${error.message || '网络错误'}`;
+      messageType.value = 'error';
+    }
   } finally {
     loadingSaved.value = false;
   }
