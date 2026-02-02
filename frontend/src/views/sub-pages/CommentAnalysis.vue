@@ -384,8 +384,8 @@ const sentimentPercentages = computed(() => {
 });
 
 const topKeywords = computed(() => {
-  if (!analysisResult.value?.keyword_analysis) return [];
-  return analysisResult.value.keyword_analysis.slice(0, 20);
+  if (!analysisResult.value?.keyword_analysis?.top_keywords) return [];
+  return analysisResult.value.keyword_analysis.top_keywords.slice(0, 20);
 });
 
 const topUsers = computed(() => {
