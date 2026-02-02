@@ -1,413 +1,568 @@
 <template>
-  <div class="comment-analysis">
-    <el-card class="analysis-card">
-      <template #header>
-        <div class="card-header">
-          <span>评论分析</span>
-          <el-button type="primary" @click="startAnalysis" :loading="analyzing" :disabled="analyzing">
-            {{ analyzing ? '正在分析中...' : '开始分析' }}
+  <div class="comment-analysis-page">
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <h1 class="page-title">
+        <el-icon><ChatDotRound /></el-icon>
+        评论智能分析
+      </h1>
+      <p class="page-subtitle">深度分析B站视频评论，洞察用户情感与热点话题</p>
+    </div>
+
+    <!-- 输入分析区 -->
+    <div class="input-section">
+      <el-card class="input-card" shadow="hover">
+        <template #header>
+          <div class="card-header">
+            <span class="header-title">
+              <el-icon><VideoPlay /></el-icon>
+              视频评论分析
+            </span>
+          </div>
+        </template>
+
+        <div class="input-form">
+          <div class="bv-input-wrapper">
+            <div class="input-label">
+              <span>BV号</span>
+              <el-tooltip content="B站视频链接中的BV开头字符串，如：https://www.bilibili.com/video/BV1xx411c7mD" placement="top">
+                <el-icon class="help-icon"><QuestionFilled /></el-icon>
+              </el-tooltip>
+            </div>
+            <el-input
+              v-model="form.bvId"
+              placeholder="请输入BV号，例如：BV1xx411c7mD"
+              size="large"
+              clearable
+              :disabled="analyzing"
+              @keyup.enter="startAnalysis"
+            >
+              <template #prefix>
+                <el-icon><Link /></el-icon>
+              </template>
+              <template #append>
+                <el-button 
+                  type="primary" 
+                  @click="startAnalysis"
+                  :loading="analyzing"
+                  :disabled="!form.bvId || analyzing"
+                >
+                  <el-icon><Cpu /></el-icon>
+                  {{ analyzing ? '分析中...' : '开始分析' }}
+                </el-button>
+              </template>
+            </el-input>
+          </div>
+
+          <!-- 快速尝试 -->
+          <div class="quick-actions" v-if="!analysisResult">
+            <span class="quick-label">快速尝试：</span>
+            <el-tag 
+              v-for="sample in sampleBVs" 
+              :key="sample"
+              class="sample-tag"
+              @click="form.bvId = sample; startAnalysis()"
+              effect="light"
+              type="info"
+            >
+              {{ sample }}
+            </el-tag>
+          </div>
+
+          <!-- 分析进度 -->
+          <div v-if="analyzing" class="analysis-progress">
+            <div class="progress-header">
+              <span class="progress-title">正在分析评论数据</span>
+              <span class="progress-percent">{{ jobProgress }}%</span>
+            </div>
+            <el-progress 
+              :percentage="jobProgress" 
+              :stroke-width="8"
+              status="success"
+              :show-text="false"
+            />
+            <div class="progress-steps">
+              <div 
+                v-for="(step, idx) in analysisSteps" 
+                :key="idx"
+                class="step-item"
+                :class="{ active: jobProgress >= step.percent, current: jobProgress >= step.percent && jobProgress < (analysisSteps[idx + 1]?.percent || 100) }"
+              >
+                <el-icon><component :is="step.icon" /></el-icon>
+                <span>{{ step.text }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 分析结果 -->
+    <div v-if="analysisResult" class="results-section">
+      <!-- 结果概览头部 -->
+      <div class="result-header">
+        <div class="result-title">
+          <el-icon><CircleCheck /></el-icon>
+          <span>分析完成</span>
+        </div>
+        <div class="result-meta">
+          <el-tag type="success" effect="light">
+            <el-icon><ChatLineRound /></el-icon>
+            {{ analysisResult.basic_stats?.total_comments || 0 }} 条评论
+          </el-tag>
+          <el-button size="small" @click="resetAnalysis">
+            <el-icon><RefreshLeft /></el-icon>
+            重新分析
           </el-button>
         </div>
-      </template>
-      
-      <el-form :model="form" label-width="120px">
-        <el-form-item label="BV视频ID">
-          <el-input v-model="form.bvId" placeholder="请输入BV视频ID，如：BV1xx411c7mD" :disabled="analyzing" />
-        </el-form-item>
-      </el-form>
-
-      <!-- 进度条和状态 -->
-      <div v-if="analyzing" class="progress-container">
-        <el-progress :percentage="jobProgress" :text-inside="true" :stroke-width="20" status="success" />
-        <p class="job-status">{{ jobStatusText }}</p>
       </div>
-    </el-card>
 
-    <!-- 分析结果展示 -->
-    <div v-if="analysisResult" class="analysis-results">
-      <!-- 基础统计 -->
-      <el-card class="result-card">
-        <template #header>
-          <span>基础统计</span>
-        </template>
-        <el-row :gutter="20">
-          <el-col :span="8">
-            <div class="stat-item">
-              <div class="stat-number">{{ analysisResult.basic_stats?.total_comments || 0 }}</div>
-              <div class="stat-label">总评论数</div>
+      <!-- 基础统计卡片区 -->
+      <div class="stats-grid">
+        <el-row :gutter="16">
+          <el-col :xs="24" :sm="12" :md="8">
+            <div class="stat-card primary">
+              <div class="stat-icon">
+                <el-icon><ChatDotRound /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ analysisResult.basic_stats?.total_comments || 0 }}</div>
+                <div class="stat-label">总评论数</div>
+              </div>
             </div>
           </el-col>
-          <el-col :span="8">
-            <div class="stat-item">
-              <div class="stat-number">{{ analysisResult.basic_stats?.unique_users || 0 }}</div>
-              <div class="stat-label">独立用户数</div>
+          <el-col :xs="24" :sm="12" :md="8">
+            <div class="stat-card success">
+              <div class="stat-icon">
+                <el-icon><User /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ analysisResult.basic_stats?.unique_users || 0 }}</div>
+                <div class="stat-label">独立用户</div>
+              </div>
             </div>
           </el-col>
-          <el-col :span="8">
-            <div class="stat-item">
-              <div class="stat-number">{{ analysisResult.basic_stats?.average_length || 0 }}</div>
-              <div class="stat-label">平均评论长度</div>
+          <el-col :xs="24" :sm="12" :md="8">
+            <div class="stat-card warning">
+              <div class="stat-icon">
+                <el-icon><Document /></el-icon>
+              </div>
+              <div class="stat-content">
+                <div class="stat-number">{{ analysisResult.basic_stats?.average_length || 0 }}</div>
+                <div class="stat-label">平均长度</div>
+              </div>
             </div>
           </el-col>
-
         </el-row>
-      </el-card>
+      </div>
 
       <!-- 情感分析 -->
-      <el-card class="result-card" v-if="analysisResult.sentiment_analysis">
+      <el-card class="result-card sentiment-card" v-if="analysisResult.sentiment_analysis">
         <template #header>
-          <span>情感分析</span>
+          <div class="section-header">
+            <div class="section-title">
+              <el-icon><PieChart /></el-icon>
+              <span>情感分析</span>
+            </div>
+            <div class="sentiment-summary">
+              <div class="summary-item positive">
+                <div class="summary-dot"></div>
+                <span>正面 {{ sentimentPercentages.positive }}%</span>
+              </div>
+              <div class="summary-item neutral">
+                <div class="summary-dot"></div>
+                <span>中性 {{ sentimentPercentages.neutral }}%</span>
+              </div>
+              <div class="summary-item negative">
+                <div class="summary-dot"></div>
+                <span>负面 {{ sentimentPercentages.negative }}%</span>
+              </div>
+            </div>
+          </div>
         </template>
-        <SentimentPieChart :data="analysisResult.sentiment_analysis" width="100%" height="400px" />
-        
-        <!-- 评论示例 -->
-        <div class="comment-examples" v-if="getCommentExamples.length > 0">
-          <h4>评论示例分析 (共 {{ getAllCommentExamples().length }} 条)</h4>
-          <el-table :data="getCommentExamples" stripe style="width: 100%">
-            <el-table-column prop="comment" label="评论内容" min-width="300" show-overflow-tooltip />
-            <el-table-column prop="label" label="情感标签" width="120">
-              <template #default="scope">
-                <el-tag :type="getSentimentType(scope.row.label)">
-                  {{ getSentimentText(scope.row.label) }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column prop="score" label="置信度" width="100">
-              <template #default="scope">
-                {{ (scope.row.score * 100).toFixed(1) }}%
-              </template>
-            </el-table-column>
-          </el-table>
-          
-          <!-- 分页组件 -->
-          <div class="pagination-container" v-if="getAllCommentExamples().length > pageSize">
-            <el-pagination
-              :current-page="currentPage"
-              :page-size="pageSize"
-              :total="getAllCommentExamples().length"
-              :page-sizes="[5, 10, 20, 50]"
-              layout="total, sizes, prev, pager, next, jumper"
-              @current-change="handleCurrentChange"
-              @size-change="handleSizeChange"
-            />
+
+        <div class="sentiment-content">
+          <div class="chart-container">
+            <SentimentPieChart :data="analysisResult.sentiment_analysis" width="100%" height="350px" />
+          </div>
+
+          <!-- 评论示例 -->
+          <div class="comment-examples" v-if="getCommentExamples.length > 0">
+            <div class="examples-header">
+              <h4>评论情感示例</h4>
+              <span class="examples-count">共 {{ getAllCommentExamples().length }} 条</span>
+            </div>
+            <div class="examples-list">
+              <div 
+                v-for="(example, idx) in getCommentExamples" 
+                :key="idx"
+                class="example-item"
+                :class="getSentimentType(example.label)"
+              >
+                <div class="example-sentiment">
+                  <el-tag :type="getSentimentType(example.label)" size="small" effect="light">
+                    {{ getSentimentText(example.label) }}
+                  </el-tag>
+                  <span class="confidence">{{ (example.score * 100).toFixed(1) }}%</span>
+                </div>
+                <div class="example-text">{{ example.comment }}</div>
+              </div>
+            </div>
+            
+            <!-- 分页 -->
+            <div class="pagination-wrapper" v-if="getAllCommentExamples().length > pageSize">
+              <el-pagination
+                v-model:current-page="currentPage"
+                v-model:page-size="pageSize"
+                :total="getAllCommentExamples().length"
+                :page-sizes="[5, 10, 20, 50]"
+                layout="total, sizes, prev, pager, next"
+                @current-change="handleCurrentChange"
+                @size-change="handleSizeChange"
+              />
+            </div>
           </div>
         </div>
       </el-card>
 
       <!-- 关键词分析 -->
-      <el-card class="result-card" v-if="analysisResult.keyword_analysis">
+      <el-card class="result-card keywords-card" v-if="analysisResult.keyword_analysis">
         <template #header>
-          <span>关键词分析</span>
+          <div class="section-header">
+            <div class="section-title">
+              <el-icon><Collection /></el-icon>
+              <span>关键词分析</span>
+            </div>
+          </div>
         </template>
-        
-        <!-- 高频词汇显示 -->
-        <div class="keyword-section" v-if="analysisResult.keyword_analysis.top_keywords">
-          <h4>高频词汇</h4>
-          <div class="keyword-list">
-            <el-tag
-              v-for="(keyword, index) in analysisResult.keyword_analysis.top_keywords.slice(0, 20)"
-              :key="index"
-              class="keyword-tag"
-              :size="getKeywordSize(keyword.count)"
-              type="primary"
-            >
-              {{ keyword.word }} ({{ keyword.count }})
-            </el-tag>
+
+        <div class="keywords-content">
+          <div class="wordcloud-section">
+            <h4>词云可视化</h4>
+            <div class="wordcloud-container">
+              <KeywordCloudChart :data="analysisResult.keyword_analysis" width="100%" height="300px" />
+            </div>
           </div>
-        </div>
 
-        <!-- 高频词汇词云 -->
-        <div class="keyword-section" v-if="analysisResult.keyword_analysis.top_keywords">
-          <h4>高频词汇词云</h4>
-          <KeywordCloudChart 
-            :data="analysisResult.keyword_analysis.top_keywords"
-            title="高频词汇分布"
-            width="100%"
-            height="400px"
-          />
-        </div>
-
-        <!-- 高频短语显示 -->
-        <div class="keyword-section" v-if="analysisResult.keyword_analysis.top_phrases">
-          <h4>高频短语</h4>
-          <div class="keyword-list">
-            <el-tag
-              v-for="(phrase, index) in analysisResult.keyword_analysis.top_phrases.slice(0, 20)"
-              :key="index"
-              class="keyword-tag"
-              :size="getKeywordSize(phrase.count)"
-              type="success"
-            >
-              {{ phrase.phrase }} ({{ phrase.count }})
-            </el-tag>
+          <div class="keywords-list-section">
+            <h4>热门关键词 TOP20</h4>
+            <div class="keywords-tags">
+              <el-tag 
+                v-for="(keyword, index) in topKeywords" 
+                :key="index"
+                :type="getKeywordTagType(index)"
+                :size="getKeywordSize(keyword.count)"
+                effect="light"
+                class="keyword-tag"
+              >
+                {{ keyword.word }}
+                <span class="keyword-count">({{ keyword.count }})</span>
+              </el-tag>
+            </div>
           </div>
-        </div>
-
-        <!-- 高频短语词云 -->
-        <div class="keyword-section" v-if="analysisResult.keyword_analysis.top_phrases">
-          <h4>高频短语词云</h4>
-          <KeywordCloudChart 
-            :data="analysisResult.keyword_analysis.top_phrases.map((p: any) => ({ word: p.phrase, count: p.count }))"
-            title="高频短语分布"
-            width="100%"
-            height="400px"
-          />
         </div>
       </el-card>
 
-      <!-- 用户活跃度分析 -->
-      <el-card class="result-card" v-if="analysisResult.user_activity">
+      <!-- 用户活跃度 -->
+      <el-card class="result-card activity-card" v-if="analysisResult.user_activity">
         <template #header>
-          <span>用户活跃度分析</span>
+          <div class="section-header">
+            <div class="section-title">
+              <el-icon><UserFilled /></el-icon>
+              <span>用户活跃度</span>
+            </div>
+          </div>
         </template>
-        <div class="activity-section">
-          <h4>最活跃用户</h4>
-          <el-table :data="analysisResult.user_activity.most_active_users?.slice(0, 5)" stripe>
-            <el-table-column prop="username" label="用户名" />
-            <el-table-column prop="comment_count" label="评论数量" />
-          </el-table>
-        </div>
-        <div class="activity-stats">
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <div class="stat-item">
-                <div class="stat-number">{{ analysisResult.user_activity.activity_distribution?.single_comment_users || 0 }}</div>
-                <div class="stat-label">单次评论用户</div>
+
+        <div class="activity-content">
+          <div class="top-users-section">
+            <h4>最活跃用户 TOP5</h4>
+            <div class="top-users-list">
+              <div 
+                v-for="(user, index) in topUsers" 
+                :key="index"
+                class="top-user-item"
+                :class="{ 'top-3': index < 3 }"
+              >
+                <div class="user-rank">{{ index + 1 }}</div>
+                <div class="user-avatar">
+                  <el-icon><Avatar /></el-icon>
+                </div>
+                <div class="user-info">
+                  <div class="user-name">用户 {{ user.user_id }}</div>
+                  <div class="user-count">{{ user.comment_count }} 条评论</div>
+                </div>
+                <el-progress 
+                  :percentage="Math.round((user.comment_count / maxUserComments) * 100)" 
+                  :stroke-width="6"
+                  :show-text="false"
+                  class="user-progress"
+                />
               </div>
-            </el-col>
-            <el-col :span="12">
-              <div class="stat-item">
-                <div class="stat-number">{{ analysisResult.user_activity.activity_distribution?.multiple_comment_users || 0 }}</div>
-                <div class="stat-label">多次评论用户</div>
-              </div>
-            </el-col>
-          </el-row>
+            </div>
+          </div>
+
+          <div class="activity-stats">
+            <div class="activity-stat-item">
+              <div class="stat-value">{{ analysisResult.user_activity?.single_comment_users || 0 }}</div>
+              <div class="stat-label">仅评论一次</div>
+            </div>
+            <div class="activity-stat-item">
+              <div class="stat-value">{{ analysisResult.user_activity?.multi_comment_users || 0 }}</div>
+              <div class="stat-label">多次评论</div>
+            </div>
+          </div>
         </div>
       </el-card>
-
-      <!-- 内容质量分析 -->
-
     </div>
-
-    <!-- 错误提示 -->
-    <el-alert
-      v-if="error"
-      :title="error"
-      type="error"
-      show-icon
-      closable
-      @close="error = ''"
-    />
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, onUnmounted, computed } from 'vue'
-import { submitCommentAnalysis } from '@/api/bilibili'
-import { getJobStatus } from '@/api/bilibili' // 引入查询状态的API
-import { ElMessage } from 'element-plus'
-import SentimentPieChart from '@/components/charts/SentimentPieChart.vue'
-import KeywordCloudChart from '@/components/charts/KeywordCloudChart.vue'
+<script setup>
+import { ref, computed } from 'vue';
+import { ElMessage } from 'element-plus';
+import { submitCommentAnalysis, getJobStatus } from '@/api/bilibili';
+import SentimentPieChart from '@/components/charts/SentimentPieChart.vue';
+import KeywordCloudChart from '@/components/charts/KeywordCloudChart.vue';
+import {
+  ChatDotRound,
+  VideoPlay,
+  Cpu,
+  Link,
+  QuestionFilled,
+  CircleCheck,
+  ChatLineRound,
+  RefreshLeft,
+  PieChart,
+  User,
+  Document,
+  Collection,
+  UserFilled,
+  Avatar,
+  Download,
+  DataAnalysis,
+  Search
+} from '@element-plus/icons-vue';
 
+// 状态
+const form = ref({ bvId: '' });
+const analyzing = ref(false);
+const jobProgress = ref(0);
+const jobStatusText = ref('');
+const analysisResult = ref(null);
 
-const form = reactive({
-  bvId: ''
-})
+// 分页
+const currentPage = ref(1);
+const pageSize = ref(10);
 
-const analyzing = ref(false)
-const analysisResult = ref<any>(null)
-const error = ref('')
+// 示例BV号
+const sampleBVs = ['BV1xx411c7mD', 'BV1bK411x7ct', 'BV1S54y1G7h3'];
 
-// 新增用于任务轮询的状态
-const jobId = ref<string | null>(null)
-const jobProgress = ref(0)
-const jobStatusText = ref('')
-let pollingTimer: number | null = null
+// 分析步骤
+const analysisSteps = [
+  { percent: 0, text: '准备分析', icon: 'Search' },
+  { percent: 25, text: '获取评论', icon: 'Download' },
+  { percent: 50, text: '情感识别', icon: 'DataAnalysis' },
+  { percent: 75, text: '关键词提取', icon: 'Collection' },
+  { percent: 100, text: '分析完成', icon: 'CircleCheck' }
+];
 
-// 分页相关状态
-const currentPage = ref(1)
-const pageSize = ref(5)
+// 计算属性
+const sentimentPercentages = computed(() => {
+  if (!analysisResult.value?.sentiment_analysis) {
+    return { positive: 0, neutral: 0, negative: 0 };
+  }
+  const data = analysisResult.value.sentiment_analysis;
+  const total = data.positive + data.neutral + data.negative;
+  if (total === 0) return { positive: 0, neutral: 0, negative: 0 };
+  
+  return {
+    positive: Math.round((data.positive / total) * 100),
+    neutral: Math.round((data.neutral / total) * 100),
+    negative: Math.round((data.negative / total) * 100)
+  };
+});
 
+const topKeywords = computed(() => {
+  if (!analysisResult.value?.keyword_analysis) return [];
+  return analysisResult.value.keyword_analysis.slice(0, 20);
+});
+
+const topUsers = computed(() => {
+  if (!analysisResult.value?.user_activity?.top_users) return [];
+  return analysisResult.value.user_activity.top_users.slice(0, 5);
+});
+
+const maxUserComments = computed(() => {
+  if (!topUsers.value.length) return 1;
+  return Math.max(...topUsers.value.map(u => u.comment_count));
+});
+
+// 方法
 const startAnalysis = async () => {
-  if (!form.bvId.trim()) {
-    ElMessage.warning('请输入BV视频ID')
-    return
+  if (!form.value.bvId) {
+    ElMessage.warning('请输入BV号');
+    return;
   }
-  
-  // Reset UI state before request
-  analyzing.value = true
-  error.value = ''
-  analysisResult.value = null
-  jobProgress.value = 0
-  jobStatusText.value = '正在检查缓存或提交任务...'
 
+  analyzing.value = true;
+  jobProgress.value = 0;
+  analysisResult.value = null;
+
+  try {
+    const res = await submitCommentAnalysis(form.value.bvId);
+    if (res.code === 200) {
+      const jobId = res.data.job_id;
+      pollJobStatus(jobId);
+    } else {
+      ElMessage.error(res.message || '提交分析失败');
+      analyzing.value = false;
+    }
+  } catch (error) {
+    ElMessage.error('提交分析失败');
+    analyzing.value = false;
+  }
+};
+
+const pollJobStatus = async (jobId) => {
+  const poll = async () => {
     try {
-      const response = await submitCommentAnalysis(form.bvId)
-      
-      // Case 1: Cached result is returned immediately
-      if (response.code === 200) {
-        analysisResult.value = response.data
-        ElMessage.success('成功从缓存中获取分析结果！')
-        jobStatusText.value = '已从缓存加载。'
-        jobProgress.value = 100
-        // Keep analyzing state true for a moment to show progress bar full, then hide.
-        setTimeout(() => { analyzing.value = false; }, 500);
-
-      } 
-      // Case 2: New job is submitted, start polling
-      else if (response.code === 202 && response.data.job_id) {
-        jobId.value = response.data.job_id
-        ElMessage.success('分析任务已成功提交，正在后台处理...')
-        pollJobStatus()
-      } 
-      // Case 3: Other handled errors from the backend (like 409 Conflict)
-      else {
-        throw new Error(response.message || '提交分析任务失败')
-      }
-    } catch (err: any) {
-    // This catches network errors or explicit rejections (like 409)
-    error.value = err.message || '提交任务时发生错误'
-    ElMessage.error(error.value)
-    analyzing.value = false
-  }
-}
-
-const pollJobStatus = () => {
-  if (pollingTimer) {
-    clearTimeout(pollingTimer)
-  }
-
-  if (!jobId.value) {
-    analyzing.value = false
-    return
-  }
-
-  pollingTimer = window.setTimeout(async () => {
-    try {
-      const statusResponse = await getJobStatus(jobId.value!)
-      const job = statusResponse.data;
-
-      jobProgress.value = job.progress || 0
-      jobStatusText.value = job.details || ''
-
-      if (job.status === 'Completed') {
-        analysisResult.value = job.result
-        ElMessage.success('分析任务已完成！')
-        analyzing.value = false
-        clearTimeout(pollingTimer!)
-      } else if (job.status === 'Failed') {
-        throw new Error(job.details || '分析任务失败')
+      const res = await getJobStatus(jobId);
+      if (res.code === 200) {
+        jobProgress.value = res.data.progress || 0;
+        jobStatusText.value = res.data.status || '分析中...';
+        
+        if (res.data.status === 'completed') {
+          analysisResult.value = res.data.result;
+          analyzing.value = false;
+          ElMessage.success('分析完成！');
+        } else if (res.data.status === 'failed') {
+          analyzing.value = false;
+          ElMessage.error('分析失败：' + (res.data.error || '未知错误'));
+        } else {
+          setTimeout(() => poll(), 2000);
+        }
       } else {
-        // 继续轮询
-        pollJobStatus()
+        analyzing.value = false;
+        ElMessage.error('获取任务状态失败');
       }
-    } catch (err: any) {
-      error.value = err.message || '获取任务状态失败'
-      ElMessage.error(error.value)
-      analyzing.value = false
-      clearTimeout(pollingTimer!)
+    } catch (error) {
+      analyzing.value = false;
+      ElMessage.error('获取任务状态失败');
     }
-  }, 2000) // 每2秒查询一次
-}
+  };
+  poll();
+};
 
-// 组件卸载时清除定时器
-onUnmounted(() => {
-  if (pollingTimer) {
-    clearTimeout(pollingTimer)
-  }
-})
+const resetAnalysis = () => {
+  analysisResult.value = null;
+  form.value.bvId = '';
+  currentPage.value = 1;
+};
 
-const getSentimentType = (sentiment: string) => {
-  // 处理星级评分格式：{1~5} star
-  if (typeof sentiment === 'string' && sentiment.includes('star')) {
-    const starMatch = sentiment.match(/\{(\d+)\} star/)
-    if (starMatch) {
-      const starRating = parseInt(starMatch[1])
-      if (starRating >= 1 && starRating <= 2) return 'danger' // 1-2星：负面
-      if (starRating === 3) return 'info' // 3星：中性
-      if (starRating >= 4 && starRating <= 5) return 'success' // 4-5星：正面
-    }
-  }
-  
-  // 处理原有的字符串格式
-  switch (sentiment) {
-    case '1 star': return 'danger'
-    case '2 stars': return 'danger'
-    case '4 stars': return 'success'
-    case '5 stars': return 'success'
-    default: return 'info'
-
-  }
-}
-
-const getSentimentText = (sentiment: string) => {
-
-  
-  // 处理原有的字符串格式
-  switch (sentiment) {
-    case '1 star': return '负面'
-    case '2 stars': return '负面'
-    case '4 stars': return '正面'
-    case '5 stars': return '正面'
-    default: return '中性'
-  }
-}
-
-const getKeywordSize = (count: number) => {
-  if (count >= 10) return 'large'
-  if (count >= 5) return 'default'
-  return 'small'
-}
-
-// 获取所有评论示例
-const getAllCommentExamples = () => {
-  if (!analysisResult.value?.sentiment_analysis) return []
-  
-  const examples = []
-  const sentimentData = analysisResult.value.sentiment_analysis
-  
-  // 遍历sentiment_analysis对象，找到包含label和score的评论示例
-  for (const [comment, data] of Object.entries(sentimentData)) {
-    if (comment !== 'negative' && comment !== 'neutral' && comment !== 'positive' && 
-        typeof data === 'object' && data !== null && 'label' in data && 'score' in data) {
-      examples.push({
-        comment,
-        label: data.label,
-        score: data.score
-      })
-    }
-  }
-  
-  return examples
-}
-
-// 获取当前页的评论示例
 const getCommentExamples = computed(() => {
-  const allExamples = getAllCommentExamples()
-  const startIndex = (currentPage.value - 1) * pageSize.value
-  const endIndex = startIndex + pageSize.value
-  return allExamples.slice(startIndex, endIndex)
-})
+  const examples = getAllCommentExamples();
+  const start = (currentPage.value - 1) * pageSize.value;
+  return examples.slice(start, start + pageSize.value);
+});
 
-// 处理页码变化
-const handleCurrentChange = (page: number) => {
-  currentPage.value = page
-}
+const getAllCommentExamples = () => {
+  if (!analysisResult.value?.sentiment_analysis?.examples) return [];
+  return analysisResult.value.sentiment_analysis.examples;
+};
 
-// 处理每页数量变化
-const handleSizeChange = (size: number) => {
-  pageSize.value = size
-  currentPage.value = 1 // 重置到第一页
-}
+const handleCurrentChange = (val) => {
+  currentPage.value = val;
+};
+
+const handleSizeChange = (val) => {
+  pageSize.value = val;
+  currentPage.value = 1;
+};
+
+const getSentimentType = (label) => {
+  const map = {
+    1: 'danger',
+    2: 'warning',
+    3: 'info',
+    4: 'success',
+    5: 'success'
+  };
+  return map[label] || 'info';
+};
+
+const getSentimentText = (label) => {
+  const map = {
+    1: '非常负面',
+    2: '负面',
+    3: '中性',
+    4: '正面',
+    5: '非常正面'
+  };
+  return map[label] || '未知';
+};
+
+const getKeywordTagType = (index) => {
+  if (index < 3) return 'danger';
+  if (index < 6) return 'warning';
+  if (index < 10) return 'success';
+  return 'info';
+};
+
+const getKeywordSize = (count) => {
+  const max = topKeywords.value[0]?.count || 1;
+  const ratio = count / max;
+  if (ratio > 0.7) return 'large';
+  if (ratio > 0.4) return 'default';
+  return 'small';
+};
 </script>
 
 <style scoped>
-.comment-analysis {
-  padding: 20px;
+.comment-analysis-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0fdf4 100%);
+  min-height: 100vh;
 }
 
-.analysis-card {
-  margin-bottom: 20px;
+/* 页面标题 */
+.page-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #065f46, #047857);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.page-title .el-icon {
+  font-size: 36px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* 输入区 */
+.input-section {
+  margin-bottom: 32px;
+}
+
+.input-card {
+  border-radius: 12px;
 }
 
 .card-header {
@@ -416,131 +571,539 @@ const handleSizeChange = (size: number) => {
   align-items: center;
 }
 
-.analysis-results {
+.header-title {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
 }
 
-.result-card {
+.input-form {
+  padding: 20px 0;
+}
+
+.bv-input-wrapper {
   margin-bottom: 20px;
 }
 
-.stat-item {
-  text-align: center;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
+.input-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
 }
 
-.stat-number {
-  font-size: 24px;
-  font-weight: bold;
-  color: #409eff;
+.help-icon {
+  color: #9ca3af;
+  cursor: help;
+}
+
+.quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quick-label {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.sample-tag {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.sample-tag:hover {
+  background: #065f46;
+  color: white;
+}
+
+/* 分析进度 */
+.analysis-progress {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f9fafb;
+  border-radius: 12px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progress-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.progress-percent {
+  font-size: 14px;
+  color: #065f46;
+  font-weight: 600;
+}
+
+.progress-steps {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9ca3af;
+  transition: all 0.3s ease;
+}
+
+.step-item.active {
+  color: #065f46;
+}
+
+.step-item.current {
+  color: #065f46;
+  font-weight: 600;
+}
+
+.step-item .el-icon {
+  font-size: 20px;
+}
+
+/* 结果区 */
+.results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+}
+
+.result-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.result-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 统计卡片 */
+.stats-grid {
   margin-bottom: 8px;
 }
 
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(6, 95, 70, 0.1);
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.15);
+}
+
+.stat-card.primary {
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: white;
+  border: none;
+}
+
+.stat-card.success {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+}
+
+.stat-card.warning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+  border: none;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.stat-number {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
 .stat-label {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+/* 结果卡片 */
+.result-card {
+  border-radius: 12px;
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* 情感分析 */
+.sentiment-summary {
+  display: flex;
+  gap: 16px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.summary-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.summary-item.positive .summary-dot {
+  background: #10b981;
+}
+
+.summary-item.neutral .summary-dot {
+  background: #6b7280;
+}
+
+.summary-item.negative .summary-dot {
+  background: #ef4444;
+}
+
+.sentiment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.chart-container {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+/* 评论示例 */
+.comment-examples {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.examples-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.examples-header h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+.examples-count {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.examples-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.example-item {
+  background: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  border-left: 3px solid #e5e7eb;
+}
+
+.example-item.success {
+  border-left-color: #10b981;
+}
+
+.example-item.warning {
+  border-left-color: #f59e0b;
+}
+
+.example-item.danger {
+  border-left-color: #ef4444;
+}
+
+.example-item.info {
+  border-left-color: #6b7280;
+}
+
+.example-sentiment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.confidence {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.example-text {
   font-size: 14px;
-  color: #666;
-}
-
-.analysis-text {
-  margin-top: 10px;
   line-height: 1.6;
-  color: #333;
+  color: #374151;
 }
 
-.keyword-section {
-  margin-bottom: 20px;
+.pagination-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
 }
 
-.keyword-section h4 {
-  margin-bottom: 10px;
-  color: #333;
+/* 关键词分析 */
+.keywords-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
-.keyword-list {
+.wordcloud-section,
+.keywords-list-section {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.wordcloud-section h4,
+.keywords-list-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+.wordcloud-container {
+  background: white;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.keywords-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
 .keyword-tag {
-  margin-bottom: 5px;
+  transition: all 0.3s ease;
 }
 
-.activity-section {
-  margin-bottom: 20px;
+.keyword-tag:hover {
+  transform: scale(1.05);
 }
 
-.activity-section h4 {
-  margin-bottom: 10px;
-  color: #333;
+.keyword-count {
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+/* 用户活跃度 */
+.activity-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.top-users-section {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.top-users-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #111827;
+}
+
+.top-users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.top-user-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.top-user-item.top-3 {
+  background: linear-gradient(135deg, #f0fdf4, #ffffff);
+  border: 1px solid rgba(6, 95, 70, 0.2);
+}
+
+.user-rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.top-user-item.top-3 .user-rank {
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: white;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4f46e5;
+  font-size: 20px;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.user-count {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.user-progress {
+  width: 100px;
 }
 
 .activity-stats {
-  margin-top: 20px;
-}
-
-.quality-section {
-  text-align: center;
-}
-
-.quality-item {
-  padding: 20px;
-  border-radius: 8px;
-  background: #f8f9fa;
-}
-
-.quality-number {
-  font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 8px;
-}
-
-.quality-number.high {
-  color: #67c23a;
-}
-
-.quality-number.medium {
-  color: #e6a23c;
-}
-
-.quality-number.low {
-  color: #f56c6c;
-}
-
-.quality-label {
-  font-size: 14px;
-  color: #666;
-}
-
-.progress-container {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.job-status {
-  margin-top: 10px;
-  color: #666;
-}
-
-
-.comment-examples {
-  margin-top: 20px;
-}
-
-.comment-examples h4 {
-  margin-bottom: 15px;
-  color: #333;
-  font-weight: 600;
-}
-
-/* 分页样式 */
-.pagination-container {
-  margin-top: 20px;
   display: flex;
-  justify-content: center;
+  gap: 16px;
+}
+
+.activity-stat-item {
+  flex: 1;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+
+.activity-stat-item .stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #065f46;
+  margin-bottom: 4px;
+}
+
+.activity-stat-item .stat-label {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .comment-analysis-page {
+    padding: 16px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .result-header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .sentiment-summary {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .progress-steps {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
 }
 </style>
