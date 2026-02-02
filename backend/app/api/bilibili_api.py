@@ -2,7 +2,7 @@ import asyncio
 import json
 import uuid
 from typing import Optional
-from fastapi import Depends, status, APIRouter, BackgroundTasks
+from fastapi import Depends, status, APIRouter, BackgroundTasks, Query
 from fastapi.responses import JSONResponse
 import logging
 
