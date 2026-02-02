@@ -450,6 +450,9 @@ const viewAnalysis = async (uid: string) => {
     activeTab.value = 'analysis';
     showAllComments.value = false;
     
+    // 销毁旧的思维导图实例
+    destroyMindMap();
+    
     await nextTick();
     if (viewMode.value === 'mindmap' && analysisResult.value?.analysis) {
       initializeMindMap(analysisResult.value.analysis);
@@ -463,15 +466,25 @@ const viewAnalysis = async (uid: string) => {
 const initializeMindMap = async (markdownContent: string) => {
   if (!mindmapContainer.value) return;
   try {
+    // 销毁旧实例
+    destroyMindMap();
+    
     const { root } = transformer.transform(markdownContent);
-    if (!mm) {
-      mm = Markmap.create(mindmapContainer.value, null, root);
-    } else {
-      await mm.setData(root);
-      mm.fit();
-    }
+    // 创建新实例
+    mm = Markmap.create(mindmapContainer.value, null, root);
   } catch (error) {
     console.error('思维导图初始化失败:', error);
+  }
+};
+
+const destroyMindMap = () => {
+  if (mm) {
+    try {
+      mm.destroy();
+    } catch (e) {
+      console.error('销毁思维导图失败:', e);
+    }
+    mm = null;
   }
 };
 
@@ -483,6 +496,13 @@ watch(viewMode, async (newMode) => {
   if (newMode === 'mindmap' && analysisResult.value?.analysis) {
     await nextTick();
     initializeMindMap(analysisResult.value.analysis);
+  }
+});
+
+// 监听对话框关闭，销毁思维导图
+watch(dialogVisible, (visible) => {
+  if (!visible) {
+    destroyMindMap();
   }
 });
 
