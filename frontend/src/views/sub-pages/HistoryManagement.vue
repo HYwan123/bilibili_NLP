@@ -9,7 +9,7 @@
     <!-- 统计卡片区 -->
     <div class="stats-section">
       <el-row :gutter="20">
-        <el-col :xs="12" :sm="6" :lg="3">
+        <el-col :xs="12" :sm="6" :md="6">
           <div class="stat-card total">
             <div class="stat-icon">
               <el-icon><Document /></el-icon>
@@ -20,7 +20,7 @@
             </div>
           </div>
         </el-col>
-        <el-col :xs="12" :sm="6" :lg="3">
+        <el-col :xs="12" :sm="6" :md="6">
           <div class="stat-card bv">
             <div class="stat-icon">
               <el-icon><VideoPlay /></el-icon>
@@ -31,7 +31,7 @@
             </div>
           </div>
         </el-col>
-        <el-col :xs="12" :sm="6" :lg="3">
+        <el-col :xs="12" :sm="6" :md="6">
           <div class="stat-card uid">
             <div class="stat-icon">
               <el-icon><User /></el-icon>
@@ -42,7 +42,7 @@
             </div>
           </div>
         </el-col>
-        <el-col :xs="12" :sm="6" :lg="3">
+        <el-col :xs="12" :sm="6" :md="6">
           <div class="stat-card today">
             <div class="stat-icon">
               <el-icon><Calendar /></el-icon>
@@ -52,10 +52,6 @@
               <div class="stat-label">今日查询</div>
             </div>
           </div>
-        </el-col>
-        <!-- 大屏下添加两个空白占位，保持布局美观 -->
-        <el-col :xs="0" :sm="0" :lg="6" class="hidden-lg-and-down">
-          <div style="height: 1px;"></div>
         </el-col>
       </el-row>
     </div>

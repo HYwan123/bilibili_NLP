@@ -246,7 +246,7 @@
           <div class="wordcloud-section">
             <h4>词云可视化</h4>
             <div class="wordcloud-container">
-              <KeywordCloudChart :data="analysisResult.keyword_analysis" width="100%" height="300px" />
+              <KeywordCloudChart :data="analysisResult.keyword_analysis?.top_keywords || []" width="100%" height="300px" />
             </div>
           </div>
 
