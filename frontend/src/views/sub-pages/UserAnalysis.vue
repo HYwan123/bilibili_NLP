@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="page-header">
       <h1 class="page-title">
-        <el-icon><Magic /></el-icon>
+        <el-icon><Orange /></el-icon>
         智能用户画像分析
       </h1>
       <p class="page-subtitle">基于AI大模型，深度分析B站用户行为特征和兴趣偏好</p>
@@ -225,7 +225,7 @@
               :disabled="!isApiConfigured || analyzing"
               class="analyze-btn"
             >
-              <el-icon><Magic /></el-icon>
+              <el-icon><Orange /></el-icon>
               <span v-if="!isApiConfigured">请先配置API</span>
               <span v-else-if="analyzing">AI分析中...</span>
               <span v-else>开始AI画像分析</span>
@@ -340,7 +340,7 @@ import MarkdownIt from 'markdown-it';
 import { Transformer } from 'markmap-lib';
 import { Markmap } from 'markmap-view';
 import { 
-  Magic, EditPen, Download, Cpu, View, Setting, Key, Link, Collection,
+  Orange, EditPen, Download, Cpu, View, Setting, Key, Link, Collection,
   User, QuestionFilled, ChatDotRound, Refresh, Delete, Warning,
   CircleCheck, Clock, UserFilled, Document, Share, InfoFilled,
   Star, RefreshLeft, ChatLineRound
