@@ -88,7 +88,13 @@
                 class="step-item"
                 :class="{ active: jobProgress >= step.percent, current: jobProgress >= step.percent && jobProgress < (analysisSteps[idx + 1]?.percent || 100) }"
               >
-                <el-icon><component :is="step.icon" /></el-icon>
+                <el-icon>
+                  <Search v-if="step.icon === 'Search'" />
+                  <Download v-else-if="step.icon === 'Download'" />
+                  <DataAnalysis v-else-if="step.icon === 'DataAnalysis'" />
+                  <Collection v-else-if="step.icon === 'Collection'" />
+                  <CircleCheck v-else />
+                </el-icon>
                 <span>{{ step.text }}</span>
               </div>
             </div>
@@ -341,7 +347,8 @@ import {
   Avatar,
   Download,
   DataAnalysis,
-  Search
+  Search,
+  InfoFilled
 } from '@element-plus/icons-vue';
 
 // 状态
