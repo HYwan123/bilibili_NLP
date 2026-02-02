@@ -389,8 +389,12 @@ const topKeywords = computed(() => {
 });
 
 const topUsers = computed(() => {
-  if (!analysisResult.value?.user_activity?.top_users) return [];
-  return analysisResult.value.user_activity.top_users.slice(0, 5);
+  if (!analysisResult.value?.user_activity?.most_active_users) return [];
+  // 映射字段：username -> user_id，comment_count 保持不变
+  return analysisResult.value.user_activity.most_active_users.slice(0, 5).map(user => ({
+    user_id: user.username,
+    comment_count: user.comment_count
+  }));
 });
 
 const maxUserComments = computed(() => {
@@ -467,8 +471,32 @@ const getCommentExamples = computed(() => {
 });
 
 const getAllCommentExamples = () => {
-  if (!analysisResult.value?.sentiment_analysis?.examples) return [];
-  return analysisResult.value.sentiment_analysis.examples;
+  if (!analysisResult.value?.sentiment_analysis) return [];
+  
+  const sentiment = analysisResult.value.sentiment_analysis;
+  
+  // 处理两种可能的格式
+  // 格式1: { examples: [{comment, label, score}] }
+  if (sentiment.examples && Array.isArray(sentiment.examples)) {
+    return sentiment.examples;
+  }
+  
+  // 格式2: { "评论内容": {label, score}, "评论内容2": {...} }
+  const examples = [];
+  const excludeKeys = ['negative', 'neutral', 'positive', 'total'];
+  
+  for (const [key, value] of Object.entries(sentiment)) {
+    if (excludeKeys.includes(key)) continue;
+    if (typeof value === 'object' && value.label) {
+      examples.push({
+        comment: key,
+        label: parseInt(value.label), // "2 stars" -> 2
+        score: value.score
+      });
+    }
+  }
+  
+  return examples;
 };
 
 const handleCurrentChange = (val) => {
@@ -481,6 +509,8 @@ const handleSizeChange = (val) => {
 };
 
 const getSentimentType = (label) => {
+  // 处理 "2 stars" 格式或数字
+  const num = typeof label === 'string' ? parseInt(label) : label;
   const map = {
     1: 'danger',
     2: 'warning',
@@ -488,10 +518,12 @@ const getSentimentType = (label) => {
     4: 'success',
     5: 'success'
   };
-  return map[label] || 'info';
+  return map[num] || 'info';
 };
 
 const getSentimentText = (label) => {
+  // 处理 "2 stars" 格式或数字
+  const num = typeof label === 'string' ? parseInt(label) : label;
   const map = {
     1: '非常负面',
     2: '负面',
@@ -499,7 +531,7 @@ const getSentimentText = (label) => {
     4: '正面',
     5: '非常正面'
   };
-  return map[label] || '未知';
+  return map[num] || '未知';
 };
 
 const getKeywordTagType = (index) => {
