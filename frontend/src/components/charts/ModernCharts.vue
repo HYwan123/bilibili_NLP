@@ -42,13 +42,8 @@
       </div>
       <div class="chart-content">
         <div class="keyword-cloud">
-          <div 
-            v-for="(keyword, index) in keywordData" 
-            :key="keyword.word"
-            class="keyword-item"
-            :style="getKeywordStyle(keyword.count, index)"
-            @click="onKeywordClick(keyword)"
-          >
+          <div v-for="(keyword, index) in keywordData" :key="keyword.word" class="keyword-item"
+            :style="getKeywordStyle(keyword.count, index)" @click="onKeywordClick(keyword)">
             {{ keyword.word }}
           </div>
         </div>
@@ -63,16 +58,9 @@
       </div>
       <div class="chart-content">
         <div class="activity-bars">
-          <div 
-            v-for="user in activityData" 
-            :key="user.username"
-            class="activity-bar-item"
-          >
+          <div v-for="user in activityData" :key="user.username" class="activity-bar-item">
             <div class="bar-container">
-              <div 
-                class="bar-fill"
-                :style="{ width: getBarWidth(user.comment_count) + '%' }"
-              ></div>
+              <div class="bar-fill" :style="{ width: getBarWidth(user.comment_count) + '%' }"></div>
             </div>
             <div class="bar-info">
               <div class="user-name">{{ user.username }}</div>
@@ -94,10 +82,8 @@
           <div class="quality-gauge">
             <div class="gauge-container">
               <div class="gauge-bg"></div>
-              <div 
-                class="gauge-fill"
-                :style="{ transform: `rotate(${getGaugeRotation(qualityData.average_score)}deg)` }"
-              ></div>
+              <div class="gauge-fill"
+                :style="{ transform: `rotate(${getGaugeRotation(qualityData.average_score)}deg)` }"></div>
               <div class="gauge-center">
                 <div class="gauge-value">{{ qualityData.average_score }}</div>
                 <div class="gauge-label">平均分</div>
@@ -107,10 +93,7 @@
           <div class="quality-breakdown">
             <div class="quality-item high">
               <div class="quality-bar">
-                <div 
-                  class="quality-fill"
-                  :style="{ width: getQualityPercent(qualityData.high) + '%' }"
-                ></div>
+                <div class="quality-fill" :style="{ width: getQualityPercent(qualityData.high) + '%' }"></div>
               </div>
               <div class="quality-info">
                 <span class="quality-label">高质量</span>
@@ -119,10 +102,7 @@
             </div>
             <div class="quality-item medium">
               <div class="quality-bar">
-                <div 
-                  class="quality-fill"
-                  :style="{ width: getQualityPercent(qualityData.medium) + '%' }"
-                ></div>
+                <div class="quality-fill" :style="{ width: getQualityPercent(qualityData.medium) + '%' }"></div>
               </div>
               <div class="quality-info">
                 <span class="quality-label">中等质量</span>
@@ -131,10 +111,7 @@
             </div>
             <div class="quality-item low">
               <div class="quality-bar">
-                <div 
-                  class="quality-fill"
-                  :style="{ width: getQualityPercent(qualityData.low) + '%' }"
-                ></div>
+                <div class="quality-fill" :style="{ width: getQualityPercent(qualityData.low) + '%' }"></div>
               </div>
               <div class="quality-info">
                 <span class="quality-label">低质量</span>
@@ -162,38 +139,16 @@
                   <stop offset="100%" style="stop-color:#667eea;stop-opacity:0.1" />
                 </linearGradient>
               </defs>
-              <path 
-                :d="getTrendPath()"
-                fill="url(#trendGradient)"
-                stroke="#667eea"
-                stroke-width="2"
-              />
-              <path 
-                :d="getTrendLine()"
-                fill="none"
-                stroke="#667eea"
-                stroke-width="3"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
+              <path :d="getTrendPath()" fill="url(#trendGradient)" stroke="#667eea" stroke-width="2" />
+              <path :d="getTrendLine()" fill="none" stroke="#667eea" stroke-width="3" stroke-linecap="round"
+                stroke-linejoin="round" />
               <!-- 数据点 -->
-              <circle 
-                v-for="(point, index) in getTrendPoints()"
-                :key="index"
-                :cx="point.x"
-                :cy="point.y"
-                r="4"
-                fill="#667eea"
-                class="trend-point"
-              />
+              <circle v-for="(point, index) in getTrendPoints()" :key="index" :cx="point.x" :cy="point.y" r="4"
+                fill="#667eea" class="trend-point" />
             </svg>
           </div>
           <div class="trend-labels">
-            <div 
-              v-for="(label, index) in trendData.labels"
-              :key="index"
-              class="trend-label"
-            >
+            <div v-for="(label, index) in trendData.labels" :key="index" class="trend-label">
               {{ label }}
             </div>
           </div>
@@ -250,7 +205,7 @@ const getKeywordStyle = (count: number, index: number) => {
   const size = Math.max(12, Math.min(32, (count / maxCount) * 32 + 12));
   const colors = ['#667eea', '#764ba2', '#f093fb', '#4ade80', '#fbbf24', '#ef4444'];
   const color = colors[index % colors.length];
-  
+
   return {
     fontSize: `${size}px`,
     color: color,
@@ -279,63 +234,63 @@ const getQualityPercent = (count: number) => {
 // 趋势图路径计算
 const getTrendPath = () => {
   if (!props.trendData?.values.length) return '';
-  
+
   const values = props.trendData.values;
   const maxValue = Math.max(...values);
   const minValue = Math.min(...values);
   const range = maxValue - minValue || 1;
-  
+
   const width = 400;
   const height = 200;
   const padding = 20;
-  
+
   let path = `M ${padding} ${height - padding}`;
-  
+
   values.forEach((value, index) => {
     const x = padding + (index / (values.length - 1)) * (width - 2 * padding);
     const y = height - padding - ((value - minValue) / range) * (height - 2 * padding);
     path += ` L ${x} ${y}`;
   });
-  
+
   path += ` L ${width - padding} ${height - padding} Z`;
   return path;
 };
 
 const getTrendLine = () => {
   if (!props.trendData?.values.length) return '';
-  
+
   const values = props.trendData.values;
   const maxValue = Math.max(...values);
   const minValue = Math.min(...values);
   const range = maxValue - minValue || 1;
-  
+
   const width = 400;
   const height = 200;
   const padding = 20;
-  
+
   let path = '';
-  
+
   values.forEach((value, index) => {
     const x = padding + (index / (values.length - 1)) * (width - 2 * padding);
     const y = height - padding - ((value - minValue) / range) * (height - 2 * padding);
     path += index === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`;
   });
-  
+
   return path;
 };
 
 const getTrendPoints = () => {
   if (!props.trendData?.values.length) return [];
-  
+
   const values = props.trendData.values;
   const maxValue = Math.max(...values);
   const minValue = Math.min(...values);
   const range = maxValue - minValue || 1;
-  
+
   const width = 400;
   const height = 200;
   const padding = 20;
-  
+
   return values.map((value, index) => ({
     x: padding + (index / (values.length - 1)) * (width - 2 * padding),
     y: height - padding - ((value - minValue) / range) * (height - 2 * padding)
@@ -398,11 +353,9 @@ const onKeywordClick = (keyword: { word: string; count: number }) => {
   height: 200px;
   margin: 0 auto 24px;
   border-radius: 50%;
-  background: conic-gradient(
-    #4ade80 0deg 120deg,
-    #fbbf24 120deg 240deg,
-    #ef4444 240deg 360deg
-  );
+  background: conic-gradient(#4ade80 0deg 120deg,
+      #fbbf24 120deg 240deg,
+      #ef4444 240deg 360deg);
   position: relative;
 }
 
@@ -707,31 +660,31 @@ const onKeywordClick = (keyword: { word: string; count: number }) => {
     gap: 16px;
     padding: 16px;
   }
-  
+
   .chart-header {
     padding: 16px 16px 12px;
   }
-  
+
   .chart-content {
     padding: 16px;
   }
-  
+
   .sentiment-stats {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .quality-dashboard {
     grid-template-columns: 1fr;
     gap: 24px;
   }
-  
+
   .activity-bar-item {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
   }
-  
+
   .bar-info {
     text-align: left;
     min-width: auto;

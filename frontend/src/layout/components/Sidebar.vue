@@ -126,7 +126,7 @@ const toggleCollapse = () => {
 <style scoped>
 /* 侧边栏主体 */
 .modern-sidebar {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  background: linear-gradient(180deg, var(--bg-dark) 0%, var(--primary-color) 50%, var(--primary-light) 100%);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -141,7 +141,7 @@ const toggleCollapse = () => {
   right: 0;
   width: 1px;
   height: 100%;
-  background: linear-gradient(180deg, transparent 0%, rgba(102, 126, 234, 0.3) 50%, transparent 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(6, 95, 70, 0.4) 50%, transparent 100%);
 }
 
 /* Logo区域 */
@@ -161,14 +161,14 @@ const toggleCollapse = () => {
 .logo-icon {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
+  background: linear-gradient(135deg, var(--bg-dark) 0%, var(--primary-color) 50%, var(--primary-light) 100%);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 20px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
 }
 
 .logo-text {
@@ -234,7 +234,7 @@ const toggleCollapse = () => {
   top: 0;
   width: 3px;
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--bg-dark) 0%, var(--primary-color) 50%, var(--primary-light) 100%);
   transform: scaleY(0);
   transition: transform 0.3s ease;
 }
@@ -244,14 +244,14 @@ const toggleCollapse = () => {
 }
 
 .modern-menu-item:hover {
-  background: rgba(102, 126, 234, 0.1) !important;
+  background: rgba(6, 95, 70, 0.15) !important;
   transform: translateX(4px);
 }
 
 .modern-menu-item.is-active {
-  background: rgba(102, 126, 234, 0.15) !important;
-  color: #667eea !important;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  background: rgba(6, 95, 70, 0.2) !important;
+  color: var(--secondary-color) !important;
+  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.25);
 }
 
 .menu-item-content {
@@ -270,7 +270,7 @@ const toggleCollapse = () => {
 
 .modern-menu-item:hover .menu-icon,
 .modern-menu-item.is-active .menu-icon {
-  color: #667eea;
+  color: var(--secondary-color);
   transform: scale(1.1);
 }
 
@@ -283,7 +283,7 @@ const toggleCollapse = () => {
 
 .modern-menu-item:hover .menu-text,
 .modern-menu-item.is-active .menu-text {
-  color: #667eea;
+  color: var(--secondary-color);
 }
 
 /* 底部操作区域 */
@@ -308,8 +308,8 @@ const toggleCollapse = () => {
 }
 
 .collapse-btn:hover {
-  background: rgba(102, 126, 234, 0.2);
-  color: #667eea;
+  background: rgba(6, 95, 70, 0.25);
+  color: var(--secondary-color);
   transform: scale(1.05);
 }
 
@@ -329,22 +329,47 @@ const toggleCollapse = () => {
   transform: translateX(-20px);
 }
 
-/* 滚动条美化 */
+/* Apple风格滚动条 - Sidebar专用 */
 .nav-section::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 .nav-section::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.nav-section::-webkit-scrollbar-track:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
 .nav-section::-webkit-scrollbar-thumb {
-  background: rgba(102, 126, 234, 0.3);
-  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  min-height: 40px;
 }
 
 .nav-section::-webkit-scrollbar-thumb:hover {
-  background: rgba(102, 126, 234, 0.5);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.nav-section::-webkit-scrollbar-thumb:active {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.nav-section::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox滚动条支持 */
+.nav-section {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
 }
 
 /* 折叠状态优化 */
@@ -396,13 +421,13 @@ const toggleCollapse = () => {
 }
 
 :deep(.el-menu-item:hover) {
-  background: rgba(102, 126, 234, 0.1) !important;
-  color: #667eea !important;
+  background: rgba(6, 95, 70, 0.15) !important;
+  color: var(--secondary-color) !important;
 }
 
 :deep(.el-menu-item.is-active) {
-  background: rgba(102, 126, 234, 0.15) !important;
-  color: #667eea !important;
+  background: rgba(6, 95, 70, 0.2) !important;
+  color: var(--secondary-color) !important;
 }
 
 :deep(.el-menu--collapse .el-menu-item) {

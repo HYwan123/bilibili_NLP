@@ -41,12 +41,47 @@ const logout = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: #fff;
-  border-bottom: 1px solid #dcdfe6;
+  background: linear-gradient(90deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  border-bottom: 2px solid rgba(6, 95, 70, 0.2);
+  box-shadow: var(--shadow-sm);
   height: 60px;
+  padding: 0 20px;
 }
+
 .collapse-icon {
   font-size: 24px;
   cursor: pointer;
+  color: var(--primary-color);
+  transition: all 0.3s ease;
+  padding: 8px;
+  border-radius: var(--radius-md);
+}
+
+.collapse-icon:hover {
+  background: rgba(6, 95, 70, 0.1);
+  color: var(--primary-light);
+  transform: scale(1.05);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.el-dropdown-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary-color);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  transition: all 0.3s ease;
+}
+
+.el-dropdown-link:hover {
+  background: rgba(6, 95, 70, 0.1);
+  color: var(--primary-light);
 }
 </style> 
