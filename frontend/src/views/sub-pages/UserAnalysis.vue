@@ -494,22 +494,23 @@ const analyzeUser = async () => {
   currentStep.value = 2;
   
   try {
-    const res = await request.post(`/api/user/analyze/${form.value.uid}`, {
+    const data = await request.post(`/api/user/analyze/${form.value.uid}`, {
       api_key: apiConfig.value.apiKey,
       api_url: apiConfig.value.apiUrl,
       model_id: apiConfig.value.modelId
     });
     
-    const data = res.data;
-    if (data.code === 200) {
-      analysisResult.value = data.data;
+    // 处理API响应
+    if (data.code === 200 || data.code === 201) {
+      // 如果已经分析过，直接显示结果
+      analysisResult.value = data.data || data;
       currentStep.value = 3;
-      message.value = '用户画像分析成功！';
+      message.value = data.message === '分析过了' ? '已获取历史分析结果' : '用户画像分析成功！';
       messageType.value = 'success';
       
       // 初始化思维导图
       await nextTick();
-      if (viewMode.value === 'mindmap') {
+      if (viewMode.value === 'mindmap' && analysisResult.value?.analysis) {
         initializeMindMap(analysisResult.value.analysis);
       }
     } else {
