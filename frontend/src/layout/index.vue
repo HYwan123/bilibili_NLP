@@ -15,7 +15,11 @@ import AppMain from './components/AppMain.vue';
 </script>
 
 <style scoped>
+.main-content {
+  padding: 0%;
+}
 .layout-container-demo {
+  
   position: absolute;
   top: 0;
   left: 0;
