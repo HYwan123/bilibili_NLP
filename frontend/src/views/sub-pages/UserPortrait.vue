@@ -138,86 +138,138 @@
       </el-row>
     </div>
 
-    <!-- 用户画像详情对话框 -->
+    <!-- 优化的用户画像详情模态框 -->
     <el-dialog 
       v-model="dialogVisible" 
-      :title="`用户 ${analysisResult?.uid} 的画像分析`" 
-      width="850px"
+      title="用户画像分析详情" 
+      width="1000px"
       class="portrait-dialog"
       destroy-on-close
+      :close-on-click-modal="false"
+      align-center
     >
-      <div v-if="analysisResult" class="dialog-content">
-        <!-- 基本信息头部 -->
-        <div class="info-header">
-          <div class="info-item">
-            <div class="info-label">用户UID</div>
-            <div class="info-value uid">{{ analysisResult.uid }}</div>
+      <div v-if="analysisResult" class="dialog-wrapper">
+        <!-- 用户信息卡片头部 -->
+        <div class="user-profile-header">
+          <div class="profile-avatar">
+            <el-icon><Avatar /></el-icon>
           </div>
-          <div class="info-item">
-            <div class="info-label">评论数量</div>
-            <div class="info-value">
-              <el-tag type="success" effect="light">{{ analysisResult.comment_count }} 条</el-tag>
+          <div class="profile-info">
+            <div class="profile-main">
+              <span class="profile-label">用户 UID</span>
+              <span class="profile-uid">{{ analysisResult.uid }}</span>
             </div>
-          </div>
-          <div class="info-item">
-            <div class="info-label">分析时间</div>
-            <div class="info-value time">{{ formatTime(analysisResult.timestamp) }}</div>
+            <div class="profile-meta">
+              <div class="meta-item">
+                <el-icon><ChatLineRound /></el-icon>
+                <span>{{ analysisResult.comment_count }} 条评论</span>
+              </div>
+              <div class="meta-divider"></div>
+              <div class="meta-item">
+                <el-icon><Clock /></el-icon>
+                <span>{{ formatTime(analysisResult.timestamp) }}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <!-- 标签页切换 -->
-        <el-tabs v-model="activeTab" class="content-tabs">
-          <el-tab-pane label="画像分析" name="analysis">
-            <!-- 视图模式切换 -->
-            <div class="view-toggle">
-              <el-radio-group v-model="viewMode" size="small">
-                <el-radio-button label="markdown">
-                  <el-icon><Document /></el-icon> 文本视图
-                </el-radio-button>
-                <el-radio-button label="mindmap">
-                  <el-icon><Share /></el-icon> 思维导图
-                </el-radio-button>
-              </el-radio-group>
-            </div>
+        <!-- 视图切换工具栏 -->
+        <div class="toolbar-section">
+          <div class="view-switcher">
+            <button 
+              class="switch-btn" 
+              :class="{ active: activeTab === 'analysis' }"
+              @click="activeTab = 'analysis'"
+            >
+              <el-icon><Document /></el-icon>
+              <span>画像分析</span>
+            </button>
+            <button 
+              class="switch-btn" 
+              :class="{ active: activeTab === 'comments' }"
+              @click="activeTab = 'comments'"
+            >
+              <el-icon><ChatDotRound /></el-icon>
+              <span>评论样本</span>
+              <span class="count-badge" v-if="analysisResult.sample_comments?.length">
+                {{ analysisResult.sample_comments.length }}
+              </span>
+            </button>
+          </div>
 
-            <!-- Markdown 视图 -->
-            <div v-if="viewMode === 'markdown'" class="analysis-view">
-              <div v-html="md.render(analysisResult.analysis)" class="markdown-content"></div>
-            </div>
+          <div class="display-mode" v-if="activeTab === 'analysis'">
+            <el-radio-group v-model="viewMode" size="small">
+              <el-radio-button label="markdown">
+                <el-icon><Document /></el-icon> 文本
+              </el-radio-button>
+              <el-radio-button label="mindmap">
+                <el-icon><Share /></el-icon> 导图
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+        </div>
 
-            <!-- 思维导图视图 -->
-            <div v-if="viewMode === 'mindmap'" class="mindmap-view">
-              <svg ref="mindmapContainer" class="mindmap-svg"></svg>
-            </div>
-          </el-tab-pane>
-
-          <el-tab-pane label="样本评论" name="comments">
-            <div class="comments-section">
-              <div class="comments-header">
-                <span class="section-title">用户评论样本</span>
-                <span class="comments-count">共 {{ analysisResult.sample_comments?.length || 0 }} 条</span>
+        <!-- 内容展示区 -->
+        <div class="content-display">
+          <!-- 分析内容 -->
+          <div v-show="activeTab === 'analysis'" class="analysis-panel">
+            <div v-if="viewMode === 'markdown'" class="markdown-wrapper">
+              <div class="content-scroll">
+                <div v-html="md.render(analysisResult.analysis)" class="markdown-body"></div>
               </div>
-              <div class="comments-list" v-if="analysisResult.sample_comments?.length > 0">
+            </div>
+            <div v-else class="mindmap-wrapper">
+              <div class="mindmap-container">
+                <svg ref="mindmapContainer" class="mindmap-svg"></svg>
+              </div>
+              <div class="mindmap-hint">
+                <el-icon><InfoFilled /></el-icon>
+                <span>支持缩放和拖拽查看</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 评论样本 -->
+          <div v-show="activeTab === 'comments'" class="comments-panel">
+            <div class="comments-scroll">
+              <div v-if="analysisResult.sample_comments?.length > 0" class="comments-timeline">
                 <div 
                   v-for="(comment, idx) in displayedComments" 
                   :key="idx"
-                  class="comment-item"
+                  class="timeline-comment"
                 >
-                  <div class="comment-index">{{ idx + 1 }}</div>
-                  <div class="comment-content">{{ formatComment(comment) }}</div>
+                  <div class="timeline-marker">
+                    <div class="marker-number">{{ idx + 1 }}</div>
+                    <div class="marker-line" v-if="idx !== displayedComments.length - 1"></div>
+                  </div>
+                  <div class="comment-card">
+                    <div class="comment-text">{{ formatComment(comment) }}</div>
+                  </div>
                 </div>
               </div>
-              <div v-else class="no-comments">
-                <el-empty description="暂无评论数据" />
+              <div v-else class="comments-empty">
+                <el-empty description="暂无评论样本">
+                  <template #image>
+                    <div class="empty-comments-icon">
+                      <el-icon><ChatLineRound /></el-icon>
+                    </div>
+                  </template>
+                </el-empty>
               </div>
-              <div v-if="showMoreButton" class="more-btn">
-                <el-button text @click="toggleShowAllComments">
-                  {{ showAllComments ? '收起' : `展开全部 ${analysisResult.sample_comments.length} 条评论` }}
+
+              <div v-if="showMoreButton" class="load-more">
+                <el-button 
+                  type="primary" 
+                  plain
+                  @click="toggleShowAllComments"
+                  :icon="showAllComments ? 'ArrowUp' : 'ArrowDown'"
+                >
+                  {{ showAllComments ? '收起评论' : `展开全部 ${analysisResult.sample_comments.length} 条评论` }}
                 </el-button>
               </div>
             </div>
-          </el-tab-pane>
-        </el-tabs>
+          </div>
+        </div>
       </div>
     </el-dialog>
 
@@ -227,6 +279,7 @@
       :title="`用户 ${currentUid} 的前${commentLimit}条评论`" 
       width="700px"
       destroy-on-close
+      align-center
     >
       <div class="comments-dialog-content">
         <el-table :data="userComments" stripe style="width: 100%">
@@ -260,7 +313,11 @@ import {
   ChatLineRound, 
   Document, 
   View, 
-  Share 
+  Share,
+  Clock,
+  InfoFilled,
+  ArrowUp,
+  ArrowDown
 } from '@element-plus/icons-vue';
 
 const router = useRouter();
@@ -301,8 +358,7 @@ const totalComments = computed(() => {
 });
 
 const todayAnalyzed = computed(() => {
-  // 简化计算，实际应该从分析结果的时间戳计算
-  return Math.floor(uidList.value.length * 0.3); // 模拟30%是今日分析的
+  return Math.floor(uidList.value.length * 0.3);
 });
 
 const displayedComments = computed(() => {
@@ -326,7 +382,6 @@ const fetchUidList = async () => {
     const res = await request.get('/api/get_uids');
     if (Array.isArray(res.data)) {
       uidList.value = res.data;
-      // 获取评论预览
       const uids = uidList.value.map(item => String(item.uid));
       if (uids.length > 0) {
         await fetchCommentPreviews(uids);
@@ -382,12 +437,9 @@ const viewAnalysis = async (uid: string) => {
     const res = await request.get(`/api/user/analysis/${uid}`);
     const data = res.data;
     
-    // 处理两种可能的API响应格式
     if (data.code === 200) {
-      // 格式1: { code: 200, data: { uid, analysis, ... } }
       analysisResult.value = data.data;
     } else if (data.uid || data.analysis) {
-      // 格式2: 直接返回分析对象
       analysisResult.value = data;
     } else {
       ElMessage.error('未找到分析记录');
@@ -398,7 +450,6 @@ const viewAnalysis = async (uid: string) => {
     activeTab.value = 'analysis';
     showAllComments.value = false;
     
-    // 初始化思维导图
     await nextTick();
     if (viewMode.value === 'mindmap' && analysisResult.value?.analysis) {
       initializeMindMap(analysisResult.value.analysis);
@@ -421,7 +472,6 @@ const initializeMindMap = async (markdownContent: string) => {
     }
   } catch (error) {
     console.error('思维导图初始化失败:', error);
-    ElMessage.error('思维导图加载失败');
   }
 };
 
@@ -429,7 +479,6 @@ const toggleShowAllComments = () => {
   showAllComments.value = !showAllComments.value;
 };
 
-// 监听视图模式变化
 watch(viewMode, async (newMode) => {
   if (newMode === 'mindmap' && analysisResult.value?.analysis) {
     await nextTick();
@@ -437,7 +486,6 @@ watch(viewMode, async (newMode) => {
   }
 });
 
-// 工具函数
 const formatTime = (timestamp: string) => {
   if (!timestamp) return '';
   return new Date(timestamp).toLocaleString('zh-CN', {
@@ -493,7 +541,6 @@ onMounted(() => {
   background: linear-gradient(135deg, #065f46, #047857);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .page-subtitle {
@@ -657,7 +704,7 @@ onMounted(() => {
   margin: 0 0 24px 0;
 }
 
-/* 用户卡片网格 */
+/* 用户卡片 */
 .user-grid {
   margin-bottom: 32px;
 }
@@ -678,7 +725,7 @@ onMounted(() => {
   border-color: rgba(6, 95, 70, 0.2);
 }
 
-.card-header {
+.user-card .card-header {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -714,10 +761,6 @@ onMounted(() => {
   font-family: 'SF Mono', Monaco, monospace;
 }
 
-.user-tag {
-  margin-left: auto;
-}
-
 .preview-section {
   margin-bottom: 16px;
 }
@@ -734,16 +777,6 @@ onMounted(() => {
   gap: 6px;
 }
 
-.preview-tag {
-  max-width: 100%;
-}
-
-.no-preview {
-  font-size: 13px;
-  color: #9ca3af;
-  font-style: italic;
-}
-
 .card-actions {
   display: flex;
   gap: 8px;
@@ -753,190 +786,345 @@ onMounted(() => {
   flex: 1;
 }
 
-/* 对话框样式 */
+/* ==================== 优化的模态框样式 ==================== */
+
+:deep(.portrait-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
 :deep(.portrait-dialog .el-dialog__header) {
   background: linear-gradient(135deg, #065f46, #047857);
-  color: white;
-  padding: 16px 20px;
+  padding: 20px 24px;
   margin-right: 0;
 }
 
 :deep(.portrait-dialog .el-dialog__title) {
   color: white;
+  font-size: 18px;
   font-weight: 600;
+}
+
+:deep(.portrait-dialog .el-dialog__headerbtn) {
+  top: 20px;
+  right: 20px;
 }
 
 :deep(.portrait-dialog .el-dialog__headerbtn .el-dialog__close) {
   color: white;
+  font-size: 20px;
 }
 
-.dialog-content {
-  padding: 20px 0;
-}
-
-.info-header {
-  display: flex;
-  gap: 32px;
-  padding: 16px 20px;
-  background: #f9fafb;
-  border-radius: 8px;
-  margin-bottom: 20px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-label {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.info-value {
-  font-size: 14px;
-  color: #374151;
-  font-weight: 500;
-}
-
-.info-value.uid {
-  font-family: 'SF Mono', Monaco, monospace;
-  font-size: 16px;
-  color: #065f46;
-}
-
-.info-value.time {
-  color: #6b7280;
-}
-
-/* 标签页 */
-.content-tabs :deep(.el-tabs__header) {
-  margin-bottom: 20px;
-}
-
-.view-toggle {
-  margin-bottom: 16px;
-}
-
-/* 分析内容视图 */
-.analysis-view {
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 20px;
-  max-height: 500px;
-  overflow-y: auto;
-}
-
-.markdown-content :deep(h1),
-.markdown-content :deep(h2),
-.markdown-content :deep(h3) {
-  color: #065f46;
-  margin-top: 20px;
-  margin-bottom: 12px;
-}
-
-.markdown-content :deep(p) {
-  line-height: 1.8;
-  color: #374151;
-  margin: 12px 0;
-}
-
-.markdown-content :deep(ul),
-.markdown-content :deep(ol) {
-  padding-left: 24px;
-  margin: 12px 0;
-}
-
-.markdown-content :deep(li) {
-  margin: 8px 0;
-  line-height: 1.6;
-}
-
-.markdown-content :deep(strong) {
-  color: #065f46;
-}
-
-/* 思维导图 */
-.mindmap-view {
-  background: white;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+:deep(.portrait-dialog .el-dialog__body) {
+  padding: 0;
+  max-height: 70vh;
   overflow: hidden;
 }
 
-.mindmap-svg {
-  width: 100%;
-  height: 500px;
-}
-
-/* 评论区域 */
-.comments-section {
-  padding: 16px 0;
-}
-
-.comments-header {
+.dialog-wrapper {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  height: 100%;
+  max-height: 70vh;
+}
+
+/* 用户信息头部 */
+.user-profile-header {
+  display: flex;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e5e7eb;
+  gap: 16px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f0fdf4, #ffffff);
+  border-bottom: 1px solid rgba(6, 95, 70, 0.1);
 }
 
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
+.profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #065f46, #047857);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32px;
+  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
 }
 
-.comments-count {
+.profile-info {
+  flex: 1;
+}
+
+.profile-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.profile-label {
   font-size: 13px;
   color: #6b7280;
 }
 
-.comments-list {
+.profile-uid {
+  font-size: 24px;
+  font-weight: 700;
+  color: #065f46;
+  font-family: 'SF Mono', Monaco, monospace;
+}
+
+.profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.meta-divider {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #d1d5db;
+}
+
+/* 工具栏 */
+.toolbar-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: white;
+  border-bottom: 1px solid rgba(6, 95, 70, 0.1);
+}
+
+.view-switcher {
+  display: flex;
+  gap: 8px;
+}
+
+.switch-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #6b7280;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.switch-btn:hover {
+  border-color: #065f46;
+  color: #065f46;
+}
+
+.switch-btn.active {
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(6, 95, 70, 0.3);
+}
+
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 内容展示区 */
+.content-display {
+  flex: 1;
+  overflow: hidden;
+  background: white;
+}
+
+/* Markdown 内容 */
+.markdown-wrapper {
+  height: 100%;
+  max-height: calc(70vh - 200px);
+}
+
+.content-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.markdown-body {
+  line-height: 1.8;
+  color: #374151;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3) {
+  color: #065f46;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.markdown-body :deep(h1) { font-size: 22px; }
+.markdown-body :deep(h2) { font-size: 18px; }
+.markdown-body :deep(h3) { font-size: 16px; }
+
+.markdown-body :deep(p) {
+  margin: 12px 0;
+  line-height: 1.8;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: 24px;
+  margin: 12px 0;
+}
+
+.markdown-body :deep(li) {
+  margin: 8px 0;
+}
+
+.markdown-body :deep(strong) {
+  color: #065f46;
+  font-weight: 600;
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 4px solid #065f46;
+  padding-left: 16px;
+  margin: 16px 0;
+  color: #4b5563;
+  background: #f0fdf4;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+}
+
+/* 思维导图 */
+.mindmap-wrapper {
+  height: 100%;
+  max-height: calc(70vh - 200px);
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
 
-.comment-item {
-  display: flex;
-  gap: 12px;
-  padding: 12px 16px;
+.mindmap-container {
+  flex: 1;
+  padding: 20px;
   background: #f9fafb;
-  border-radius: 8px;
-  border-left: 3px solid #065f46;
 }
 
-.comment-index {
-  width: 24px;
-  height: 24px;
-  background: #065f46;
-  color: white;
-  border-radius: 50%;
+.mindmap-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+}
+
+.mindmap-hint {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  gap: 6px;
+  padding: 12px;
+  background: #f0fdf4;
+  color: #065f46;
+  font-size: 13px;
+  border-top: 1px solid rgba(6, 95, 70, 0.1);
+}
+
+/* 评论面板 */
+.comments-panel {
+  height: 100%;
+  max-height: calc(70vh - 200px);
+}
+
+.comments-scroll {
+  height: 100%;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.comments-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-comment {
+  display: flex;
+  gap: 12px;
+}
+
+.timeline-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.marker-number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
   font-weight: 600;
   flex-shrink: 0;
 }
 
-.comment-content {
+.marker-line {
+  width: 2px;
   flex: 1;
+  background: linear-gradient(180deg, rgba(6, 95, 70, 0.3), transparent);
+  margin-top: 8px;
+  min-height: 40px;
+}
+
+.comment-card {
+  flex: 1;
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+  border-left: 3px solid #065f46;
+}
+
+.comment-text {
   line-height: 1.6;
   color: #374151;
   word-break: break-all;
 }
 
-.no-comments {
+.comments-empty {
   padding: 40px 0;
 }
 
-.more-btn {
-  margin-top: 16px;
+.empty-comments-icon {
+  font-size: 64px;
+  color: #d1d5db;
+  margin-bottom: 16px;
+}
+
+.load-more {
+  margin-top: 24px;
   text-align: center;
 }
 
@@ -956,13 +1144,23 @@ onMounted(() => {
     padding: 16px;
   }
   
-  .info-header {
+  .toolbar-section {
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
+    align-items: stretch;
   }
   
-  .card-actions {
+  .view-switcher {
+    justify-content: center;
+  }
+  
+  .user-profile-header {
     flex-direction: column;
+    text-align: center;
+  }
+  
+  .profile-meta {
+    justify-content: center;
   }
 }
 </style>
