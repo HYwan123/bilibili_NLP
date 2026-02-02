@@ -1,9 +1,18 @@
 <template>
   <div class="new-recommendation">
+    <!-- 页面标题 -->
+    <div class="page-header">
+      <h1 class="page-title">
+        <el-icon><StarFilled /></el-icon>
+        智能视频推荐
+      </h1>
+      <p class="page-subtitle">基于用户画像分析，为您精准推荐感兴趣的视频内容</p>
+    </div>
+
     <el-card class="recommendation-card">
       <template #header>
         <div class="card-header">
-          <span>新版内容推荐系统</span>
+          <span>推荐配置</span>
           <div class="action-buttons">
             <el-button 
               type="primary" 
@@ -179,7 +188,8 @@ import {
   Star, 
   Coin, 
   VideoPlay,
-  Loading 
+  Loading,
+  StarFilled
 } from '@element-plus/icons-vue'
 import { 
   getAvailableUids, 
@@ -462,130 +472,273 @@ const formatDuration = (duration: number) => {
 
 <style scoped>
 .new-recommendation {
-  padding: 20px;
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f5f3ff 100%);
+  min-height: 100vh;
+}
+
+/* 页面标题 */
+.page-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #065f46, #047857);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.page-title :deep(.el-icon) {
+  font-size: 36px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
 }
 
 .recommendation-card {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: none;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.recommendation-card:hover {
+  box-shadow: 0 8px 30px rgba(6, 95, 70, 0.15);
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 8px 0;
+}
+
+.card-header span {
+  font-size: 20px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #065f46, #047857);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .action-buttons {
   display: flex;
-  gap: 10px;
+  gap: 12px;
+}
+
+.action-buttons :deep(.el-button) {
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.action-buttons :deep(.el-button:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
+}
+
+:deep(.el-form) {
+  padding: 16px 0;
+}
+
+:deep(.el-select) {
+  width: 320px;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .bv-section {
-  margin-top: 20px;
+  margin-top: 24px;
+  animation: slideUp 0.5s ease-out;
 }
 
 .bv-card {
   margin-bottom: 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(6, 95, 70, 0.1);
+}
+
+.bv-card :deep(.el-card__header) {
+  background: linear-gradient(135deg, rgba(6, 95, 70, 0.05), rgba(4, 120, 87, 0.05));
+  border-bottom: 1px solid rgba(6, 95, 70, 0.1);
+  font-weight: 600;
+  color: #065f46;
 }
 
 .bv-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
+  padding: 8px 0;
 }
 
 .bv-tag {
   cursor: pointer;
-  padding: 8px 12px;
-  font-family: 'Courier New', monospace;
+  padding: 10px 16px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 14px;
+  background: white;
+  border: 2px solid rgba(6, 95, 70, 0.2);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .bv-tag:hover {
-  background-color: #f0f2f5;
+  background: linear-gradient(135deg, #065f46, #047857);
+  border-color: transparent;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
+}
+
+.bv-tag:hover .copy-icon {
+  color: white;
 }
 
 .copy-icon {
-  margin-left: 5px;
+  margin-left: 6px;
   font-size: 12px;
+  color: #065f46;
+  transition: color 0.3s ease;
 }
 
 .video-details-section {
-  margin-top: 20px;
+  margin-top: 24px;
+  animation: slideUp 0.5s ease-out;
+}
+
+.details-card {
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: none;
+}
+
+.details-card :deep(.el-card__header) {
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 16px 20px;
 }
 
 .videos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 24px;
+  padding: 8px;
 }
 
 .video-item {
   height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(6, 95, 70, 0.1);
+  background: white;
+}
+
+.video-item:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 40px rgba(6, 95, 70, 0.2);
+  border-color: rgba(6, 95, 70, 0.3);
+}
+
+.video-item :deep(.el-card__body) {
+  padding: 20px;
 }
 
 .video-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(6, 95, 70, 0.08);
 }
 
 .video-title {
   margin: 0;
-  font-size: 16px;
-  color: #333;
+  font-size: 17px;
+  color: #1f2937;
   flex: 1;
-  margin-right: 10px;
-  line-height: 1.4;
+  margin-right: 12px;
+  line-height: 1.5;
+  font-weight: 600;
 }
 
 .video-content {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-}
-
-.video-thumbnail {
-  border-radius: 6px;
-  overflow: hidden;
+  gap: 16px;
 }
 
 .video-desc {
-  color: #666;
+  color: #6b7280;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.7;
   margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
 }
 
 .video-stats {
-  background: #f8f9fa;
-  padding: 10px;
-  border-radius: 6px;
+  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(6, 95, 70, 0.1);
 }
 
 .stat-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  font-size: 12px;
-  color: #666;
+  gap: 6px;
+  font-size: 13px;
+  color: #065f46;
+  font-weight: 600;
+}
+
+.stat-item :deep(.el-icon) {
+  font-size: 16px;
 }
 
 .video-meta {
-  background: #f0f2f5;
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 12px;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .meta-item {
   display: flex;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 .meta-item:last-child {
@@ -593,25 +746,41 @@ const formatDuration = (duration: number) => {
 }
 
 .meta-label {
-  color: #666;
-  margin-right: 8px;
-  min-width: 60px;
+  color: #6b7280;
+  margin-right: 10px;
+  min-width: 70px;
+  font-weight: 500;
 }
 
 .meta-value {
-  color: #333;
-  font-weight: 500;
+  color: #1f2937;
+  font-weight: 600;
 }
 
 .video-actions {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   justify-content: center;
+  padding-top: 8px;
+}
+
+.video-actions :deep(.el-button) {
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.video-actions :deep(.el-button:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .loading-icon {
   animation: rotate 2s linear infinite;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
+  color: #065f46;
+  font-size: 32px;
 }
 
 @keyframes rotate {
@@ -620,6 +789,74 @@ const formatDuration = (duration: number) => {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+:deep(.el-alert) {
+  border-radius: 10px;
+  margin-top: 20px;
+}
+
+:deep(.el-dialog) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+:deep(.el-dialog__header) {
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: white;
+  padding: 16px 20px;
+  margin: 0;
+}
+
+:deep(.el-dialog__title) {
+  color: white;
+  font-weight: 600;
+}
+
+:deep(.el-dialog__body) {
+  padding: 32px 24px;
+}
+
+/* 响应式优化 */
+@media (max-width: 768px) {
+  .new-recommendation {
+    padding: 16px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .action-buttons {
+    width: 100%;
+    flex-direction: column;
+  }
+  
+  .action-buttons :deep(.el-button) {
+    width: 100%;
+  }
+  
+  .videos-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  :deep(.el-select) {
+    width: 100%;
   }
 }
 </style>
