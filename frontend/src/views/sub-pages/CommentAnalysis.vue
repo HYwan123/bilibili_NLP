@@ -414,44 +414,36 @@ const startAnalysis = async () => {
   analysisResult.value = null;
 
   try {
-    const data = await submitCommentAnalysis(form.value.bvId);
+    console.log('开始提交分析...');
+    const res = await submitCommentAnalysis(form.value.bvId);
+    console.log('API响应:', res);
     
-    // 检查是否是直接返回缓存结果（没有job_id，直接有分析结果）
-    let result = null;
-    if (data.code === 200 && data.data) {
-      // 有data字段，检查是否有分析结果
-      if (data.data.basic_stats || data.data.sentiment_analysis) {
-        result = data.data;
-      }
-    } else if (data.basic_stats || data.sentiment_analysis) {
-      // 直接返回结果
-      result = data;
+    // 处理响应 - 兼容两种格式
+    let responseData = res;
+    if (res.data !== undefined) {
+      responseData = res.data;
     }
     
-    if (result) {
+    // 检查是否是直接返回缓存结果
+    if (responseData.basic_stats || responseData.sentiment_analysis || responseData.keyword_analysis) {
       // 直接显示结果（缓存命中）
-      analysisResult.value = result;
+      console.log('缓存命中，直接显示结果');
+      analysisResult.value = responseData;
       analyzing.value = false;
       jobProgress.value = 100;
-      ElMessage.success('已从缓存获取分析结果');
-    } else {
+      ElMessage.success(res.message || '分析完成！');
+    } else if (responseData.job_id) {
       // 需要轮询获取结果
-      let jobId = null;
-      if (data.code === 200 && data.data?.job_id) {
-        jobId = data.data.job_id;
-      } else if (data.job_id) {
-        jobId = data.job_id;
-      }
-      
-      if (jobId) {
-        pollJobStatus(jobId);
-      } else {
-        ElMessage.error('获取任务ID失败');
-        analyzing.value = false;
-      }
+      console.log('需要轮询，job_id:', responseData.job_id);
+      pollJobStatus(responseData.job_id);
+    } else {
+      console.error('无法识别的响应格式:', res);
+      ElMessage.error('响应格式错误，无法获取分析结果');
+      analyzing.value = false;
     }
-  } catch (error) {
-    ElMessage.error('提交分析失败');
+  } catch (error: any) {
+    console.error('提交分析失败:', error);
+    ElMessage.error('提交分析失败: ' + (error.message || '未知错误'));
     analyzing.value = false;
   }
 };
