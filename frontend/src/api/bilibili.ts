@@ -53,11 +53,13 @@ export function getSavedUserComments(uid: number) {
 
 /**
  * 获取查询历史记录
+ * @param params 分页参数 { page, page_size, type }
  */
-export function getHistory() {
+export function getHistory(params?: { page?: number; page_size?: number; type?: string }) {
   return request({
     url: '/api/history',
-    method: 'get'
+    method: 'get',
+    params
   })
 }
 

@@ -96,8 +96,17 @@ async def get_cookies():
 
 
 @router.get("/history")
-async def get_history(current_user: User = Depends(get_current_user)):
-    history_data = database.get_history_by_user(current_user.id)
+async def get_history(
+    page: int = Query(1, ge=1, description="页码"),
+    page_size: int = Query(20, ge=1, le=100, description="每页数量"),
+    type: str = Query(
+        "all", regex="^(all|bv|uuid)$", description="历史类型: all/bv/uuid"
+    ),
+    current_user: User = Depends(get_current_user),
+):
+    history_data = database.get_history_by_user(
+        user_id=current_user.id, page=page, page_size=page_size, history_type=type
+    )
     return JSONResponse(
         status_code=200,
         content={"code": 200, "message": "success", "data": history_data},
