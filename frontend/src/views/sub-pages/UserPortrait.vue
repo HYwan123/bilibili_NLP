@@ -381,22 +381,31 @@ const viewAnalysis = async (uid: string) => {
   try {
     const res = await request.get(`/api/user/analysis/${uid}`);
     const data = res.data;
+    
+    // 处理两种可能的API响应格式
     if (data.code === 200) {
+      // 格式1: { code: 200, data: { uid, analysis, ... } }
       analysisResult.value = data.data;
-      dialogVisible.value = true;
-      activeTab.value = 'analysis';
-      showAllComments.value = false;
-      
-      // 初始化思维导图
-      await nextTick();
-      if (viewMode.value === 'mindmap' && analysisResult.value?.analysis) {
-        initializeMindMap(analysisResult.value.analysis);
-      }
+    } else if (data.uid || data.analysis) {
+      // 格式2: 直接返回分析对象
+      analysisResult.value = data;
     } else {
-      ElMessage.error(data.message || '未找到分析记录');
+      ElMessage.error('未找到分析记录');
+      return;
+    }
+    
+    dialogVisible.value = true;
+    activeTab.value = 'analysis';
+    showAllComments.value = false;
+    
+    // 初始化思维导图
+    await nextTick();
+    if (viewMode.value === 'mindmap' && analysisResult.value?.analysis) {
+      initializeMindMap(analysisResult.value.analysis);
     }
   } catch (e: any) {
-    ElMessage.error(e.message || '请求失败');
+    console.error('查看画像失败:', e);
+    ElMessage.error('查看画像失败: ' + (e.message || '请求失败'));
   }
 };
 
