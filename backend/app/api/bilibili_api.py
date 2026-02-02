@@ -179,15 +179,36 @@ async def get_saved_user_comments(
     uid: int, current_user: User = Depends(get_current_user)
 ):
     """
-    从数据库获取已保存的用户评论数据
+    获取用户评论数据
+    优先从数据库获取，如果没有则自动从B站实时获取并保存
     """
     try:
+        # 首先尝试从数据库获取
         comments = database.get_user_comments(uid)
 
         if comments:
             return JSONResponse(
                 status_code=200,
                 content={"code": 200, "message": "success", "data": comments},
+            )
+
+        # 数据库中没有，尝试从B站实时获取
+        logger.info(f"数据库中未找到用户 {uid} 的评论，尝试实时获取")
+        comments = get_user_comments.get_user_comments_simple(uid)
+
+        if comments and len(comments) > 0:
+            # 保存到数据库
+            success = database.save_user_comments(uid, current_user.username, comments)
+            if success:
+                logger.info(f"成功获取并保存用户 {uid} 的 {len(comments)} 条评论")
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "code": 200,
+                    "message": "success",
+                    "data": comments,
+                    "source": "bilibili",  # 标识数据来源
+                },
             )
         else:
             return JSONResponse(
@@ -200,7 +221,7 @@ async def get_saved_user_comments(
             )
 
     except Exception as e:
-        print(f"获取保存的评论失败: {e}")
+        logger.error(f"获取用户 {uid} 评论失败: {e}")
         return JSONResponse(
             status_code=500,
             content={"code": 500, "message": f"获取评论失败: {str(e)}", "data": None},
