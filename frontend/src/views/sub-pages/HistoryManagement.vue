@@ -8,8 +8,8 @@
 
     <!-- 统计卡片区 -->
     <div class="stats-section">
-      <el-row :gutter="16">
-        <el-col :xs="12" :sm="6">
+      <el-row :gutter="20">
+        <el-col :xs="12" :sm="6" :lg="3">
           <div class="stat-card total">
             <div class="stat-icon">
               <el-icon><Document /></el-icon>
@@ -20,7 +20,7 @@
             </div>
           </div>
         </el-col>
-        <el-col :xs="12" :sm="6">
+        <el-col :xs="12" :sm="6" :lg="3">
           <div class="stat-card bv">
             <div class="stat-icon">
               <el-icon><VideoPlay /></el-icon>
@@ -31,7 +31,7 @@
             </div>
           </div>
         </el-col>
-        <el-col :xs="12" :sm="6">
+        <el-col :xs="12" :sm="6" :lg="3">
           <div class="stat-card uid">
             <div class="stat-icon">
               <el-icon><User /></el-icon>
@@ -42,7 +42,7 @@
             </div>
           </div>
         </el-col>
-        <el-col :xs="12" :sm="6">
+        <el-col :xs="12" :sm="6" :lg="3">
           <div class="stat-card today">
             <div class="stat-icon">
               <el-icon><Calendar /></el-icon>
@@ -52,6 +52,10 @@
               <div class="stat-label">今日查询</div>
             </div>
           </div>
+        </el-col>
+        <!-- 大屏下添加两个空白占位，保持布局美观 -->
+        <el-col :xs="0" :sm="0" :lg="6" class="hidden-lg-and-down">
+          <div style="height: 1px;"></div>
         </el-col>
       </el-row>
     </div>
@@ -430,10 +434,18 @@ onMounted(() => {
 <style scoped>
 .history-management-page {
   padding: 24px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
   min-height: 100vh;
+}
+
+/* 超宽屏优化 */
+@media (min-width: 1600px) {
+  .history-management-page {
+    max-width: 1600px;
+    padding: 32px 48px;
+  }
 }
 
 /* 页面标题 */
@@ -551,12 +563,20 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 20px;
+  padding: 14px 24px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
   color: #6b7280;
+  font-size: 15px;
+}
+
+@media (min-width: 1400px) {
+  .filter-tab {
+    padding: 16px 32px;
+    font-size: 16px;
+  }
 }
 
 .filter-tab:hover {
@@ -587,6 +607,18 @@ onMounted(() => {
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   min-height: 400px;
+}
+
+@media (min-width: 1400px) {
+  .history-content {
+    padding: 32px 40px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .history-content {
+    padding: 40px 56px;
+  }
 }
 
 /* 骨架屏 */
@@ -711,16 +743,28 @@ onMounted(() => {
 }
 
 .timeline-items {
-  padding-left: 20px;
+  padding-left: 16px;
   border-left: 2px solid rgba(6, 95, 70, 0.1);
-  margin-left: 8px;
+  margin-left: 4px;
+}
+
+@media (min-width: 1400px) {
+  .timeline-items {
+    padding-left: 24px;
+  }
 }
 
 .timeline-card {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   margin-bottom: 20px;
   position: relative;
+}
+
+@media (min-width: 1400px) {
+  .timeline-card {
+    gap: 16px;
+  }
 }
 
 .card-left {
@@ -780,15 +824,22 @@ onMounted(() => {
   flex: 1;
   background: #f9fafb;
   border-radius: 12px;
-  padding: 16px;
+  padding: 20px;
   border: 1px solid rgba(6, 95, 70, 0.08);
   transition: all 0.3s ease;
+  min-width: 0;
 }
 
 .card-content:hover {
   background: white;
   box-shadow: 0 4px 12px rgba(6, 95, 70, 0.1);
   transform: translateX(4px);
+}
+
+@media (min-width: 1400px) {
+  .card-content {
+    padding: 24px;
+  }
 }
 
 .card-header {
@@ -900,6 +951,13 @@ onMounted(() => {
   border-top: 1px solid rgba(6, 95, 70, 0.1);
   display: flex;
   justify-content: center;
+}
+
+@media (min-width: 1400px) {
+  .pagination-wrapper {
+    margin-top: 40px;
+    padding-top: 32px;
+  }
 }
 
 /* 响应式 */
