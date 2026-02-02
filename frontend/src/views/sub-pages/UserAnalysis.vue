@@ -402,10 +402,30 @@ const fetchComments = async () => {
   
   try {
     const res = await request.get(`/api/user/comments/${uid}`);
-    if (res.data && res.data.comments && res.data.comments.length > 0) {
-      retrievedComments.value = res.data.comments;
+    const data = res.data;
+    
+    // 处理两种可能的响应格式
+    let comments = [];
+    let count = 0;
+    
+    if (Array.isArray(data)) {
+      // 格式1: 直接返回数组
+      comments = data;
+      count = data.length;
+    } else if (data && data.comments && Array.isArray(data.comments)) {
+      // 格式2: { comments: [], comment_count: number }
+      comments = data.comments;
+      count = data.comment_count || data.comments.length;
+    } else if (data && Array.isArray(data.data)) {
+      // 格式3: { data: [] }
+      comments = data.data;
+      count = data.data.length;
+    }
+    
+    if (comments.length > 0) {
+      retrievedComments.value = comments;
       currentStep.value = 1;
-      message.value = `成功获取 ${res.data.comment_count} 条评论`;
+      message.value = `成功获取 ${count} 条评论`;
       messageType.value = 'success';
     } else {
       message.value = '未获取到评论数据，该用户可能没有公开评论';
@@ -680,6 +700,41 @@ onMounted(() => {
 
 .input-wrapper {
   margin-bottom: 16px;
+}
+
+/* 修复下拉框被遮挡问题 */
+:deep(.el-input__wrapper) {
+  z-index: 1;
+}
+
+:deep(.el-input-group__append) {
+  z-index: 2;
+}
+
+/* 确保弹出层不被裁剪 */
+:deep(.el-overlay) {
+  z-index: 2000 !important;
+}
+
+:deep(.el-popper) {
+  z-index: 2001 !important;
+}
+
+:deep(.el-select__popper) {
+  z-index: 2001 !important;
+}
+
+:deep(.el-dropdown__popper) {
+  z-index: 2001 !important;
+}
+
+/* 防止el-input的append裁剪 */
+:deep(.el-input-group) {
+  display: flex;
+}
+
+:deep(.el-input-group__append) {
+  flex-shrink: 0;
 }
 
 .quick-actions {
