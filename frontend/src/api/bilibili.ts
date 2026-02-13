@@ -227,3 +227,28 @@ export function pollBilibiliLogin() {
     method: 'post'
   })
 }
+
+/**
+ * AI问答 - 完整对话模式
+ * @param messages 对话消息列表 [{role: 'user'|'assistant', content: string}]
+ * @param model 模型名称，默认 kimi-k2
+ */
+export function chatWithAI(messages: Array<{role: string, content: string}>, model?: string) {
+  return request({
+    url: `/api/chat`,
+    method: 'post',
+    data: { messages, model }
+  })
+}
+
+/**
+ * AI简单问答 - 单条消息快速回复
+ * @param text 用户输入的消息
+ */
+export function chatWithAISimple(text: string) {
+  return request({
+    url: `/api/chat/simple`,
+    method: 'post',
+    params: { text }
+  })
+}

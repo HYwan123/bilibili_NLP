@@ -74,6 +74,12 @@ const router = createRouter({
           name: 'NewRecommendation',
           component: () => import('@/views/sub-pages/NewRecommendation.vue'),
           meta: { title: '新版推荐', requiresAuth: true }
+        },
+        {
+          path: 'ai-chat',
+          name: 'AIChat',
+          component: () => import('@/views/sub-pages/AIChat.vue'),
+          meta: { title: 'AI 智能问答', requiresAuth: true }
         }
       ]
     }

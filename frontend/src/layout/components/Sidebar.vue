@@ -43,6 +43,10 @@
           <span class="menu-text">智能分析</span>
         </el-menu-item>
 
+        <el-menu-item index="/ai-chat" class="modern-menu-item">
+          <el-icon class="menu-icon"><ChatDotRound /></el-icon>
+          <span class="menu-text">AI 问答</span>
+        </el-menu-item>
 
       </el-menu>
 
@@ -109,7 +113,8 @@ import {
   TrendCharts,
   Expand,
   Fold,
-  MagicStick
+  MagicStick,
+  ChatDotRound
 } from '@element-plus/icons-vue';
 
 const route = useRoute();

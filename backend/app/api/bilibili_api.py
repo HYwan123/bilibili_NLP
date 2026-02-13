@@ -18,7 +18,8 @@ from app.utils.bilibili import (
     get_user_comments,
     analyze_user_profiles,
 )
-from app.schemas.api import CookieData
+from app.schemas.api import CookieData, ChatRequest
+from app.utils.agent.openai_client import OpenaiClient
 from app.schemas.user import User
 import app.utils.bilibili.analyze_video_comments as comment_analysis
 
@@ -715,3 +716,86 @@ async def poll_bilibili_login_endpoint(current_user: User = Depends(get_current_
         logger.error(f"轮询Bilibili登录状态失败: {e}")
         log_error(e, "poll_bilibili_login_endpoint")
         return create_error_response(500, f"轮询登录状态失败: {str(e)}")
+
+
+# --- AI 问答相关API ---
+@router.post("/chat")
+async def chat_with_ai(
+    chat_request: ChatRequest, current_user: User = Depends(get_current_user)
+):
+    """
+    AI问答接口 - 使用OpenAI客户端进行对话
+    """
+    try:
+        logger.info(f"用户 {current_user.username} 发起AI问答请求")
+
+        # 初始化OpenAI客户端
+        client = OpenaiClient()
+
+        # 转换消息格式
+        messages = [
+            {"role": msg.role, "content": msg.content} for msg in chat_request.messages
+        ]
+
+        # 调用AI接口
+        response = await client.chat(messages)
+
+        # 提取AI回复内容
+        ai_message = client.get_message(response)
+        ai_content = client.get_message_content(response)
+
+        logger.info(f"AI问答成功，用户: {current_user.username}")
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "code": 200,
+                "message": "success",
+                "data": {
+                    "message": ai_message,
+                    "content": ai_content,
+                    "model": chat_request.model or "kimi-k2",
+                },
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"AI问答失败: {e}")
+        log_error(e, "chat_with_ai")
+        return create_error_response(500, f"AI问答失败: {str(e)}")
+
+
+@router.post("/chat/simple")
+async def chat_with_ai_simple(
+    text: str, current_user: User = Depends(get_current_user)
+):
+    """
+    AI简单问答接口 - 单条消息快速回复
+    """
+    try:
+        logger.info(f"用户 {current_user.username} 发起简单AI问答: {text[:50]}...")
+
+        # 初始化OpenAI客户端
+        client = OpenaiClient()
+
+        # 调用AI接口
+        response = await client.one_chat(text)
+
+        # 提取AI回复内容
+        ai_content = client.get_message_content(response)
+
+        logger.info(f"简单AI问答成功，用户: {current_user.username}")
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "code": 200,
+                "message": "success",
+                "data": {"content": ai_content, "role": "assistant"},
+            },
+        )
+
+    except Exception as e:
+        logger.error(f"简单AI问答失败: {e}")
+        log_error(e, "chat_with_ai_simple")
+        return create_error_response(500, f"AI问答失败: {str(e)}")
