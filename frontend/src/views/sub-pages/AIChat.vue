@@ -14,28 +14,6 @@
       <!-- 消息列表 -->
       <div class="messages-wrapper" ref="messagesWrapper">
         <div class="messages-list">
-          <!-- 欢迎消息 -->
-          <div v-if="messages.length === 0" class="welcome-section">
-            <div class="welcome-icon">
-              <el-icon><ChatLineRound /></el-icon>
-            </div>
-            <h2 class="welcome-title">你好！我是 AI 助手</h2>
-            <p class="welcome-desc">我可以帮你解答问题、分析数据、提供建议。试着问我点什么吧！</p>
-            
-            <!-- 快捷问题 -->
-            <div class="quick-questions">
-              <div 
-                v-for="question in quickQuestions" 
-                :key="question"
-                class="quick-question-item"
-                @click="sendQuickQuestion(question)"
-              >
-                <el-icon><ArrowRight /></el-icon>
-                <span>{{ question }}</span>
-              </div>
-            </div>
-          </div>
-
           <!-- 消息气泡 -->
           <div 
             v-for="(message, index) in messages" 
@@ -61,6 +39,22 @@
                 <span v-if="message.isStreaming" class="streaming-cursor">▊</span>
               </div>
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+            </div>
+          </div>
+
+          <!-- 快捷问题 - 仅在只有初始消息或清空后显示 -->
+          <div v-if="messages.length <= 1 && !loading" class="quick-questions-container">
+            <p class="quick-questions-title">您可以试着这样问我：</p>
+            <div class="quick-questions">
+              <div 
+                v-for="question in quickQuestions" 
+                :key="question"
+                class="quick-question-item"
+                @click="sendQuickQuestion(question)"
+              >
+                <el-icon><ArrowRight /></el-icon>
+                <span>{{ question }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -170,12 +164,18 @@ interface Message {
 }
 
 // 响应式数据
-const messages = ref<Message[]>([])
+const messages = ref<Message[]>([
+  {
+    role: 'assistant',
+    content: '你好！我是 **B 站视频分析系统** 的 AI 助手。很高兴为你服务！\n\n我可以帮你：\n- 分析视频评论的情感和关键词\n- 解读 B 站用户画像和互动偏好\n- 提供视频内容推荐和运营建议\n- 洞察弹幕趋势和社区热点\n\n你可以直接问我问题，或者点击下方的快捷问题。',
+    timestamp: Date.now()
+  }
+])
 const inputMessage = ref('')
 const loading = ref(false)
 const messagesWrapper = ref<HTMLElement | null>(null)
 const showSystemPrompt = ref(false)
-const systemPrompt = ref('')
+const systemPrompt = ref('# 角色\n你是一个专门针对 B 站（Bilibili）数据分析的资深 NLP 专家助手。你拥有深厚的内容理解、用户画像构建、情感分析以及推荐系统领域的知识。\n\n# 交互准则\n1. 专业性：使用行业术语并确保易懂。\n2. 场景化建议：结合 B 站社区氛围给出建议。\n3. 简洁高效：回答控制在 300 字以内。\n4. 准确性：基于已知功能回答。')
 
 // 快捷问题
 const quickQuestions = [
@@ -229,7 +229,13 @@ const saveSystemPrompt = () => {
 
 // 清空消息
 const clearMessages = () => {
-  messages.value = []
+  messages.value = [
+    {
+      role: 'assistant',
+      content: '对话已重置。你好！我是 **B 站视频分析系统** 的 AI 助手。有什么我可以帮你的吗？',
+      timestamp: Date.now()
+    }
+  ]
   ElMessage.success('对话已清空')
 }
 
@@ -362,77 +368,51 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* 欢迎区域 - Apple 风格 */
-.welcome-section {
-  text-align: center;
-  padding: 80px 20px;
+/* 快捷问题区域 */
+.quick-questions-container {
+  margin: 20px 0 20px 48px;
+  animation: fadeIn 0.5s ease 0.3s both;
 }
 
-.welcome-icon {
-  width: 72px;
-  height: 72px;
-  background: var(--primary-color);
-  border-radius: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 24px;
-  color: white;
-  font-size: 32px;
-  box-shadow: 0 8px 24px rgba(0, 122, 255, 0.25);
-}
-
-.welcome-title {
-  font-size: 32px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0 0 8px 0;
-  letter-spacing: -0.02em;
-}
-
-.welcome-desc {
-  font-size: 16px;
-  color: var(--text-secondary);
-  margin: 0 0 48px 0;
-  font-weight: 400;
+.quick-questions-title {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
 }
 
 .quick-questions {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 10px;
-  max-width: 480px;
-  margin: 0 auto;
 }
 
 .quick-question-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 8px;
+  padding: 10px 16px;
   background: var(--bg-secondary);
-  border-radius: 10px;
+  border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  text-align: left;
-  border: 1px solid transparent;
+  border: 1px solid var(--border-light);
 }
 
 .quick-question-item:hover {
   background: var(--bg-card);
   border-color: var(--primary-color);
+  transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
 }
 
 .quick-question-item .el-icon {
   color: var(--primary-color);
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .quick-question-item span {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--text-primary);
-  font-weight: 400;
 }
 
 /* 消息样式 - Apple 风格 */

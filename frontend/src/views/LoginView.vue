@@ -1,34 +1,40 @@
 <template>
   <div class="login-container">
-    <div class="login-left">
-      <div class="welcome-content">
-        <h1 class="system-title">B站评论分析系统</h1>
-
+    <div class="login-card">
+      <h1 class="login-title">登录</h1>
+      <p class="login-subtitle">B站智能分析平台</p>
+      
+      <el-form @submit.prevent="login" class="login-form">
+        <el-form-item>
+          <el-input 
+            v-model="username" 
+            placeholder="用户名" 
+            size="large"
+            :prefix-icon="User"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-input 
+            type="password" 
+            v-model="password" 
+            placeholder="密码" 
+            size="large"
+            :prefix-icon="Lock"
+            show-password
+            @keyup.enter="login"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="login" class="login-btn" size="large">
+            登录
+          </el-button>
+        </el-form-item>
+      </el-form>
+      
+      <div class="login-footer">
+        <span>没有账户？</span>
+        <el-link type="primary" @click="goToRegister">立即注册</el-link>
       </div>
-    </div>
-    <div class="login-right">
-      <el-card class="login-form-card">
-        <template #header>
-          <div class="card-header">
-            <span>账户登录</span>
-          </div>
-        </template>
-        <el-form @submit.prevent="login" label-position="top">
-          <el-form-item label="用户名">
-            <el-input v-model="username" placeholder="请输入用户名" size="large" />
-          </el-form-item>
-          <el-form-item label="密码">
-            <el-input type="password" v-model="password" placeholder="请输入密码" show-password size="large"/>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="login" style="width: 100%;" size="large">登 录</el-button>
-          </el-form-item>
-          <div class="register-link">
-            <span>没有账户?</span>
-            <el-link type="primary" @click="goToRegister">立即注册</el-link>
-          </div>
-        </el-form>
-      </el-card>
     </div>
   </div>
 </template>
@@ -37,6 +43,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
 import { login as loginApi } from '@/api/auth'
 
@@ -46,98 +53,83 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 const goToRegister = () => {
-  router.push('/register');
+  router.push('/register')
 }
 
 const login = async () => {
   if (!username.value || !password.value) {
-    ElMessage.error('请输入用户名和密码');
-    return; 
+    ElMessage.error('请输入用户名和密码')
+    return
   }
   try {
-    const response = await loginApi({ username: username.value, password: password.value });
-    // 后端返回的数据结构应为 { code: 200, data: { token: '...' } }
+    const response = await loginApi({ username: username.value, password: password.value })
     if (response.data && response.data.token) {
-      authStore.setToken(response.data.token);
-      router.push('/');
+      authStore.setToken(response.data.token)
+      router.push('/')
     } else {
-      ElMessage.error('登录失败：未在返回数据中找到 Token。');
+      ElMessage.error('登录失败：未获取到 Token')
     }
   } catch (error) {
-    // axios 拦截器会自动处理错误消息，这里可以打印日志
-    console.error('Login request failed:', error);
+    console.error('Login request failed:', error)
   }
 }
 </script>
 
 <style scoped>
 .login-container {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  min-height: 100vh;
   display: flex;
-}
-
-.login-left {
-  flex: 1;
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-  display: flex;
-  justify-content: center;
   align-items: center;
-  color: var(--text-inverse);
-  text-align: center;
-  padding: 40px;
-}
-
-.system-title {
-  font-size: 48px;
-  font-weight: bold;
-  margin-bottom: 20px;
-}
-
-.system-description {
-  font-size: 20px;
-}
-
-.login-right {
-  flex: 1;
-  display: flex;
   justify-content: center;
-  align-items: center;
-  background-color: var(--bg-secondary);
+  background: var(--bg-secondary);
+  padding: 24px;
 }
 
-.login-form-card {
-  width: 70%;
-  max-width: 450px;
-  border: none;
-  box-shadow: var(--shadow-md);
-  border-radius: 12px;
+.login-card {
+  width: 100%;
+  max-width: 360px;
   background: var(--bg-card);
+  border-radius: 16px;
+  padding: 40px 32px;
+  border: 1px solid var(--border-light);
 }
 
-.card-header {
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
   text-align: center;
-  font-size: 24px;
-  font-weight: bold;
+  margin-bottom: 8px;
 }
 
-.register-link {
-  margin-top: 15px;
+.login-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
   text-align: center;
+  margin-bottom: 32px;
 }
 
-/* 深色模式适配 */
-@media (prefers-color-scheme: dark) {
-  .login-form-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-light);
-  }
-
-  .card-header {
-    color: var(--text-primary);
-  }
+.login-form {
+  margin-bottom: 16px;
 }
-</style> 
+
+.login-form :deep(.el-input__wrapper) {
+  border-radius: 8px;
+}
+
+.login-btn {
+  width: 100%;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.login-footer {
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.login-footer .el-link {
+  margin-left: 4px;
+}
+</style>

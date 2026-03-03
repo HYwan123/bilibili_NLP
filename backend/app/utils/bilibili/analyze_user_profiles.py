@@ -1,5 +1,5 @@
-import httpx
 from app.database.redis_client import RedisClient
+from app.utils.agent.openai_client import OpenaiClient
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 import json
@@ -24,7 +24,7 @@ def get_user_comments_from_redis(uid: int) -> List[Dict[str, Any]]:
             return []
     return []
 
-async def analyze_user_comments(uid: int, api_key: Optional[str] = None, api_url: Optional[str] = None, model_id: Optional[str] = None) -> Dict[str, Any]:
+async def analyze_user_comments(uid: int) -> Dict[str, Any]:
     """
     使用大模型API分析用户评论，生成用户画像
     """
@@ -44,14 +44,12 @@ async def analyze_user_comments(uid: int, api_key: Optional[str] = None, api_url
         if not comments:
             return {"error": "未找到用户评论数据"}
         
-        # 提取评论文本，并添加调试信息
+        # 提取评论文本
         comment_texts = []
         for i, comment in enumerate(comments):
             comment_text = comment.get('comment_text', '')
-            if comment_text and comment_text.strip():  # 确保不是空字符串或只有空格
+            if comment_text and comment_text.strip():
                 comment_texts.append(comment_text)
-            else:
-                print(f"第{i+1}条评论内容为空或无效: {comment}")
         
         print(f"有效评论数量: {len(comment_texts)}")
         
@@ -63,51 +61,37 @@ async def analyze_user_comments(uid: int, api_key: Optional[str] = None, api_url
         comments_text = "\n".join([f"{i+1}. {comment}" for i, comment in enumerate(sample_comments)])
         
         # 构建分析提示词
-        prompt = f"""请分析以下B站用户的评论内容，生成用户画像分析报告。请从以下几个方面进行分析：\n\n1. 用户兴趣偏好\n2. 活跃程度和参与度\n3. 评论风格和特点\n4. 可能关注的领域\n5. 用户性格特征\n\n用户评论内容：\n{comments_text}\n\n请用中文回答，格式要清晰易读。"""
+        system_prompt = "你是一个专业的 B 站用户行为分析专家。你的任务是根据提供的用户评论数据，构建深度、准确的用户画像报告。"
+        user_prompt = f"""请分析以下B站用户的评论内容，生成用户画像分析报告。请从以下几个方面进行分析：
 
-        # 使用传入的API配置，如果未提供则使用默认配置
-        if api_key and api_url:
-            # 使用传入的API配置
-            api_base_url = api_url.rstrip('/')  # 移除末尾的斜杠
-            if not api_base_url.endswith('/v1'):
-                api_base_url += '/v1'
-            api_endpoint = f"{api_base_url}/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-        else:
-            # 使用默认配置
-            api_endpoint = "https://api.siliconflow.cn/v1/chat/completions"
-            headers = {
-                "Authorization": "Bearer sk-skgydfquljaaecqxaqyumvbhnurbzqovgynlvcadxwpfifux",
-                "Content-Type": "application/json"
-            }
+1. 用户兴趣偏好
+2. 活跃程度和参与度
+3. 评论风格和特点
+4. 可能关注的领域
+5. 用户性格特征
+
+用户评论内容：
+{comments_text}
+
+请用中文回答，确保报告结构清晰、洞察深刻，使用 Markdown 格式渲染。"""
+
+        # 初始化OpenAI客户端
+        client = OpenaiClient()
         
-        # 使用传入的模型ID，如果未提供则使用默认模型
-        model_to_use = model_id if model_id else "Qwen/QwQ-32B"
+        # 使用高质量默认模型
+        model_to_use = "qwen3-max"
         
-        data = {
-            "model": model_to_use,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "stream": False,
-            "max_tokens": 1024,
-            "temperature": 0.7,
-            "top_p": 0.7
-        }
+        print(f"开始使用 OpenaiClient 分析用户 {uid} 的评论，模型: {model_to_use}")
         
-        print(f"开始分析用户 {uid} 的评论...")
-        async with httpx.AsyncClient(timeout=1600.0) as client:
-            response = await client.post(api_endpoint, headers=headers, json=data)
+        # 调用AI接口
+        response = await client.chat(
+            messages=[{"role": "user", "content": user_prompt}],
+            model=model_to_use,
+            system_prompt=system_prompt
+        )
         
-        if response.status_code == 200:
-            result = response.json()
-            analysis_content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+        if response and "choices" in response:
+            analysis_content = client.get_message_content(response)
             
             analysis_result = {
                 "uid": uid,
@@ -124,9 +108,9 @@ async def analyze_user_comments(uid: int, api_key: Optional[str] = None, api_url
             
             return analysis_result
         else:
-            print(f"大模型API调用失败，状态码: {response.status_code}")
-            print(f"响应内容: {response.text[:200]}...")
-            return {"error": f"API调用失败: {response.status_code}"}
+            error_msg = response.get("error", "未知错误") if response else "响应为空"
+            print(f"OpenaiClient 调用失败: {error_msg}")
+            return {"error": f"AI分析失败: {error_msg}"}
             
     except Exception as e:
         print(f"分析用户评论时发生错误: {e}")

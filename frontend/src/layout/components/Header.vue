@@ -1,9 +1,19 @@
 <template>
   <el-header class="header">
-    <el-icon class="collapse-icon" @click="layoutStore.toggleCollapse">
-      <component :is="layoutStore.isCollapse ? 'Expand' : 'Fold'" />
+    <el-icon class="collapse-icon" :size="24" @click="layoutStore.toggleCollapse">
+      <Expand v-if="layoutStore.isCollapse" />
+      <Fold v-else />
     </el-icon>
     <div class="header-right">
+      <el-tooltip
+        :content="layoutStore.theme === 'light' ? '切换到深色模式' : '切换到浅色模式'"
+        placement="bottom"
+      >
+        <el-icon class="theme-toggle-icon" :size="24" @click="layoutStore.toggleTheme">
+          <Moon v-if="layoutStore.theme === 'light'" />
+          <Sunny v-else />
+        </el-icon>
+      </el-tooltip>
       <el-dropdown>
         <span class="el-dropdown-link">
           {{ authStore.username }}
@@ -24,7 +34,7 @@
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useLayoutStore } from '@/stores/layout';
-import { ArrowDown, Expand, Fold } from '@element-plus/icons-vue';
+import { ArrowDown, Expand, Fold, Moon, Sunny } from '@element-plus/icons-vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -47,16 +57,19 @@ const logout = () => {
   padding: 0 24px;
 }
 
-.collapse-icon {
-  font-size: 20px;
+.collapse-icon, .theme-toggle-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   color: var(--text-secondary);
   transition: all 0.2s ease;
-  padding: 8px;
   border-radius: 8px;
 }
 
-.collapse-icon:hover {
+.collapse-icon:hover, .theme-toggle-icon:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
@@ -64,6 +77,7 @@ const logout = () => {
 .header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .el-dropdown-link {

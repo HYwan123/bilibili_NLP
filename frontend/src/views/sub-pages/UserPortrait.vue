@@ -835,14 +835,12 @@ onMounted(() => {
 
 :deep(.portrait-dialog .el-dialog__body) {
   padding: 0;
-  max-height: 70vh;
   overflow: hidden;
 }
 
 .dialog-wrapper {
   display: flex;
   flex-direction: column;
-  height: 100%;
   max-height: 70vh;
 }
 
@@ -976,12 +974,13 @@ onMounted(() => {
 
 /* Markdown 内容 */
 .markdown-wrapper {
-  height: 100%;
-  max-height: calc(70vh - 200px);
+  flex: 1;
+  overflow: hidden;
 }
 
 .content-scroll {
   height: 100%;
+  max-height: 50vh;
   overflow-y: auto;
   padding: 24px;
 }
@@ -1036,22 +1035,20 @@ onMounted(() => {
 
 /* 思维导图 */
 .mindmap-wrapper {
-  height: 100%;
-  max-height: calc(70vh - 200px);
-  display: flex;
-  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
 }
 
 .mindmap-container {
-  flex: 1;
+  height: 50vh;
   padding: 20px;
   background: var(--bg-secondary);
+  overflow: auto;
 }
 
 .mindmap-svg {
   width: 100%;
   height: 100%;
-  min-height: 400px;
 }
 
 .mindmap-hint {
@@ -1068,12 +1065,13 @@ onMounted(() => {
 
 /* 评论面板 */
 .comments-panel {
-  height: 100%;
-  max-height: calc(70vh - 200px);
+  flex: 1;
+  overflow: hidden;
 }
 
 .comments-scroll {
   height: 100%;
+  max-height: 50vh;
   overflow-y: auto;
   padding: 24px;
 }

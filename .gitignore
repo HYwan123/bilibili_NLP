@@ -22,7 +22,6 @@ wheels/
 MANIFEST
 
 # Virtual Environment
-backend/.venv
 python3.12_env/
 .venv/
 env/
@@ -33,6 +32,7 @@ venv.bak/
 # IDE
 .vscode/
 .idea/
+.claude/
 *.swp
 *.swo
 *~

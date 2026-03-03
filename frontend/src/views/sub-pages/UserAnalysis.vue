@@ -35,74 +35,6 @@
       </el-steps>
     </div>
 
-    <!-- API配置折叠面板 -->
-    <div class="api-config-section">
-      <el-collapse v-model="activeCollapse">
-        <el-collapse-item name="api">
-          <template #title>
-            <div class="collapse-title">
-              <el-icon><Setting /></el-icon>
-              <span>API配置</span>
-              <el-tag v-if="isApiConfigured" type="success" size="small" effect="light">已配置</el-tag>
-              <el-tag v-else type="warning" size="small" effect="light">未配置</el-tag>
-            </div>
-          </template>
-          
-          <div class="api-form">
-            <el-alert
-              title="配置说明"
-              type="info"
-              description="请配置您的AI API信息，配置将自动保存到本地。支持OpenAI、Azure、智谱AI等兼容OpenAI接口的服务。"
-              show-icon
-              :closable="false"
-              style="margin-bottom: 16px;"
-            />
-            
-            <el-form :model="apiConfig" label-position="top">
-              <el-row :gutter="20">
-                <el-col :xs="24" :sm="12">
-                  <el-form-item label="API Key">
-                    <el-input
-                      v-model="apiConfig.apiKey"
-                      type="password"
-                      placeholder="sk-xxxxxxxxxxxxxxxx"
-                      show-password
-                    >
-                      <template #prefix>
-                        <el-icon><Key /></el-icon>
-                      </template>
-                    </el-input>
-                  </el-form-item>
-                </el-col>
-                <el-col :xs="24" :sm="12">
-                  <el-form-item label="API 网址">
-                    <el-input
-                      v-model="apiConfig.apiUrl"
-                      placeholder="https://api.openai.com/v1"
-                    >
-                      <template #prefix>
-                        <el-icon><Link /></el-icon>
-                      </template>
-                    </el-input>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-              <el-form-item label="模型ID">
-                <el-input
-                  v-model="apiConfig.modelId"
-                  placeholder="gpt-4o / glm-4 / 等"
-                >
-                  <template #prefix>
-                    <el-icon><Collection /></el-icon>
-                  </template>
-                </el-input>
-              </el-form-item>
-            </el-form>
-          </div>
-        </el-collapse-item>
-      </el-collapse>
-    </div>
-
     <!-- 主操作区 -->
     <div class="main-operation">
       <el-card class="operation-card" shadow="hover">
@@ -222,18 +154,17 @@
               size="large"
               @click="analyzeUser"
               :loading="analyzing"
-              :disabled="!isApiConfigured || analyzing"
+              :disabled="analyzing"
               class="analyze-btn"
             >
               <el-icon><Orange /></el-icon>
-              <span v-if="!isApiConfigured">请先配置API</span>
-              <span v-else-if="analyzing">AI分析中...</span>
+              <span v-if="analyzing">AI分析中...</span>
               <span v-else>开始AI画像分析</span>
             </el-button>
             
-            <div v-if="!isApiConfigured" class="config-hint">
-              <el-icon><Warning /></el-icon>
-              <span>请展开上方"API配置"面板完成设置</span>
+            <div class="config-hint">
+              <el-icon><InfoFilled /></el-icon>
+              <span>使用系统预设的专家级分析模型进行处理</span>
             </div>
           </div>
         </div>
@@ -340,7 +271,7 @@ import MarkdownIt from 'markdown-it';
 import { Transformer } from 'markmap-lib';
 import { Markmap } from 'markmap-view';
 import { 
-  Orange, EditPen, Download, Cpu, View, Setting, Key, Link, Collection,
+  Orange, EditPen, Download, Cpu, View, Setting,
   User, QuestionFilled, ChatDotRound, Refresh, Delete, Warning,
   CircleCheck, Clock, UserFilled, Document, Share, InfoFilled,
   Star, RefreshLeft, ChatLineRound
@@ -350,9 +281,7 @@ const router = useRouter();
 
 // 状态
 const form = ref({ uid: '' });
-const apiConfig = ref({ apiKey: '', apiUrl: '', modelId: '' });
 const currentStep = ref(0);
-const activeCollapse = ref([]);
 const loading = ref(false);
 const loadingSaved = ref(false);
 const analyzing = ref(false);
@@ -376,10 +305,6 @@ const md = new MarkdownIt({ html: true, breaks: true, linkify: true });
 const sampleUids = ['66143532', '208259', '2'];
 
 // 计算属性
-const isApiConfigured = computed(() => {
-  return apiConfig.value.apiKey && apiConfig.value.apiUrl;
-});
-
 const displayedComments = computed(() => {
   if (showAll.value) return retrievedComments.value;
   return retrievedComments.value.slice(0, defaultCommentDisplay);
@@ -431,7 +356,7 @@ const fetchComments = async () => {
       message.value = '未获取到评论数据，该用户可能没有公开评论';
       messageType.value = 'warning';
     }
-  } catch (error) {
+  } catch (error: any) {
     message.value = `获取评论失败: ${error.message || '网络错误'}`;
     messageType.value = 'error';
   } finally {
@@ -497,12 +422,6 @@ const toggleShowAll = () => {
 };
 
 const analyzeUser = async () => {
-  if (!isApiConfigured.value) {
-    ElMessage.warning('请先配置API信息');
-    activeCollapse.value = ['api'];
-    return;
-  }
-
   if (retrievedComments.value.length === 0) {
     ElMessage.warning('请先获取用户评论');
     return;
@@ -512,11 +431,7 @@ const analyzeUser = async () => {
   currentStep.value = 2;
   
   try {
-    const data = await request.post(`/api/user/analyze/${form.value.uid}`, {
-      api_key: apiConfig.value.apiKey,
-      api_url: apiConfig.value.apiUrl,
-      model_id: apiConfig.value.modelId
-    });
+    const data = await request.post(`/api/user/analyze/${form.value.uid}`);
     
     // 处理API响应
     if (data.code === 200 || data.code === 201) {
@@ -536,7 +451,7 @@ const analyzeUser = async () => {
       messageType.value = 'error';
       currentStep.value = 1;
     }
-  } catch (e) {
+  } catch (e: any) {
     message.value = e.message || '分析请求失败';
     messageType.value = 'error';
     currentStep.value = 1;
@@ -598,21 +513,9 @@ watch(viewMode, async (newMode) => {
   }
 });
 
-// 监听API配置保存
-watch(apiConfig, (newConfig) => {
-  localStorage.setItem('userAnalysisApiConfig', JSON.stringify(newConfig));
-}, { deep: true });
-
 // 初始化
 onMounted(() => {
-  const saved = localStorage.getItem('userAnalysisApiConfig');
-  if (saved) {
-    try {
-      apiConfig.value = { ...apiConfig.value, ...JSON.parse(saved) };
-    } catch (e) {
-      console.error('解析保存的API配置失败:', e);
-    }
-  }
+  // 不再需要加载本地API配置
 });
 </script>
 
@@ -665,26 +568,6 @@ onMounted(() => {
 .steps-section :deep(.el-steps--simple) {
   background: transparent !important;
   border: none !important;
-}
-
-/* API配置 */
-.api-config-section {
-  margin-bottom: 24px;
-}
-
-.collapse-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.collapse-title .el-icon {
-  color: var(--primary-color);
-}
-
-.api-form {
-  padding: 16px 0;
 }
 
 /* 主操作区 */
@@ -901,7 +784,7 @@ onMounted(() => {
 
 .config-hint {
   margin-top: 12px;
-  color: var(--warning-color);
+  color: var(--text-secondary);
   font-size: 13px;
   display: flex;
   align-items: center;

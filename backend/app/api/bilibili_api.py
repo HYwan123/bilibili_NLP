@@ -267,9 +267,6 @@ from typing import Optional
 @router.post("/user/analyze/{uid}")
 async def analyze_user_portrait_resp(
     uid: int,
-    api_key: Optional[str] = None,
-    api_url: Optional[str] = None,
-    model_id: Optional[str] = None,
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -280,9 +277,7 @@ async def analyze_user_portrait_resp(
     try:
         logger.info(f"用户画像分析请求 by user {current_user.username} for uid: {uid}")
 
-        result = await analyze_user_profiles.analyze_user_comments(
-            uid, api_key, api_url, model_id
-        )
+        result = await analyze_user_profiles.analyze_user_comments(uid)
 
         if "error" in result:
             logger.warning(f"用户画像分析错误 for uid {uid}: {result['error']}")
@@ -718,6 +713,25 @@ async def poll_bilibili_login_endpoint(current_user: User = Depends(get_current_
         return create_error_response(500, f"轮询登录状态失败: {str(e)}")
 
 
+# --- 默认AI系统提示词 ---
+DEFAULT_SYSTEM_PROMPT = """# 角色
+你是一个专门针对 B 站（Bilibili）数据分析的资深 NLP 专家助手。你拥有深厚的内容理解、用户画像构建、情感分析以及推荐系统领域的知识。
+
+# 核心功能背景
+本系统名为 bilibili-nlp，旨在通过数据科学手段挖掘 B 站视频背后的价值。主要功能包括：
+1. **视频评论分析**：提取关键词、进行细粒度的情感极性分类（积极、消极、中性），并总结用户核心观点。
+2. **用户画像分析**：基于互动行为（评论、点赞、投币、收藏等）构建粉丝群体特征，识别用户偏好、活跃时段和粉丝粘性。
+3. **内容推荐**：通过标签关联和语义分析，为用户提供精准的内容推荐建议。
+4. **趋势洞察**：分析弹幕热度和热门话题，帮助创作者把握流量趋势。
+
+# 交互准则
+1. **专业性**：在回答相关领域问题时，应使用诸如“分词”、“词频分析”、“LDA 主题模型”、“情感分值”、“用户留存”等专业术语，但要确保解释易懂。
+2. **场景化建议**：不仅仅是回答问题，还要能根据 B 站特有的社区氛围（梗文化、弹幕礼仪等）给出运营或分析建议。
+3. **简洁高效**：回答应直击要点，避免冗余，除非用户要求深入分析，否则通常控制在 300 字以内。
+4. **准确性**：基于已知功能回答。若涉及系统未实现的功能，应礼貌说明。
+5. **代码示例**：如果用户询问技术实现细节，请提供简洁的 Python (FastAPI/Request) 或 Vue.js 代码示例。"""
+
+
 # --- AI 问答相关API ---
 @router.post("/chat")
 async def chat_with_ai(
@@ -737,8 +751,15 @@ async def chat_with_ai(
             {"role": msg.role, "content": msg.content} for msg in chat_request.messages
         ]
 
+        # 获取系统提示词
+        system_prompt = chat_request.system_prompt or DEFAULT_SYSTEM_PROMPT
+
         # 调用AI接口
-        response = await client.chat(messages)
+        response = await client.chat(
+            messages=messages,
+            model=chat_request.model or "kimi-k2",
+            system_prompt=system_prompt
+        )
 
         # 提取AI回复内容
         ai_message = client.get_message(response)
@@ -779,7 +800,10 @@ async def chat_with_ai_simple(
         client = OpenaiClient()
 
         # 调用AI接口
-        response = await client.one_chat(text)
+        response = await client.one_chat(
+            text=text,
+            system_prompt=DEFAULT_SYSTEM_PROMPT
+        )
 
         # 提取AI回复内容
         ai_content = client.get_message_content(response)
@@ -823,20 +847,7 @@ async def chat_with_ai_stream(
             ]
 
             # 获取系统提示词，如果没有提供则使用默认提示词
-            system_prompt = getattr(chat_request, "system_prompt", None)
-            if not system_prompt:
-                system_prompt = """你是B站视频分析系统的AI助手。该系统提供以下功能：
-- 视频评论情感分析和关键词提取
-- B站用户画像分析（粉丝群体、互动偏好等）
-- 视频内容推荐和标签分析
-- 直播弹幕分析和热点追踪
-
-请遵循以下规则：
-1. 回答简洁明了，控制在200字以内
-2. 优先使用中文回答
-3. 涉及代码时提供简洁可运行的示例
-4. 如果不确定答案，请诚实说明而非编造
-5. 针对B站视频分析场景提供专业建议"""
+            system_prompt = chat_request.system_prompt or DEFAULT_SYSTEM_PROMPT
 
             logger.info(f"准备调用AI流式接口，消息数: {len(messages)}")
 

@@ -40,9 +40,10 @@ class OpenaiClient:
                 }
             )
 
-    async def chat(self, messages: list[dict]):
+    async def chat(self, messages: list[dict], model: str = "kimi-k2", system_prompt: str = None):
+        payload = self.make_message(messages=messages, model=model, system_prompt=system_prompt)
         async with self.session_client.post(
-            self.api_host, json=self.make_message(messages=messages)
+            self.api_host, json=payload
         ) as resp:
             return await resp.json()
 
@@ -60,8 +61,8 @@ class OpenaiClient:
         Yields:
             str: 流式返回的内容片段
         """
-        payload = self.make_message_stream(
-            messages=messages, model=model, system_prompt=system_prompt
+        payload = self.make_message(
+            messages=messages, model=model, system_prompt=system_prompt, stream=True
         )
 
         async with self.session_client.post(self.api_host, json=payload) as resp:
@@ -106,10 +107,15 @@ class OpenaiClient:
                         except json.JSONDecodeError:
                             continue
 
-    async def one_chat(self, text: str) -> dict:
+    async def one_chat(self, text: str, model: str = "kimi-k2", system_prompt: str = None) -> dict:
+        payload = self.make_message(
+            messages=[{"role": "user", "content": text}],
+            model=model,
+            system_prompt=system_prompt
+        )
         async with self.session_client.post(
             self.api_host,
-            json=self.make_message(messages=[{"role": "user", "content": text}]),
+            json=payload,
         ) as resp:
             return await resp.json()
 
@@ -126,10 +132,35 @@ class OpenaiClient:
     def make_message(
         messages: list[dict] = [{"role": "user", "content": "test,回复测试成功即可"}],
         model: str = "kimi-k2",
+        system_prompt: str = None,
+        stream: bool = False,
     ) -> dict:
+        """
+        创建消息payload
+
+        Args:
+            messages: 消息列表
+            model: 模型名称
+            system_prompt: 系统提示词，如果提供则添加到消息列表开头
+            stream: 是否开启流式输出
+
+        Returns:
+            dict: payload
+        """
+        # 构建消息列表
+        final_messages = []
+
+        # 如果有系统提示词，添加到消息列表开头
+        if system_prompt:
+            final_messages.append({"role": "system", "content": system_prompt})
+
+        # 添加其余消息
+        final_messages.extend(messages)
+
         payload = {
             "model": model,
-            "messages": messages,
+            "messages": final_messages,
+            "stream": stream,
         }
 
         return payload
@@ -141,30 +172,9 @@ class OpenaiClient:
         system_prompt: str = None,
     ) -> dict:
         """
-        创建流式消息payload
-
-        Args:
-            messages: 消息列表
-            model: 模型名称
-            system_prompt: 系统提示词，如果提供则添加到消息列表开头
-
-        Returns:
-            dict: 包含stream=true的payload
+        创建流式消息payload (已废弃，建议使用 make_message(..., stream=True))
         """
-        # 构建消息列表
-        final_messages = list(messages)
-
-        # 如果有系统提示词，添加到消息列表开头
-        if system_prompt:
-            final_messages.insert(0, {"role": "system", "content": system_prompt})
-
-        payload = {
-            "model": model,
-            "messages": final_messages,
-            "stream": True,
-        }
-
-        return payload
+        return OpenaiClient.make_message(messages=messages, model=model, system_prompt=system_prompt, stream=True)
 
     @staticmethod
     def get_message_content(response_json: dict):
