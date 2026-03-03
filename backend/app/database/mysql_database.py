@@ -243,123 +243,133 @@ def get_history_by_user(
     if not conn:
         return {"items": [], "total": 0, "page": page, "page_size": page_size}
 
-    # Use dictionary=True to get rows as dicts
     cursor = conn.cursor(dictionary=True)
     redis_client = get_redis_client()
 
     try:
-        # First, get the username from user_id
+        # Get username
         cursor.execute("SELECT username FROM users WHERE id = %s", (user_id,))
         user_result = cursor.fetchone()
         if not user_result:
             return {"items": [], "total": 0, "page": page, "page_size": page_size}
 
-        username = user_result["username"]  # type: ignore
-        bv_history = []
-        uuid_history = []
-        bv_total = 0
-        uuid_total = 0
+        username = user_result["username"]
         offset = (page - 1) * page_size
 
-        # Fetch BV history with pagination
-        if history_type in ["all", "bv"]:
-            # Check if BV_history table has a data column
-            cursor.execute("DESCRIBE BV_history")
-            columns = [column["Field"] for column in cursor.fetchall()]  # type: ignore
-            has_data_column = "data" in columns
+        # Check for 'data' column in BV_history
+        cursor.execute("DESCRIBE BV_history")
+        bv_columns = [column["Field"] for column in cursor.fetchall()]
+        has_bv_data = "data" in bv_columns
 
-            # Get total count
-            cursor.execute(
-                "SELECT COUNT(*) as count FROM BV_history WHERE user = %s", (username,)
-            )  # type: ignore
-            bv_total = cursor.fetchone()["count"]  # type: ignore
+        # Build query based on history_type
+        items = []
+        total = 0
 
-            # Get paginated data
-            if has_data_column:
-                cursor.execute(
-                    "SELECT BV as bv, time as query_time, data FROM BV_history WHERE user = %s ORDER BY time DESC LIMIT %s OFFSET %s",
-                    (username, page_size, offset),  # type: ignore
-                )
+        if history_type == "bv":
+            cursor.execute("SELECT COUNT(*) as count FROM BV_history WHERE user = %s", (username,))
+            total = cursor.fetchone()["count"]
+            
+            bv_select = "BV as bv, time as query_time, 'bv' as type"
+            if has_bv_data:
+                bv_select += ", data"
             else:
-                cursor.execute(
-                    "SELECT BV as bv, time as query_time FROM BV_history WHERE user = %s ORDER BY time DESC LIMIT %s OFFSET %s",
-                    (username, page_size, offset),  # type: ignore
-                )
-            bv_history = cursor.fetchall()
-
-        # Fetch UID history with pagination
-        if history_type in ["all", "uuid"]:
-            # Get total count
+                bv_select += ", NULL as data"
+                
             cursor.execute(
-                "SELECT COUNT(*) as count FROM uuid_history WHERE user = %s",
-                (username,),
-            )  # type: ignore
-            uuid_total = cursor.fetchone()["count"]  # type: ignore
-
-            # Get paginated data
-            cursor.execute(
-                "SELECT uuid as uid, job_id, time as query_time FROM uuid_history WHERE user = %s ORDER BY time DESC LIMIT %s OFFSET %s",
-                (username, page_size, offset),  # type: ignore
+                f"SELECT {bv_select} FROM BV_history WHERE user = %s ORDER BY query_time DESC LIMIT %s OFFSET %s",
+                (username, page_size, offset)
             )
-            uuid_history = cursor.fetchall()
+            items = cursor.fetchall()
 
-            # 为每条uuid_history补充sample_comments
-            for item in uuid_history:
-                item["sample_comments"] = []  # type: ignore
-                job_id = item.get("job_id")  # type: ignore
-                if job_id:
-                    # 先查 job_status:{job_id}，再查 {uid}_result
-                    redis_keys = [
-                        f"job_status:{job_id}",
-                        f"{item['uid']}_result",
-                        f"analysis_{item['uid']}",
-                    ]  # type: ignore
-                    for key in redis_keys:
-                        data = redis_client.get(key)  # type:ignore
+        elif history_type == "uuid":
+            cursor.execute("SELECT COUNT(*) as count FROM uuid_history WHERE user = %s", (username,))
+            total = cursor.fetchone()["count"]
+            
+            cursor.execute(
+                "SELECT uuid as uid, job_id, time as query_time, 'uuid' as type FROM uuid_history WHERE user = %s ORDER BY query_time DESC LIMIT %s OFFSET %s",
+                (username, page_size, offset)
+            )
+            items = cursor.fetchall()
+
+        else: # history_type == "all"
+            # Get total for both
+            cursor.execute("SELECT COUNT(*) as count FROM BV_history WHERE user = %s", (username,))
+            bv_total = cursor.fetchone()["count"]
+            cursor.execute("SELECT COUNT(*) as count FROM uuid_history WHERE user = %s", (username,))
+            uuid_total = cursor.fetchone()["count"]
+            total = bv_total + uuid_total
+
+            # Union query for unified sorting and pagination
+            bv_subquery = f"SELECT BV as id, time as query_time, 'bv' as type, {'data' if has_bv_data else 'NULL'} as extra_data, NULL as job_id FROM BV_history WHERE user = %s"
+            uuid_subquery = "SELECT uuid as id, time as query_time, 'uuid' as type, NULL as extra_data, job_id FROM uuid_history WHERE user = %s"
+            
+            union_query = f"""
+                ({bv_subquery})
+                UNION ALL
+                ({uuid_subquery})
+                ORDER BY query_time DESC
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(union_query, (username, username, page_size, offset))
+            raw_items = cursor.fetchall()
+            
+            # Map back to expected format
+            for row in raw_items:
+                item = {
+                    "query_time": row["query_time"],
+                    "type": row["type"]
+                }
+                if row["type"] == "bv":
+                    item["bv"] = row["id"]
+                    item["data"] = row["extra_data"]
+                else:
+                    item["uid"] = row["id"]
+                    item["job_id"] = row["job_id"]
+                items.append(item)
+
+        # Post-process items (enrich UUID history and format time)
+        from datetime import datetime
+        processed_items = []
+        
+        for item in items:
+            # Ensure dict
+            item_dict = dict(item)
+            
+            # Enrich UUID with sample comments
+            if item_dict.get("type") == "uuid":
+                item_dict["sample_comments"] = []
+                uid = item_dict.get("uid")
+                job_id = item_dict.get("job_id")
+                if uid:
+                    keys = []
+                    if job_id: keys.append(f"job_status:{job_id}")
+                    keys.extend([f"{uid}_result", f"analysis_{uid}"])
+                    
+                    for key in keys:
+                        data = redis_client.get(key)
                         if data:
                             try:
-                                result = json.loads(data)  # type: ignore
-                                sc = result.get("sample_comments")
+                                res = json.loads(data)
+                                sc = res.get("sample_comments")
                                 if isinstance(sc, list):
-                                    item["sample_comments"] = sc  # type: ignore
+                                    item_dict["sample_comments"] = sc
                                     break
-                            except Exception:
-                                continue
+                            except: continue
 
-        # Convert to list and add type field
-        bv_history = [dict(row) for row in bv_history]  # type: ignore
-        uuid_history = [dict(row) for row in uuid_history]  # type: ignore
-
-        for item in bv_history:
-            item["type"] = "bv"
-        for item in uuid_history:
-            item["type"] = "uuid"
-
-        # Merge and sort by time
-        all_history = bv_history + uuid_history
-        from datetime import datetime
-
-        # Convert datetime objects to string for JSON serialization
-        for item in all_history:
-            if isinstance(item, dict) and "query_time" in item:
-                if isinstance(item["query_time"], datetime):  # type: ignore
-                    item["query_time"] = item["query_time"].isoformat()  # type: ignore
-
-        # Sort by query_time desc
-        all_history.sort(key=lambda x: x.get("query_time", ""), reverse=True)
-
-        total = (
-            bv_total + uuid_total
-            if history_type == "all"
-            else (bv_total if history_type == "bv" else uuid_total)
-        )
+            # Format datetime
+            if "query_time" in item_dict and isinstance(item_dict["query_time"], datetime):
+                item_dict["query_time"] = item_dict["query_time"].isoformat()
+            
+            processed_items.append(item_dict)
 
         return {
-            "items": all_history,
+            "items": processed_items,
             "total": total,
+            "bv_total": bv_total if history_type == "all" else (total if history_type == "bv" else 0),
+            "uuid_total": uuid_total if history_type == "all" else (total if history_type == "uuid" else 0),
             "page": page,
             "page_size": page_size,
-            "total_pages": (total + page_size - 1) // page_size,
+            "total_pages": (total + page_size - 1) // page_size if total > 0 else 0,
         }
 
     except mysql.connector.Error as err:

@@ -33,9 +33,8 @@
         </el-menu-item>
         
         <el-menu-item index="/query" class="modern-menu-item">
-          <el-icon class="menu-icon"><Search /></el-icon>
-
-          <span class="menu-text">cookie管理</span>
+          <el-icon class="menu-icon"><Key /></el-icon>
+          <span class="menu-text">Cookie管理</span>
         </el-menu-item>   
 
         <el-menu-item index="/comment-analysis" class="modern-menu-item">
@@ -87,7 +86,7 @@
           <el-icon class="menu-icon"><Tickets /></el-icon>
           <span class="menu-text">历史记录</span>
         </el-menu-item>
-            <el-menu-item index="/user-portrait" class="modern-menu-item">
+        <el-menu-item index="/user-portrait" class="modern-menu-item">
           <el-icon class="menu-icon"><User /></el-icon>
           <span class="menu-text">用户画像</span>
         </el-menu-item>
@@ -114,7 +113,9 @@ import {
   Expand,
   Fold,
   MagicStick,
-  ChatDotRound
+  ChatDotRound,
+  Key,
+  Clock
 } from '@element-plus/icons-vue';
 
 const route = useRoute();

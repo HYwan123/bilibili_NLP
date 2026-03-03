@@ -325,7 +325,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { submitCommentAnalysis, getJobStatus } from '@/api/bilibili';
 import SentimentPieChart from '@/components/charts/SentimentPieChart.vue';
@@ -350,6 +351,8 @@ import {
   Search,
   InfoFilled
 } from '@element-plus/icons-vue';
+
+const route = useRoute();
 
 // 状态
 const form = ref({ bvId: '' });
@@ -397,7 +400,6 @@ const topKeywords = computed(() => {
 
 const topUsers = computed(() => {
   if (!analysisResult.value?.user_activity?.most_active_users) return [];
-  // 映射字段：username -> user_id，comment_count 保持不变
   return analysisResult.value.user_activity.most_active_users.slice(0, 5).map(user => ({
     user_id: user.username,
     comment_count: user.comment_count
@@ -421,35 +423,26 @@ const startAnalysis = async () => {
   analysisResult.value = null;
 
   try {
-    console.log('开始提交分析...');
     const res = await submitCommentAnalysis(form.value.bvId);
-    console.log('API响应:', res);
     
-    // 处理响应 - 兼容两种格式
+    // 处理响应
     let responseData = res;
     if (res.data !== undefined) {
       responseData = res.data;
     }
     
-    // 检查是否是直接返回缓存结果
     if (responseData.basic_stats || responseData.sentiment_analysis || responseData.keyword_analysis) {
-      // 直接显示结果（缓存命中）
-      console.log('缓存命中，直接显示结果');
       analysisResult.value = responseData;
       analyzing.value = false;
       jobProgress.value = 100;
-      ElMessage.success(res.message || '分析完成！');
+      ElMessage.success('获取成功！');
     } else if (responseData.job_id) {
-      // 需要轮询获取结果
-      console.log('需要轮询，job_id:', responseData.job_id);
       pollJobStatus(responseData.job_id);
     } else {
-      console.error('无法识别的响应格式:', res);
-      ElMessage.error('响应格式错误，无法获取分析结果');
+      ElMessage.error('无法获取分析结果');
       analyzing.value = false;
     }
   } catch (error: any) {
-    console.error('提交分析失败:', error);
     ElMessage.error('提交分析失败: ' + (error.message || '未知错误'));
     analyzing.value = false;
   }
@@ -459,8 +452,6 @@ const pollJobStatus = async (jobId) => {
   const poll = async () => {
     try {
       const data = await getJobStatus(jobId);
-      
-      // 处理两种响应格式
       let result = data;
       if (data.code === 200 && data.data) {
         result = data.data;
@@ -501,65 +492,37 @@ const getCommentExamples = computed(() => {
 
 const getAllCommentExamples = () => {
   if (!analysisResult.value?.sentiment_analysis) return [];
-  
   const sentiment = analysisResult.value.sentiment_analysis;
-  
-  // 处理两种可能的格式
-  // 格式1: { examples: [{comment, label, score}] }
   if (sentiment.examples && Array.isArray(sentiment.examples)) {
     return sentiment.examples;
   }
-  
-  // 格式2: { "评论内容": {label, score}, "评论内容2": {...} }
   const examples = [];
   const excludeKeys = ['negative', 'neutral', 'positive', 'total'];
-  
   for (const [key, value] of Object.entries(sentiment)) {
     if (excludeKeys.includes(key)) continue;
-    if (typeof value === 'object' && value.label) {
+    if (typeof value === 'object' && (value as any).label) {
       examples.push({
         comment: key,
-        label: parseInt(value.label), // "2 stars" -> 2
-        score: value.score
+        label: parseInt((value as any).label),
+        score: (value as any).score
       });
     }
   }
-  
   return examples;
 };
 
-const handleCurrentChange = (val) => {
-  currentPage.value = val;
-};
-
-const handleSizeChange = (val) => {
-  pageSize.value = val;
-  currentPage.value = 1;
-};
+const handleCurrentChange = (val) => { currentPage.value = val; };
+const handleSizeChange = (val) => { pageSize.value = val; currentPage.value = 1; };
 
 const getSentimentType = (label) => {
-  // 处理 "2 stars" 格式或数字
   const num = typeof label === 'string' ? parseInt(label) : label;
-  const map = {
-    1: 'danger',
-    2: 'warning',
-    3: 'info',
-    4: 'success',
-    5: 'success'
-  };
+  const map: Record<number, string> = { 1: 'danger', 2: 'warning', 3: 'info', 4: 'success', 5: 'success' };
   return map[num] || 'info';
 };
 
 const getSentimentText = (label) => {
-  // 处理 "2 stars" 格式或数字
   const num = typeof label === 'string' ? parseInt(label) : label;
-  const map = {
-    1: '非常负面',
-    2: '负面',
-    3: '中性',
-    4: '正面',
-    5: '非常正面'
-  };
+  const map: Record<number, string> = { 1: '非常负面', 2: '负面', 3: '中性', 4: '正面', 5: '非常正面' };
   return map[num] || '未知';
 };
 
@@ -577,6 +540,14 @@ const getKeywordSize = (count) => {
   if (ratio > 0.4) return 'default';
   return 'small';
 };
+
+onMounted(() => {
+  const bvFromQuery = route.query.bv as string;
+  if (bvFromQuery) {
+    form.value.bvId = bvFromQuery;
+    startAnalysis();
+  }
+});
 </script>
 
 <style scoped>
