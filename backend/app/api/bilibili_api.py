@@ -3,7 +3,7 @@ import json
 import uuid
 from typing import Optional
 from fastapi import Depends, status, APIRouter, BackgroundTasks, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import logging
 
 from app.database.redis_client import RedisClient
@@ -799,3 +799,76 @@ async def chat_with_ai_simple(
         logger.error(f"简单AI问答失败: {e}")
         log_error(e, "chat_with_ai_simple")
         return create_error_response(500, f"AI问答失败: {str(e)}")
+
+
+@router.post("/chat/stream")
+async def chat_with_ai_stream(
+    chat_request: ChatRequest, current_user: User = Depends(get_current_user)
+):
+    """
+    AI问答接口 - 流式输出
+    """
+
+    async def generate_stream():
+        try:
+            logger.info(f"用户 {current_user.username} 发起AI流式问答请求")
+
+            # 初始化OpenAI客户端
+            client = OpenaiClient()
+
+            # 转换消息格式
+            messages = [
+                {"role": msg.role, "content": msg.content}
+                for msg in chat_request.messages
+            ]
+
+            # 获取系统提示词，如果没有提供则使用默认提示词
+            system_prompt = getattr(chat_request, "system_prompt", None)
+            if not system_prompt:
+                system_prompt = """你是B站视频分析系统的AI助手。该系统提供以下功能：
+- 视频评论情感分析和关键词提取
+- B站用户画像分析（粉丝群体、互动偏好等）
+- 视频内容推荐和标签分析
+- 直播弹幕分析和热点追踪
+
+请遵循以下规则：
+1. 回答简洁明了，控制在200字以内
+2. 优先使用中文回答
+3. 涉及代码时提供简洁可运行的示例
+4. 如果不确定答案，请诚实说明而非编造
+5. 针对B站视频分析场景提供专业建议"""
+
+            logger.info(f"准备调用AI流式接口，消息数: {len(messages)}")
+
+            # 流式调用AI接口
+            chunk_count = 0
+            async for content in client.chat_stream(
+                messages=messages,
+                model=chat_request.model or "kimi-k2",
+                system_prompt=system_prompt,
+            ):
+                chunk_count += 1
+                data = json.dumps({"content": content})
+                logger.debug(f"Yielding chunk {chunk_count}: {content[:50]}...")
+                yield f"data: {data}\n\n"
+
+            logger.info(f"AI流式输出完成，共 {chunk_count} 个chunks")
+            yield "data: [DONE]\n\n"
+            logger.info(f"AI流式问答完成，用户: {current_user.username}")
+
+        except Exception as e:
+            logger.error(f"AI流式问答失败: {e}")
+            error_data = json.dumps({"error": str(e)})
+            yield f"data: {error_data}\n\n"
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        generate_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "Content-Type": "text/event-stream",
+        },
+    )

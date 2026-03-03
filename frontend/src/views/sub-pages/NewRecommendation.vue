@@ -475,7 +475,7 @@ const formatDuration = (duration: number) => {
   padding: 32px;
   max-width: 1400px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f5f3ff 100%);
+  background: var(--bg-secondary);
   min-height: 100vh;
 }
 
@@ -489,9 +489,7 @@ const formatDuration = (duration: number) => {
   font-size: 32px;
   font-weight: 700;
   margin: 0 0 8px 0;
-  background: linear-gradient(135deg, #065f46, #047857);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -504,7 +502,7 @@ const formatDuration = (duration: number) => {
 
 .page-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -531,9 +529,7 @@ const formatDuration = (duration: number) => {
 .card-header span {
   font-size: 20px;
   font-weight: 700;
-  background: linear-gradient(135deg, #065f46, #047857);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
 }
 
 .action-buttons {
@@ -574,15 +570,15 @@ const formatDuration = (duration: number) => {
 .bv-card {
   margin-bottom: 20px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid rgba(6, 95, 70, 0.1);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
 }
 
 .bv-card :deep(.el-card__header) {
-  background: linear-gradient(135deg, rgba(6, 95, 70, 0.05), rgba(4, 120, 87, 0.05));
-  border-bottom: 1px solid rgba(6, 95, 70, 0.1);
+  background: rgba(0, 122, 255, 0.05);
+  border-bottom: 1px solid var(--border-light);
   font-weight: 600;
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .bv-list {
@@ -597,19 +593,19 @@ const formatDuration = (duration: number) => {
   padding: 10px 16px;
   font-family: 'SF Mono', Monaco, monospace;
   font-size: 14px;
-  background: white;
-  border: 2px solid rgba(6, 95, 70, 0.2);
+  background: var(--bg-card);
+  border: 2px solid var(--primary-color);
   border-radius: 8px;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 .bv-tag:hover {
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   border-color: transparent;
   color: white;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
 }
 
 .bv-tag:hover .copy-icon {
@@ -619,7 +615,7 @@ const formatDuration = (duration: number) => {
 .copy-icon {
   margin-left: 6px;
   font-size: 12px;
-  color: #065f46;
+  color: var(--primary-color);
   transition: color 0.3s ease;
 }
 
@@ -635,7 +631,7 @@ const formatDuration = (duration: number) => {
 }
 
 .details-card :deep(.el-card__header) {
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   font-weight: 600;
   font-size: 16px;
@@ -654,14 +650,14 @@ const formatDuration = (duration: number) => {
   border-radius: 12px;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 1px solid rgba(6, 95, 70, 0.1);
-  background: white;
+  border: 1px solid var(--border-light);
+  background: var(--bg-card);
 }
 
 .video-item:hover {
   transform: translateY(-6px);
-  box-shadow: 0 12px 40px rgba(6, 95, 70, 0.2);
-  border-color: rgba(6, 95, 70, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 122, 255, 0.2);
+  border-color: var(--primary-color);
 }
 
 .video-item :deep(.el-card__body) {
@@ -674,13 +670,13 @@ const formatDuration = (duration: number) => {
   align-items: flex-start;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 2px solid rgba(6, 95, 70, 0.08);
+  border-bottom: 2px solid var(--border-light);
 }
 
 .video-title {
   margin: 0;
   font-size: 17px;
-  color: #1f2937;
+  color: var(--text-primary);
   flex: 1;
   margin-right: 12px;
   line-height: 1.5;
@@ -694,7 +690,7 @@ const formatDuration = (duration: number) => {
 }
 
 .video-desc {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.7;
   margin: 0;
@@ -702,16 +698,16 @@ const formatDuration = (duration: number) => {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   padding: 12px;
   border-radius: 8px;
 }
 
 .video-stats {
-  background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+  background: var(--bg-secondary);
   padding: 14px;
   border-radius: 10px;
-  border: 1px solid rgba(6, 95, 70, 0.1);
+  border: 1px solid var(--border-light);
 }
 
 .stat-item {
@@ -720,7 +716,7 @@ const formatDuration = (duration: number) => {
   justify-content: center;
   gap: 6px;
   font-size: 13px;
-  color: #065f46;
+  color: var(--primary-color);
   font-weight: 600;
 }
 
@@ -729,11 +725,11 @@ const formatDuration = (duration: number) => {
 }
 
 .video-meta {
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  background: var(--bg-secondary);
   padding: 14px;
   border-radius: 10px;
   font-size: 13px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-light);
 }
 
 .meta-item {
@@ -746,14 +742,14 @@ const formatDuration = (duration: number) => {
 }
 
 .meta-label {
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-right: 10px;
   min-width: 70px;
   font-weight: 500;
 }
 
 .meta-value {
-  color: #1f2937;
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -779,7 +775,7 @@ const formatDuration = (duration: number) => {
 .loading-icon {
   animation: rotate 2s linear infinite;
   margin-bottom: 16px;
-  color: #065f46;
+  color: var(--primary-color);
   font-size: 32px;
 }
 
@@ -814,7 +810,7 @@ const formatDuration = (duration: number) => {
 }
 
 :deep(.el-dialog__header) {
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   padding: 16px 20px;
   margin: 0;
@@ -827,6 +823,38 @@ const formatDuration = (duration: number) => {
 
 :deep(.el-dialog__body) {
   padding: 32px 24px;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .bv-card :deep(.el-card__header) {
+    background: var(--bg-secondary);
+    border-bottom-color: var(--border-light);
+  }
+
+  .details-card :deep(.el-card__header) {
+    background: var(--primary-color);
+  }
+
+  .video-desc {
+    background: var(--bg-secondary);
+  }
+
+  .video-stats {
+    background: var(--bg-secondary);
+  }
+
+  .video-meta {
+    background: var(--bg-secondary);
+  }
+
+  .bv-tag {
+    background: var(--bg-card);
+  }
+
+  :deep(.el-dialog__header) {
+    background: var(--primary-color);
+  }
 }
 
 /* 响应式优化 */

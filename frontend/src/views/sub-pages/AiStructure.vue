@@ -19,5 +19,6 @@
 .card-header {
   font-size: 18px;
   font-weight: bold;
+  color: var(--text-primary);
 }
 </style> 

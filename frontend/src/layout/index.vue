@@ -19,14 +19,22 @@ import AppMain from './components/AppMain.vue';
   padding: 0%;
 }
 .layout-container-demo {
-  
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  background: var(--bg-secondary);
 }
 .content-wrapper {
   flex-direction: column;
+  background: var(--bg-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+  .layout-container-demo,
+  .content-wrapper {
+    background: var(--bg-secondary);
+  }
 }
 </style> 

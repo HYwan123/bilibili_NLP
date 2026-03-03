@@ -82,7 +82,7 @@
           </div>
           <div v-if="analysisResult.analysis" style="margin-top: 15px;">
             <h4>分析内容:</h4>
-            <div style="white-space: pre-line; line-height: 1.6; max-height: 400px; overflow-y: auto; background: #f5f7fa; padding: 15px; border-radius: 4px;">
+            <div style="white-space: pre-line; line-height: 1.6; max-height: 400px; overflow-y: auto; background: var(--bg-secondary); padding: 15px; border-radius: 4px;">
               {{ analysisResult.analysis }}
             </div>
           </div>
@@ -266,18 +266,18 @@ onMounted(() => {
 }
 
 .no-data {
-  color: #909399;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
 h2 {
   margin-bottom: 20px;
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 h3 {
   margin-bottom: 15px;
-  color: #374151;
+  color: var(--text-primary);
   font-weight: 600;
 }
 </style>

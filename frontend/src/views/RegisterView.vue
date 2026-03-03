@@ -177,11 +177,11 @@ const cardClicked = () => {
 }
 .register-left {
   flex: 1;
-  background: linear-gradient(135deg, #fc5c7d, #6a82fb);
+  background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
   display: flex;
   justify-content: center;
   align-items: center;
-  color: white;
+  color: var(--text-inverse);
   text-align: center;
   padding: 40px;
 }
@@ -198,14 +198,15 @@ const cardClicked = () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #f5f7fa;
+  background-color: var(--bg-secondary);
 }
 .register-form-card {
   width: 70%;
   max-width: 450px;
   border: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  border-radius: 12px;
+  background: var(--bg-card);
 }
 .card-header {
   text-align: center;
@@ -215,5 +216,17 @@ const cardClicked = () => {
 .login-link {
   margin-top: 15px;
   text-align: center;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .register-form-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+  }
+
+  .card-header {
+    color: var(--text-primary);
+  }
 }
 </style>

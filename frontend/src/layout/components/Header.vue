@@ -41,26 +41,24 @@ const logout = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(90deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
-  border-bottom: 2px solid rgba(6, 95, 70, 0.2);
-  box-shadow: var(--shadow-sm);
-  height: 60px;
-  padding: 0 20px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--separator-color);
+  height: 56px;
+  padding: 0 24px;
 }
 
 .collapse-icon {
-  font-size: 24px;
+  font-size: 20px;
   cursor: pointer;
-  color: var(--primary-color);
-  transition: all 0.3s ease;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
   padding: 8px;
-  border-radius: var(--radius-md);
+  border-radius: 8px;
 }
 
 .collapse-icon:hover {
-  background: rgba(6, 95, 70, 0.1);
-  color: var(--primary-light);
-  transform: scale(1.05);
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .header-right {
@@ -71,17 +69,17 @@ const logout = () => {
 .el-dropdown-link {
   display: flex;
   align-items: center;
-  gap: 4px;
-  color: var(--primary-color);
+  gap: 6px;
+  color: var(--text-primary);
   font-weight: 500;
+  font-size: 14px;
   cursor: pointer;
   padding: 8px 12px;
-  border-radius: var(--radius-md);
-  transition: all 0.3s ease;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .el-dropdown-link:hover {
-  background: rgba(6, 95, 70, 0.1);
-  color: var(--primary-light);
+  background: var(--bg-hover);
 }
 </style> 

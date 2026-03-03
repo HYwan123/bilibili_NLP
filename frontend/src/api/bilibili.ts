@@ -252,3 +252,90 @@ export function chatWithAISimple(text: string) {
     params: { text }
   })
 }
+
+/**
+ * AI问答 - 流式输出模式
+ * @param messages 对话消息列表 [{role: 'user'|'assistant', content: string}]
+ * @param onMessage 流式消息回调函数
+ * @param model 模型名称，默认 kimi-k2
+ * @param systemPrompt 系统提示词
+ */
+export async function chatWithAIStream(
+  messages: Array<{role: string, content: string}>,
+  onMessage: (content: string, done: boolean) => void,
+  model?: string,
+  systemPrompt?: string
+) {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || ''
+  const token = localStorage.getItem('token')
+  
+  const response = await fetch(`${baseURL}/api/chat/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    },
+    body: JSON.stringify({ messages, model, system_prompt: systemPrompt })
+  })
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`)
+  }
+
+  const reader = response.body?.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+
+  if (!reader) {
+    throw new Error('无法获取响应流')
+  }
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      
+      if (done) {
+        onMessage('', true)
+        break
+      }
+
+      buffer += decoder.decode(value, { stream: true })
+      
+      // SSE格式: data: {...}\n\n 每个消息以两个换行符结束
+      const messages = buffer.split('\n\n')
+      // 最后一个可能不完整，保留到下次处理
+      buffer = messages.pop() || ''
+      
+      for (const message of messages) {
+        // 每个消息可能包含多行，以\n分隔
+        const lines = message.split('\n')
+        
+        for (const line of lines) {
+          const trimmedLine = line.trim()
+          // 处理 "data:..." 或 "data: ..." 两种情况
+          if (!trimmedLine.startsWith('data:')) continue
+          
+          const data = trimmedLine.slice(5).trim()
+          console.log('SSE data received:', data)
+          
+          if (data === '[DONE]') {
+            onMessage('', true)
+            return
+          }
+          
+          try {
+            const parsed = JSON.parse(data)
+            console.log('Parsed:', parsed)
+            if (parsed.content !== undefined && parsed.content !== null && parsed.content !== '') {
+              onMessage(parsed.content, false)
+            }
+          } catch (e) {
+            console.error('JSON parse error:', e, 'Raw:', data)
+          }
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock()
+  }
+}

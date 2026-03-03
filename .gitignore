@@ -24,7 +24,7 @@ MANIFEST
 # Virtual Environment
 backend/.venv
 python3.12_env/
-venv/
+.venv/
 env/
 ENV/
 env.bak/

@@ -2,38 +2,56 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 现代化主题色彩变量 */
+/* Apple Design 主题色彩变量 */
 :root {
-  --color-primary: 6 95 70;
-  --color-primary-light: 4 120 87;
-  --color-secondary: 16 185 129;
-  --primary-color: #065f46;
-  --primary-light: #047857;
-  --secondary-color: #10b981;
-  --success-color: #4ade80;
-  --warning-color: #fbbf24;
-  --error-color: #ef4444;
-  --info-color: #06b6d4;
+  /* Apple 主色调 - 蓝色 */
+  --color-primary: 0 122 255;
+  --color-primary-light: 10 132 255;
+  --color-primary-dark: 0 102 204;
+  --primary-color: #007AFF;
+  --primary-light: #0A84FF;
+  --primary-dark: #0051D5;
+  --secondary-color: #5E5CE6;
   
-  --bg-primary: #ffffff;
-  --bg-secondary: #f0fdf4;
-  --bg-dark: #134e4a;
-  --bg-card: #ffffff;
+  /* Apple 系统颜色 */
+  --success-color: #34C759;
+  --warning-color: #FF9500;
+  --error-color: #FF3B30;
+  --info-color: #007AFF;
   
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-light: #9ca3af;
+  /* Apple 背景色 */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F5F7;
+  --bg-tertiary: #E8E8ED;
+  --bg-dark: #1D1D1F;
+  --bg-card: #FFFFFF;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-pressed: rgba(0, 0, 0, 0.08);
   
-  --border-color: rgba(6, 95, 70, 0.1);
-  --shadow-sm: 0 1px 2px rgba(6, 95, 70, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(6, 95, 70, 0.06), 0 2px 4px -2px rgba(6, 95, 70, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(6, 95, 70, 0.08), 0 4px 6px -4px rgba(6, 95, 70, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(6, 95, 70, 0.1), 0 8px 10px -6px rgba(6, 95, 70, 0.04);
+  /* Apple 文字色 */
+  --text-primary: #1D1D1F;
+  --text-secondary: #86868B;
+  --text-tertiary: #A1A1A6;
+  --text-light: #C7C7CC;
+  --text-inverse: #FFFFFF;
   
+  /* Apple 边框和分割线 */
+  --border-color: rgba(0, 0, 0, 0.1);
+  --border-light: rgba(0, 0, 0, 0.06);
+  --separator-color: #D2D2D7;
+  
+  /* Apple 风格阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.04);
+  
+  /* Apple 圆角 */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+  --radius-full: 20px;
 }
 
 /* 全局样式重置 */
@@ -44,93 +62,106 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0fdf4 100%);
-  background-attachment: fixed;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  background: var(--bg-secondary);
   color: var(--text-primary);
-  line-height: 1.6;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
-/* 渐变背景 */
+/* Apple 风格渐变背景 */
 .gradient-bg {
-  background: linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%);
+  background: linear-gradient(180deg, #007AFF 0%, #0051D5 100%);
 }
 
 .gradient-card {
-  background: linear-gradient(135deg, rgba(6, 95, 70, 0.08) 0%, rgba(4, 120, 87, 0.08) 100%);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(6, 95, 70, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
 }
 
-/* 现代化卡片样式 */
+/* Apple 风格卡片样式 */
 .modern-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 6px -1px rgba(6, 95, 70, 0.06), 0 2px 4px -2px rgba(6, 95, 70, 0.04);
+  box-shadow: var(--shadow-md);
   border: none;
-  transition: all 0.3s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modern-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 25px -5px rgba(6, 95, 70, 0.1), 0 8px 10px -6px rgba(6, 95, 70, 0.04);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
 }
 
-/* 数据展示卡片 */
+/* 数据展示卡片 - Apple 风格 */
 .stat-card {
-  background: linear-gradient(135deg, #065f46 0%, #047857 50%, #059669 100%);
-  color: white;
+  background: var(--bg-card);
+  color: var(--text-primary);
   border-radius: var(--radius-lg);
   padding: 24px;
   text-align: center;
-  box-shadow: var(--shadow-lg);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 25px -5px rgba(6, 95, 70, 0.15), 0 8px 10px -6px rgba(6, 95, 70, 0.1);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
-/* 按钮样式优化 */
+/* Apple 风格按钮 */
 .modern-button {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+  background: var(--primary-color);
   border: none;
   border-radius: var(--radius-md);
   padding: 12px 24px;
   color: white;
-  font-weight: 600;
+  font-weight: 500;
+  font-size: 15px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  box-shadow: none;
 }
 
 .modern-button:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
+  background: var(--primary-light);
+  transform: translateY(-1px);
 }
 
-/* 输入框样式 */
+.modern-button:active {
+  transform: translateY(0);
+  background: var(--primary-dark);
+}
+
+/* Apple 风格输入框 */
 .modern-input {
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--separator-color);
   border-radius: var(--radius-md);
   padding: 12px 16px;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  font-size: 15px;
+  transition: all 0.2s ease;
   background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .modern-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.15);
   outline: none;
 }
 
-/* Loading 动画 */
+.modern-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Apple 风格 Loading 动画 */
 .loading-shimmer {
-  background: linear-gradient(90deg, rgba(6, 95, 70, 0.05) 25%, rgba(6, 95, 70, 0.1) 50%, rgba(6, 95, 70, 0.05) 75%);
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.03) 25%, rgba(0, 0, 0, 0.06) 50%, rgba(0, 0, 0, 0.03) 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
@@ -238,9 +269,9 @@ body {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
-/* 文本工具类 */
+/* Apple 风格文本工具类 */
 .text-gradient {
-  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -279,123 +310,747 @@ body {
 .pr-4 { padding-right: 1rem; }
 .p-4 { padding: 1rem; }
 
-/* Element Plus 主题覆盖 */
+/* Element Plus Apple 风格主题覆盖 */
 .el-card {
   border-radius: var(--radius-lg) !important;
-  box-shadow: 0 1px 3px rgba(6, 95, 70, 0.06) !important;
+  box-shadow: var(--shadow-sm) !important;
   border: none !important;
+  background: var(--bg-card) !important;
 }
 
 .el-card:hover {
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.1) !important;
+  box-shadow: var(--shadow-md) !important;
 }
 
+/* 主要按钮 - Apple 蓝色 */
 .el-button--primary {
-  background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+  background: var(--primary-color) !important;
   border: none !important;
-  box-shadow: 0 2px 4px rgba(6, 95, 70, 0.2) !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
 }
 
 .el-button--primary:hover {
-  background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3) !important;
+  background: var(--primary-light) !important;
+  transform: translateY(-1px);
 }
 
+.el-button--primary:active {
+  background: var(--primary-dark) !important;
+  transform: translateY(0);
+}
+
+/* 菜单样式 */
 .el-menu {
   background: var(--bg-dark) !important;
+  border-right: none !important;
 }
 
+/* 进度条 */
 .el-progress-bar__outer {
-  background: rgba(6, 95, 70, 0.1) !important;
+  background: var(--bg-tertiary) !important;
 }
 
 .el-progress-bar__inner {
-  background: linear-gradient(135deg, #065f46 0%, #047857 100%) !important;
+  background: var(--primary-color) !important;
 }
 
-/* Element Plus 消息通知样式 - 绿色主题 */
+/* Element Plus 消息通知样式 - Apple 风格 */
 .el-message {
-  border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  padding: 12px 20px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+  padding: 14px 20px !important;
   min-width: 280px !important;
   max-width: 400px !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
 }
 
 .el-message--success {
-  background: #f0fdf4 !important;
-  border: 1px solid #86efac !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-left: 4px solid var(--success-color) !important;
 }
 
 .el-message--success .el-message__icon {
-  color: #10b981 !important;
+  color: var(--success-color) !important;
   font-size: 18px !important;
 }
 
 .el-message--error {
-  background: #fef2f2 !important;
-  border: 1px solid #fecaca !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-left: 4px solid var(--error-color) !important;
 }
 
 .el-message--error .el-message__icon {
-  color: #ef4444 !important;
+  color: var(--error-color) !important;
   font-size: 18px !important;
 }
 
 .el-message--warning {
-  background: #fffbeb !important;
-  border: 1px solid #fed7aa !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-left: 4px solid var(--warning-color) !important;
 }
 
 .el-message--warning .el-message__icon {
-  color: #f97316 !important;
+  color: var(--warning-color) !important;
   font-size: 18px !important;
 }
 
 .el-message--info {
-  background: #f0f9ff !important;
-  border: 1px solid #bae6fd !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-left: 4px solid var(--info-color) !important;
 }
 
 .el-message--info .el-message__icon {
-  color: #0ea5e9 !important;
+  color: var(--info-color) !important;
   font-size: 18px !important;
 }
 
 .el-message__content {
   font-size: 14px !important;
-  font-weight: 500 !important;
-  color: #374151 !important;
+  font-weight: 400 !important;
+  color: var(--text-primary) !important;
 }
 
 .el-message .el-message__closeBtn {
-  color: #9ca3af !important;
+  color: var(--text-secondary) !important;
   font-size: 16px !important;
   width: 24px !important;
   height: 24px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border-radius: 4px !important;
+  border-radius: 6px !important;
   transition: all 0.2s ease !important;
 }
 
 .el-message .el-message__closeBtn:hover {
-  color: #6b7280 !important;
-  background: rgba(0, 0, 0, 0.05) !important;
+  color: var(--text-primary) !important;
+  background: var(--bg-hover) !important;
 }
 
-/* 深色模式支持 */
+/* Apple 深色模式支持 */
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-primary: #064e3b;
-    --bg-secondary: #065f46;
-    --bg-card: #047857;
-    --bg-dark: #134e4a;
-    --text-primary: #f0fdf4;
-    --text-secondary: #a7f3d0;
-    --text-light: #6ee7b7;
-    --border-color: rgba(6, 95, 70, 0.3);
+    --primary-color: #0A84FF;
+    --primary-light: #409CFF;
+    --primary-dark: #0051D5;
+    
+    --bg-primary: #000000;
+    --bg-secondary: #1C1C1E;
+    --bg-tertiary: #2C2C2E;
+    --bg-dark: #1C1C1E;
+    --bg-card: #1C1C1E;
+    --bg-hover: rgba(255, 255, 255, 0.1);
+    --bg-pressed: rgba(255, 255, 255, 0.15);
+    
+    --text-primary: #FFFFFF;
+    --text-secondary: #98989D;
+    --text-tertiary: #6C6C70;
+    --text-light: #48484A;
+    --text-inverse: #000000;
+    
+    --border-color: rgba(255, 255, 255, 0.15);
+    --border-light: rgba(255, 255, 255, 0.1);
+    --separator-color: #38383A;
+    
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.35);
+    --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  /* 全局背景色 */
+  html, body {
+    background: var(--bg-secondary) !important;
+  }
+
+  /* Element Plus 全局覆盖 */
+  .el-container {
+    background: var(--bg-secondary) !important;
+  }
+
+  .el-main {
+    background: var(--bg-secondary) !important;
+  }
+
+  .el-aside {
+    background: var(--bg-secondary) !important;
+  }
+
+  /* Element Plus 组件深色模式覆盖 */
+  .el-card {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  .el-input__wrapper {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-light) !important;
+    box-shadow: 0 0 0 1px var(--border-light) inset !important;
+  }
+
+  .el-input__wrapper:hover {
+    box-shadow: 0 0 0 1px var(--primary-color) inset !important;
+  }
+
+  .el-input__inner {
+    color: var(--text-primary) !important;
+  }
+
+  .el-input__inner::placeholder {
+    color: var(--text-tertiary) !important;
+  }
+
+  /* Select 选择器深色模式 */
+  .el-select__wrapper {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-light) !important;
+    box-shadow: 0 0 0 1px var(--border-light) inset !important;
+  }
+
+  .el-select__wrapper:hover {
+    box-shadow: 0 0 0 1px var(--primary-color) inset !important;
+  }
+
+  .el-select__wrapper.is-focused {
+    box-shadow: 0 0 0 1px var(--primary-color) inset !important;
+  }
+
+  .el-select .el-input__wrapper {
+    background: var(--bg-secondary) !important;
+    box-shadow: 0 0 0 1px var(--border-light) inset !important;
+  }
+
+  .el-select .el-input__inner {
+    color: var(--text-primary) !important;
+  }
+
+  .el-select__selection {
+    color: var(--text-primary) !important;
+  }
+
+  .el-select__placeholder {
+    color: var(--text-tertiary) !important;
+  }
+
+  .el-select__caret {
+    color: var(--text-secondary) !important;
+  }
+
+  .el-select__suffix {
+    color: var(--text-secondary) !important;
+  }
+
+  /* 输入框组附加区域深色模式 */
+  .el-input-group__append,
+  .el-input-group__prepend {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-input-group__append .el-button,
+  .el-input-group__prepend .el-button {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-input-group__append .el-button:hover,
+  .el-input-group__prepend .el-button:hover {
+    color: var(--primary-color) !important;
+  }
+
+  /* 下拉菜单深色模式 */
+  .el-select-dropdown {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  .el-select-dropdown__item {
+    color: var(--text-primary) !important;
+  }
+
+  .el-select-dropdown__item:hover,
+  .el-select-dropdown__item.hover {
+    background: var(--bg-hover) !important;
+  }
+
+  /* 表格深色模式 */
+  .el-table {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-table th,
+  .el-table tr {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-table th.is-leaf {
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+
+  .el-table td {
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+
+  .el-table--striped .el-table__body tr.el-table__row--striped td {
+    background: var(--bg-secondary) !important;
+  }
+
+  .el-table--enable-row-hover .el-table__body tr:hover > td {
+    background: var(--bg-hover) !important;
+  }
+
+  /* 弹窗深色模式 */
+  .el-dialog {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  .el-dialog__title {
+    color: var(--text-primary) !important;
+  }
+
+  .el-dialog__header {
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+
+  .el-dialog__body {
+    color: var(--text-primary) !important;
+  }
+
+  /* 下拉菜单深色模式 */
+  .el-dropdown-menu {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  .el-dropdown-menu__item {
+    color: var(--text-primary) !important;
+  }
+
+  .el-dropdown-menu__item:hover {
+    background: var(--bg-hover) !important;
+    color: var(--primary-color) !important;
+  }
+
+  /* 按钮深色模式适配 */
+  .el-button--default {
+    background: var(--bg-secondary) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-button--default:hover {
+    background: var(--bg-hover) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
+  }
+
+  /* 标签深色模式 */
+  .el-tag--info {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-secondary) !important;
+  }
+
+  /* Alert 深色模式 */
+  .el-alert {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  .el-alert__title,
+  .el-alert__description {
+    color: var(--text-primary) !important;
+  }
+
+  .el-alert--info {
+    background: rgba(10, 132, 255, 0.15) !important;
+    border-color: rgba(10, 132, 255, 0.3) !important;
+  }
+
+  .el-alert--success {
+    background: rgba(48, 209, 88, 0.15) !important;
+    border-color: rgba(48, 209, 88, 0.3) !important;
+  }
+
+  .el-alert--warning {
+    background: rgba(255, 159, 10, 0.15) !important;
+    border-color: rgba(255, 159, 10, 0.3) !important;
+  }
+
+  .el-alert--error {
+    background: rgba(255, 69, 58, 0.15) !important;
+    border-color: rgba(255, 69, 58, 0.3) !important;
+  }
+
+  /* Message 消息通知深色模式 */
+  .el-message {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .el-message__content {
+    color: var(--text-primary) !important;
+  }
+
+  .el-message--success {
+    background: rgba(48, 209, 88, 0.15) !important;
+    border-color: rgba(48, 209, 88, 0.3) !important;
+  }
+
+  .el-message--warning {
+    background: rgba(255, 159, 10, 0.15) !important;
+    border-color: rgba(255, 159, 10, 0.3) !important;
+  }
+
+  .el-message--error {
+    background: rgba(255, 69, 58, 0.15) !important;
+    border-color: rgba(255, 69, 58, 0.3) !important;
+  }
+
+  .el-message--info {
+    background: rgba(10, 132, 255, 0.15) !important;
+    border-color: rgba(10, 132, 255, 0.3) !important;
+  }
+
+  /* 标签深色模式 */
+  .el-tag {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-tag--info {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-light) !important;
+    color: var(--text-secondary) !important;
+  }
+
+  .el-tag--success {
+    background: rgba(48, 209, 88, 0.2) !important;
+    border-color: rgba(48, 209, 88, 0.4) !important;
+    color: #30D158 !important;
+  }
+
+  .el-tag--warning {
+    background: rgba(255, 159, 10, 0.2) !important;
+    border-color: rgba(255, 159, 10, 0.4) !important;
+    color: #FF9F0A !important;
+  }
+
+  .el-tag--danger {
+    background: rgba(255, 69, 58, 0.2) !important;
+    border-color: rgba(255, 69, 58, 0.4) !important;
+    color: #FF453A !important;
+  }
+
+  /* 表单深色模式 */
+  .el-form-item__label {
+    color: var(--text-primary) !important;
+  }
+
+  /* 折叠面板深色模式 */
+  .el-collapse {
+    border-color: var(--border-light) !important;
+  }
+
+  .el-collapse-item__header {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border-bottom-color: var(--border-light) !important;
+  }
+
+  .el-collapse-item__wrap {
+    background: var(--bg-card) !important;
+  }
+
+  .el-collapse-item__content {
+    color: var(--text-primary) !important;
+  }
+
+  /* 步骤条深色模式 */
+  .el-step__title {
+    color: var(--text-primary) !important;
+  }
+
+  .el-step__description {
+    color: var(--text-secondary) !important;
+  }
+
+  /* 简单步骤条深色模式 */
+  .el-steps--simple {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  .el-step.is-simple .el-step__title {
+    color: var(--text-primary) !important;
+  }
+
+  .el-step.is-simple .el-step__arrow {
+    border-color: var(--border-light) !important;
+  }
+
+  .el-step.is-simple .el-step__icon {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-light) !important;
+  }
+
+  .el-step.is-simple .el-step__icon-inner {
+    color: var(--text-secondary) !important;
+  }
+
+  .el-step.is-simple.is-active .el-step__icon {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+  }
+
+  .el-step.is-simple.is-active .el-step__icon-inner {
+    color: var(--text-inverse) !important;
+  }
+
+  .el-step.is-simple.is-finish .el-step__icon {
+    background: var(--success-color) !important;
+    border-color: var(--success-color) !important;
+  }
+
+  .el-step.is-simple.is-finish .el-step__icon-inner {
+    color: var(--text-inverse) !important;
+  }
+
+  .el-step.is-simple.is-process .el-step__icon {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+  }
+
+  .el-step.is-simple.is-process .el-step__icon-inner {
+    color: var(--text-inverse) !important;
+  }
+
+  .el-step.is-simple.is-wait .el-step__icon {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-light) !important;
+  }
+
+  .el-step.is-simple.is-wait .el-step__icon-inner {
+    color: var(--text-tertiary) !important;
+  }
+
+  /* 分页深色模式 */
+  .el-pagination {
+    color: var(--text-primary) !important;
+  }
+
+  .el-pagination button {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-pagination .el-pager li {
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-pagination .el-pager li.active {
+    background: var(--primary-color) !important;
+    color: var(--text-inverse) !important;
+  }
+
+  /* 滚动条深色模式 */
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2) !important;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.35) !important;
+  }
+
+  /* Firefox 滚动条 */
+  * {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent !important;
+  }
+
+  /* 代码和预格式化文本 */
+  code, pre {
+    background: var(--bg-tertiary) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  /* 分割线 */
+  hr {
+    border-color: var(--border-light) !important;
+  }
+
+  /* 图片在深色模式下降低亮度 */
+  img {
+    opacity: 0.9;
+  }
+
+  /* 禁用状态 */
+  .is-disabled {
+    opacity: 0.5 !important;
+  }
+
+  /* Element Plus 卡片头部深色模式 */
+  .el-card__header {
+    border-bottom: 1px solid var(--border-light) !important;
+  }
+
+  /* 确保所有卡片内容区域正确 */
+  .el-card__body {
+    background: var(--bg-card) !important;
+  }
+
+  /* Tooltip 深色模式 */
+  .el-tooltip__popper {
+    background: var(--bg-tertiary) !important;
+    border: 1px solid var(--border-light) !important;
+    color: var(--text-primary) !important;
+  }
+
+  /* Loading 遮罩深色模式 */
+  .el-loading-mask {
+    background: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  /* 空状态深色模式 */
+  .el-empty__description {
+    color: var(--text-secondary) !important;
+  }
+
+  /* 描述列表深色模式 */
+  .el-descriptions {
+    background: var(--bg-card) !important;
+  }
+
+  .el-descriptions__body {
+    background: var(--bg-card) !important;
+  }
+
+  .el-descriptions-item__label {
+    background: var(--bg-secondary) !important;
+    color: var(--text-secondary) !important;
+  }
+
+  .el-descriptions-item__content {
+    color: var(--text-primary) !important;
+  }
+
+  /* 时间线深色模式 */
+  .el-timeline-item__node {
+    background: var(--bg-tertiary) !important;
+  }
+
+  .el-timeline-item__tail {
+    border-left-color: var(--border-light) !important;
+  }
+
+  .el-timeline-item__content {
+    color: var(--text-primary) !important;
+  }
+
+  /* 骨架屏深色模式 */
+  .el-skeleton__item {
+    background: var(--bg-tertiary) !important;
+  }
+
+  /* 面包屑深色模式 */
+  .el-breadcrumb__item {
+    color: var(--text-secondary) !important;
+  }
+
+  .el-breadcrumb__inner {
+    color: var(--text-secondary) !important;
+  }
+
+  .el-breadcrumb__inner.is-link {
+    color: var(--primary-color) !important;
+  }
+
+  /* 进度条深色模式 */
+  .el-progress-bar__outer {
+    background: var(--bg-tertiary) !important;
+  }
+
+  /* 树形控件深色模式 */
+  .el-tree {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+  }
+
+  .el-tree-node__content:hover {
+    background: var(--bg-hover) !important;
+  }
+
+  /* 上传组件深色模式 */
+  .el-upload-dragger {
+    background: var(--bg-secondary) !important;
+    border: 1px dashed var(--border-light) !important;
+  }
+
+  .el-upload-dragger:hover {
+    border-color: var(--primary-color) !important;
+  }
+
+  /* 复选框深色模式 */
+  .el-checkbox__input.is-checked .el-checkbox__inner {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+  }
+
+  /* 单选框深色模式 */
+  .el-radio__input.is-checked .el-radio__inner {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+  }
+
+  /* 开关深色模式 */
+  .el-switch__core {
+    background: var(--bg-tertiary) !important;
+    border-color: var(--border-light) !important;
+  }
+
+  /* 滑块深色模式 */
+  .el-slider__runway {
+    background: var(--bg-tertiary) !important;
+  }
+
+  /* 日期选择器深色模式 */
+  .el-date-picker {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  .el-date-table th {
+    color: var(--text-secondary) !important;
+  }
+
+  .el-date-table td.available:hover {
+    color: var(--primary-color) !important;
+  }
+
+  .el-date-table td.current:not(.disabled) {
+    background: var(--primary-color) !important;
+    color: var(--text-inverse) !important;
+  }
+
+  /* 走马灯深色模式 */
+  .el-carousel__indicator--horizontal .el-carousel__button {
+    background: var(--bg-tertiary) !important;
+  }
+
+  .el-carousel__indicator--horizontal.is-active .el-carousel__button {
+    background: var(--primary-color) !important;
   }
 }
 

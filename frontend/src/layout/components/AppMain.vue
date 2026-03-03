@@ -9,10 +9,16 @@
 
 <style scoped>
 .main-content {
-  background-color: #f0f2f5;
+  background-color: var(--bg-secondary);
   padding: 20px;
   /* 确保主内容区可以滚动 */
   overflow-y: auto;
   height: calc(100vh - 60px); /* 减去 Header 的高度 */
+}
+
+@media (prefers-color-scheme: dark) {
+  .main-content {
+    background-color: var(--bg-secondary);
+  }
 }
 </style> 

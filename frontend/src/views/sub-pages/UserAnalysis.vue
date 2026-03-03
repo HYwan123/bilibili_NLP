@@ -621,7 +621,7 @@ onMounted(() => {
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0fdf4 100%);
+  background: var(--bg-secondary);
   min-height: 100vh;
 }
 
@@ -635,10 +635,7 @@ onMounted(() => {
   font-size: 32px;
   font-weight: 700;
   margin: 0 0 8px 0;
-  background: linear-gradient(135deg, #065f46, #047857);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -651,17 +648,23 @@ onMounted(() => {
 
 .page-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
 /* 步骤引导 */
 .steps-section {
   margin-bottom: 32px;
-  background: white;
+  background: var(--bg-card);
   padding: 24px 32px;
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.steps-section :deep(.el-steps--simple) {
+  background: transparent !important;
+  border: none !important;
 }
 
 /* API配置 */
@@ -677,7 +680,7 @@ onMounted(() => {
 }
 
 .collapse-title .el-icon {
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .api-form {
@@ -704,11 +707,11 @@ onMounted(() => {
 .header-title {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .help-icon {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: help;
 }
 
@@ -765,7 +768,7 @@ onMounted(() => {
 
 .quick-label {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .sample-tag {
@@ -774,7 +777,7 @@ onMounted(() => {
 }
 
 .sample-tag:hover {
-  background: #065f46;
+  background: var(--primary-color);
   color: white;
 }
 
@@ -800,7 +803,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .preview-actions {
@@ -835,7 +838,7 @@ onMounted(() => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   display: flex;
   align-items: center;
@@ -848,23 +851,24 @@ onMounted(() => {
 .marker-line {
   width: 2px;
   flex: 1;
-  background: linear-gradient(180deg, rgba(6, 95, 70, 0.3), transparent);
+  background: linear-gradient(180deg, var(--primary-color), transparent);
+  opacity: 0.3;
   margin-top: 4px;
   min-height: 20px;
 }
 
 .comment-box {
   flex: 1;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 12px 16px;
-  border-left: 3px solid #065f46;
+  border-left: 3px solid var(--primary-color);
 }
 
 .comment-text {
   font-size: 14px;
   line-height: 1.6;
-  color: #374151;
+  color: var(--text-primary);
   word-break: break-all;
 }
 
@@ -872,16 +876,16 @@ onMounted(() => {
   text-align: center;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--separator-color);
 }
 
 /* AI分析按钮 */
 .analyze-action {
   text-align: center;
   padding: 32px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .analyze-btn {
@@ -897,7 +901,7 @@ onMounted(() => {
 
 .config-hint {
   margin-top: 12px;
-  color: #f59e0b;
+  color: var(--warning-color);
   font-size: 13px;
   display: flex;
   align-items: center;
@@ -921,7 +925,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   padding: 16px 24px;
   border-radius: 12px;
@@ -955,7 +959,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .result-content {
@@ -979,7 +983,7 @@ onMounted(() => {
 .markdown-body :deep(h1),
 .markdown-body :deep(h2),
 .markdown-body :deep(h3) {
-  color: #065f46;
+  color: var(--primary-color);
   margin-top: 20px;
   margin-bottom: 12px;
 }
@@ -989,7 +993,7 @@ onMounted(() => {
 }
 
 .markdown-body :deep(strong) {
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .mindmap-view {
@@ -998,7 +1002,7 @@ onMounted(() => {
 }
 
 .mindmap-container {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 16px;
 }
@@ -1014,8 +1018,8 @@ onMounted(() => {
   justify-content: center;
   gap: 6px;
   padding: 12px;
-  background: #f0fdf4;
-  color: #065f46;
+  background: var(--bg-secondary);
+  color: var(--primary-color);
   font-size: 13px;
   border-radius: 0 0 8px 8px;
 }
@@ -1053,6 +1057,29 @@ onMounted(() => {
 .fade-up-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .steps-section {
+    background: var(--bg-card);
+  }
+
+  .comment-box {
+    background: var(--bg-secondary);
+  }
+
+  .analyze-action {
+    background: var(--bg-card);
+  }
+
+  .mindmap-container {
+    background: var(--bg-secondary);
+  }
+
+  .mindmap-hint {
+    background: var(--bg-secondary);
+  }
 }
 
 /* 响应式 */

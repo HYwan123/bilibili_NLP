@@ -57,6 +57,8 @@
                   <span></span>
                 </div>
                 <div v-else class="message-text" v-html="formatMessage(message.content)"></div>
+                <!-- 流式输出光标 -->
+                <span v-if="message.isStreaming" class="streaming-cursor">▊</span>
               </div>
               <div class="message-time">{{ formatTime(message.timestamp) }}</div>
             </div>
@@ -66,7 +68,44 @@
 
       <!-- 输入区域 -->
       <div class="input-section">
+        <!-- 系统提示词设置 -->
+        <div class="system-prompt-section" v-if="showSystemPrompt">
+          <div class="system-prompt-header">
+            <el-icon><Setting /></el-icon>
+            <span>系统提示词</span>
+            <el-button type="primary" link size="small" @click="saveSystemPrompt">保存</el-button>
+          </div>
+          <el-input
+            v-model="systemPrompt"
+            type="textarea"
+            :rows="2"
+            placeholder="设置AI助手的系统提示词，用于定义AI的角色和行为..."
+            resize="none"
+          />
+        </div>
+        
         <div class="input-wrapper">
+          <div class="input-toolbar">
+            <el-button 
+              type="primary" 
+              link 
+              size="small" 
+              @click="showSystemPrompt = !showSystemPrompt"
+            >
+              <el-icon><Setting /></el-icon>
+              {{ showSystemPrompt ? '收起设置' : '系统提示词' }}
+            </el-button>
+            <el-button 
+              type="danger" 
+              link 
+              size="small" 
+              @click="clearMessages"
+              v-if="messages.length > 0"
+            >
+              <el-icon><Delete /></el-icon>
+              清空对话
+            </el-button>
+          </div>
           <el-input
             v-model="inputMessage"
             type="textarea"
@@ -100,6 +139,7 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import MarkdownIt from 'markdown-it'
 import { 
   ChatDotRound, 
   ChatLineRound, 
@@ -107,9 +147,18 @@ import {
   Cpu, 
   Promotion, 
   ArrowRight,
-  InfoFilled
+  InfoFilled,
+  Setting,
+  Delete
 } from '@element-plus/icons-vue'
-import { chatWithAI } from '@/api/bilibili'
+import { chatWithAIStream } from '@/api/bilibili'
+
+// 初始化 markdown-it
+const md = new MarkdownIt({
+  html: false, // 禁用HTML标签，防止XSS
+  breaks: true, // 转换换行符为<br>
+  linkify: true // 自动转换URL为链接
+})
 
 // 消息类型定义
 interface Message {
@@ -117,6 +166,7 @@ interface Message {
   content: string
   timestamp: number
   isLoading?: boolean
+  isStreaming?: boolean
 }
 
 // 响应式数据
@@ -124,6 +174,8 @@ const messages = ref<Message[]>([])
 const inputMessage = ref('')
 const loading = ref(false)
 const messagesWrapper = ref<HTMLElement | null>(null)
+const showSystemPrompt = ref(false)
+const systemPrompt = ref('')
 
 // 快捷问题
 const quickQuestions = [
@@ -155,30 +207,10 @@ const formatTime = (timestamp: number) => {
   })
 }
 
-// 格式化消息内容（支持简单的换行和代码块）
+// 格式化消息内容（使用markdown-it渲染）
 const formatMessage = (content: string) => {
-  // 转义 HTML 特殊字符
-  let formatted = content
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-  
-  // 处理代码块
-  formatted = formatted.replace(
-    /```(\w+)?\n([\s\S]*?)```/g,
-    '<pre class="code-block"><code>$2</code></pre>'
-  )
-  
-  // 处理行内代码
-  formatted = formatted.replace(
-    /`([^`]+)`/g,
-    '<code class="inline-code">$1</code>'
-  )
-  
-  // 处理换行
-  formatted = formatted.replace(/\n/g, '<br>')
-  
-  return formatted
+  // 使用 markdown-it 渲染 markdown
+  return md.render(content)
 }
 
 // 滚动到底部
@@ -189,7 +221,19 @@ const scrollToBottom = async () => {
   }
 }
 
-// 发送消息
+// 保存系统提示词
+const saveSystemPrompt = () => {
+  ElMessage.success('系统提示词已保存')
+  showSystemPrompt.value = false
+}
+
+// 清空消息
+const clearMessages = () => {
+  messages.value = []
+  ElMessage.success('对话已清空')
+}
+
+// 发送消息（流式输出）
 const sendMessage = async () => {
   const message = inputMessage.value.trim()
   if (!message || loading.value) return
@@ -203,12 +247,13 @@ const sendMessage = async () => {
   messages.value.push(userMessage)
   inputMessage.value = ''
   
-  // 添加加载中的 AI 消息
+  // 添加流式输出的 AI 消息
   const aiMessage: Message = {
     role: 'assistant',
     content: '',
     timestamp: Date.now(),
-    isLoading: true
+    isLoading: false,
+    isStreaming: true
   }
   messages.value.push(aiMessage)
   
@@ -216,26 +261,35 @@ const sendMessage = async () => {
   await scrollToBottom()
 
   try {
-    // 调用 API
+    // 准备对话消息 - 只包含已完成的消息（排除当前正在流式输出的AI消息）
     const chatMessages = messages.value
-      .filter(m => !m.isLoading)
+      .filter(m => !m.isStreaming && !m.isLoading)
       .map(m => ({ role: m.role, content: m.content }))
     
-    const response: any = await chatWithAI(chatMessages)
-    
-    // 更新 AI 消息
+    // 获取当前AI消息引用
     const lastMessage = messages.value[messages.value.length - 1]
-    lastMessage.isLoading = false
     
-    if (response.code === 200 && response.data) {
-      lastMessage.content = response.data.content || '抱歉，我暂时无法回答这个问题。'
-    } else {
-      lastMessage.content = '抱歉，请求失败，请稍后重试。'
-    }
+    // 调用流式API
+    await chatWithAIStream(
+      chatMessages,
+      (content: string, done: boolean) => {
+        if (content) {
+          lastMessage.content += content
+        }
+        if (done) {
+          lastMessage.isStreaming = false
+        }
+        // 每次接收到内容都滚动到底部
+        scrollToBottom()
+      },
+      'kimi-k2',
+      systemPrompt.value || undefined
+    )
+    
   } catch (error) {
     // 更新错误消息
     const lastMessage = messages.value[messages.value.length - 1]
-    lastMessage.isLoading = false
+    lastMessage.isStreaming = false
     lastMessage.content = '抱歉，网络连接失败，请检查网络后重试。'
     ElMessage.error('发送消息失败，请稍后重试')
   } finally {
@@ -255,8 +309,8 @@ onMounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  background: var(--bg-light);
+  padding: 24px;
+  background: var(--bg-secondary);
 }
 
 .page-header {
@@ -264,33 +318,37 @@ onMounted(() => {
 }
 
 .page-title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 600;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin: 0 0 8px 0;
+  gap: 12px;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
 }
 
 .page-title .el-icon {
   color: var(--primary-color);
+  font-size: 28px;
 }
 
 .page-subtitle {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-secondary);
   margin: 0;
+  font-weight: 400;
 }
 
 .chat-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
+  border: 1px solid var(--border-light);
 }
 
 .messages-wrapper {
@@ -304,64 +362,66 @@ onMounted(() => {
   margin: 0 auto;
 }
 
-/* 欢迎区域 */
+/* 欢迎区域 - Apple 风格 */
 .welcome-section {
   text-align: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
 }
 
 .welcome-icon {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
-  border-radius: 50%;
+  width: 72px;
+  height: 72px;
+  background: var(--primary-color);
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 24px;
   color: white;
-  font-size: 36px;
+  font-size: 32px;
+  box-shadow: 0 8px 24px rgba(0, 122, 255, 0.25);
 }
 
 .welcome-title {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 600;
   color: var(--text-primary);
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.02em;
 }
 
 .welcome-desc {
-  font-size: 15px;
+  font-size: 16px;
   color: var(--text-secondary);
-  margin: 0 0 40px 0;
+  margin: 0 0 48px 0;
+  font-weight: 400;
 }
 
 .quick-questions {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-width: 500px;
+  gap: 10px;
+  max-width: 480px;
   margin: 0 auto;
 }
 
 .quick-question-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 14px 20px;
-  background: var(--bg-light);
-  border-radius: 12px;
+  gap: 12px;
+  padding: 14px 18px;
+  background: var(--bg-secondary);
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   text-align: left;
   border: 1px solid transparent;
 }
 
 .quick-question-item:hover {
-  background: white;
+  background: var(--bg-card);
   border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.1);
-  transform: translateX(4px);
+  box-shadow: var(--shadow-sm);
 }
 
 .quick-question-item .el-icon {
@@ -370,22 +430,23 @@ onMounted(() => {
 }
 
 .quick-question-item span {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary);
+  font-weight: 400;
 }
 
-/* 消息样式 */
+/* 消息样式 - Apple 风格 */
 .message-item {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
-  animation: fadeIn 0.3s ease;
+  margin-bottom: 20px;
+  animation: fadeIn 0.25s ease;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -402,52 +463,52 @@ onMounted(() => {
 }
 
 .avatar-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .avatar-icon.user {
-  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-  color: white;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
 }
 
 .avatar-icon.assistant {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+  background: var(--primary-color);
   color: white;
 }
 
 .message-content {
-  max-width: 70%;
+  max-width: 75%;
 }
 
 .message-bubble {
-  padding: 14px 18px;
-  border-radius: 18px;
-  font-size: 14px;
-  line-height: 1.6;
+  padding: 12px 16px;
+  border-radius: 16px;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
 .user-message .message-bubble {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+  background: var(--primary-color);
   color: white;
   border-bottom-right-radius: 4px;
 }
 
 .ai-message .message-bubble {
-  background: var(--bg-light);
+  background: var(--bg-secondary);
   color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
 
 .message-time {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
   text-align: right;
 }
 
@@ -487,11 +548,11 @@ onMounted(() => {
   }
 }
 
-/* 输入区域 */
+/* 输入区域 - Apple 风格 */
 .input-section {
   padding: 20px 24px;
-  background: white;
-  border-top: 1px solid #e5e7eb;
+  background: var(--bg-card);
+  border-top: 1px solid var(--separator-color);
 }
 
 .input-wrapper {
@@ -499,23 +560,91 @@ onMounted(() => {
   margin: 0 auto;
 }
 
+/* 系统提示词区域 */
+.system-prompt-section {
+  max-width: 900px;
+  margin: 0 auto 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.system-prompt-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.system-prompt-header .el-button {
+  margin-left: auto;
+}
+
+/* 输入工具栏 */
+.input-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+/* 流式输出光标 */
+.streaming-cursor {
+  display: inline-block;
+  animation: blink 1s infinite;
+  color: var(--primary-color);
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
 .input-wrapper :deep(.el-textarea__inner) {
   border-radius: 12px;
-  border-color: #e5e7eb;
-  padding: 12px 16px;
-  font-size: 14px;
+  border-color: var(--separator-color);
+  padding: 14px 18px;
+  font-size: 15px;
   resize: none;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .input-wrapper :deep(.el-textarea__inner:focus) {
   border-color: var(--primary-color);
+  box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
+}
+
+.input-wrapper :deep(.el-textarea__inner::placeholder) {
+  color: var(--text-tertiary);
 }
 
 .input-actions {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
+  margin-top: 14px;
 }
 
 .input-hint {
@@ -530,26 +659,133 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 代码块样式 */
+/* 代码块样式 - Apple 风格 */
 .message-text :deep(.code-block) {
-  background: #1e293b;
-  color: #e2e8f0;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   padding: 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow-x: auto;
   margin: 8px 0;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  border: 1px solid var(--border-light);
+}
+
+.message-text :deep(.inline-code) {
+  background: var(--bg-tertiary);
+  color: var(--primary-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
+  border: 1px solid var(--border-light);
+}
+
+/* Markdown 样式 */
+.message-text :deep(h1),
+.message-text :deep(h2),
+.message-text :deep(h3),
+.message-text :deep(h4),
+.message-text :deep(h5),
+.message-text :deep(h6) {
+  margin: 12px 0 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.message-text :deep(h1) { font-size: 1.3em; }
+.message-text :deep(h2) { font-size: 1.2em; }
+.message-text :deep(h3) { font-size: 1.1em; }
+.message-text :deep(h4), .message-text :deep(h5), .message-text :deep(h6) { font-size: 1em; }
+
+.message-text :deep(p) {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.message-text :deep(ul), .message-text :deep(ol) {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.message-text :deep(li) {
+  margin: 4px 0;
+}
+
+.message-text :deep(strong) {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.message-text :deep(em) {
+  font-style: italic;
+}
+
+.message-text :deep(a) {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+
+.message-text :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.message-text :deep(blockquote) {
+  border-left: 3px solid var(--primary-color);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--text-secondary);
+}
+
+.message-text :deep(pre) {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 8px 0;
+  overflow-x: auto;
+}
+
+.message-text :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  border: none;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   font-size: 13px;
   line-height: 1.5;
 }
 
-.message-text :deep(.inline-code) {
-  background: rgba(6, 95, 70, 0.1);
-  color: var(--primary-color);
+.message-text :deep(code) {
+  background: var(--bg-tertiary);
   padding: 2px 6px;
   border-radius: 4px;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
   font-size: 13px;
+  border: 1px solid var(--border-light);
+}
+
+.message-text :deep(hr) {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 12px 0;
+}
+
+.message-text :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+}
+
+.message-text :deep(th), .message-text :deep(td) {
+  border: 1px solid var(--border-light);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.message-text :deep(th) {
+  background: var(--bg-tertiary);
+  font-weight: 600;
 }
 
 /* 滚动条样式 */
@@ -562,12 +798,44 @@ onMounted(() => {
 }
 
 .messages-wrapper::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--border-light);
   border-radius: 3px;
 }
 
 .messages-wrapper::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.25);
+  background: var(--text-tertiary);
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .message-text :deep(.code-block) {
+    background: var(--bg-dark);
+    border-color: var(--border-light);
+  }
+
+  .message-text :deep(.inline-code) {
+    background: var(--bg-tertiary);
+    border-color: var(--border-light);
+  }
+
+  .user-message .message-bubble {
+    background: var(--primary-color);
+  }
+
+  .ai-message .message-bubble {
+    background: var(--bg-secondary);
+  }
+
+  .system-prompt-section {
+    background: var(--bg-secondary);
+    border-color: var(--border-light);
+  }
+
+  .input-wrapper :deep(.el-textarea__inner) {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--border-light);
+  }
 }
 
 /* 响应式适配 */

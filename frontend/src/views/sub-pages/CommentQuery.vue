@@ -201,17 +201,6 @@
               <!-- 操作按钮 -->
               <div class="qr-actions">
                 <el-button
-                  v-if="pollingStatus === 'pending'"
-                  type="primary"
-                  @click="startPolling"
-                  :loading="polling"
-                  size="large"
-                >
-                  <el-icon v-if="!polling"><Check /></el-icon>
-                  {{ polling ? '检查中...' : '我已扫码' }}
-                </el-button>
-                
-                <el-button
                   v-if="pollingStatus === 'failed' || pollingStatus === 'success'"
                   type="info"
                   @click="resetQRCodeLogin"
@@ -237,7 +226,7 @@
       <el-row :gutter="20">
         <el-col :xs="24" :md="12">
           <div class="tip-item">
-            <el-icon color="#065f46"><CircleCheck /></el-icon>
+            <el-icon color="var(--success-color)"><CircleCheck /></el-icon>
             <div class="tip-content">
               <div class="tip-title">自动获取 Cookie</div>
               <div class="tip-desc">扫码登录后会自动获取并保存 Cookie，无需手动操作</div>
@@ -246,7 +235,7 @@
         </el-col>
         <el-col :xs="24" :md="12">
           <div class="tip-item">
-            <el-icon color="#065f46"><Lock /></el-icon>
+            <el-icon color="var(--success-color)"><Lock /></el-icon>
             <div class="tip-content">
               <div class="tip-title">安全存储</div>
               <div class="tip-desc">Cookie 仅保存在本地服务器，不会上传到任何第三方</div>
@@ -255,7 +244,7 @@
         </el-col>
         <el-col :xs="24" :md="12">
           <div class="tip-item">
-            <el-icon color="#065f46"><Timer /></el-icon>
+            <el-icon color="var(--success-color)"><Timer /></el-icon>
             <div class="tip-content">
               <div class="tip-title">定期更新</div>
               <div class="tip-desc">建议定期重新登录以更新 Cookie，确保功能正常使用</div>
@@ -264,7 +253,7 @@
         </el-col>
         <el-col :xs="24" :md="12">
           <div class="tip-item">
-            <el-icon color="#065f46"><User /></el-icon>
+            <el-icon color="var(--success-color)"><User /></el-icon>
             <div class="tip-content">
               <div class="tip-title">账号安全</div>
               <div class="tip-desc">请确保是您本人的 Bilibili 账号，避免使用他人账号登录</div>
@@ -361,7 +350,7 @@ const newCookieValue = ref('');
 const qrcodeUrl = ref('');
 const generatingQRCode = ref(false);
 const polling = ref(false);
-const pollingStatus = ref(''); // 'pending', 'checking', 'scanned', 'success', 'failed'
+const pollingStatus = ref(''); // 'checking', 'scanned', 'success', 'failed'
 const pollingInterval = ref<number | null>(null);
 
 // 计算属性：是否有 cookie
@@ -450,8 +439,9 @@ const startQRCodeLogin = async () => {
     const response = await generateBilibiliQRCode();
     if (response.code === 200) {
       qrcodeUrl.value = response.data.url;
-      pollingStatus.value = 'pending';
-      ElMessage.success('二维码生成成功');
+      ElMessage.success('二维码生成成功，正在等待扫码...');
+      // 二维码生成后立即开始轮询，无需用户点击
+      await startPolling();
     } else {
       ElMessage.error(response.message || '二维码生成失败');
     }
@@ -548,6 +538,8 @@ onMounted(() => {
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
+  background: var(--bg-secondary);
+  min-height: 100vh;
 }
 
 /* 页面标题 */
@@ -558,13 +550,13 @@ onMounted(() => {
 .page-title {
   font-size: 28px;
   font-weight: 600;
-  color: #065f46;
+  color: var(--primary-color);
   margin: 0 0 8px 0;
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -574,80 +566,80 @@ onMounted(() => {
 }
 
 .status-card {
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  border: 1px solid #e5e7eb;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   transition: all 0.3s ease;
 }
 
 .status-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .status-card.active {
-  border-color: #10b981;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), #ffffff);
+  border-color: var(--success-color);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), var(--bg-card));
 }
 
 .status-icon {
   width: 48px;
   height: 48px;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.08));
+  background: var(--bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .status-icon.update {
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
-  color: #065f46;
+  background: var(--bg-tertiary);
+  color: var(--primary-color);
 }
 
 .status-icon.security {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(0, 0, 0, 0.1));
-  color: #10b981;
+  background: var(--bg-tertiary);
+  color: var(--success-color);
 }
 
 .status-card.active .status-icon {
-  background: linear-gradient(135deg, #065f46, #047857);
-  color: #ffffff;
+  background: var(--primary-color);
+  color: var(--text-inverse);
 }
 
 .status-label {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   margin-bottom: 4px;
 }
 
 .status-value {
   font-size: 16px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .status-value.success {
-  color: #059669;
+  color: var(--success-color);
 }
 
 .status-value.warning {
-  color: #d97706;
+  color: var(--warning-color);
 }
 
 /* 管理卡片 */
 .management-card {
   margin-bottom: 24px;
   border-radius: var(--radius-lg);
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .card-header {
@@ -663,12 +655,12 @@ onMounted(() => {
   gap: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .header-title .el-icon {
   font-size: 16px;
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 /* Cookie 显示区域 */
@@ -679,13 +671,13 @@ onMounted(() => {
 .section-label {
   font-size: 14px;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--text-secondary);
   margin-bottom: 12px;
 }
 
 .cookie-value-box {
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: 16px;
   min-height: 100px;
@@ -703,7 +695,7 @@ onMounted(() => {
   font-family: 'SF Mono', Monaco, monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: #4b5563;
+  color: var(--text-secondary);
   background: transparent;
   margin: 0;
 }
@@ -713,7 +705,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .empty-placeholder .el-icon {
@@ -729,8 +721,8 @@ onMounted(() => {
 .qr-login-card {
   margin-bottom: 24px;
   border-radius: var(--radius-lg);
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .qr-content {
@@ -747,25 +739,25 @@ onMounted(() => {
   width: 80px;
   height: 80px;
   margin: 0 auto 24px;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1));
+  background: var(--bg-tertiary);
   border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 40px;
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .qr-initial h3 {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin: 0 0 12px 0;
 }
 
 .qr-description {
   font-size: 14px;
-  color: #4b5563;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin: 0 0 24px 0;
 }
@@ -786,10 +778,10 @@ onMounted(() => {
 .qr-image-wrapper {
   position: relative;
   padding: 16px;
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: var(--radius-lg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  border: 1px solid #d1d5db;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border-light);
 }
 
 .qr-image-wrapper.expired {
@@ -809,7 +801,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: var(--text-inverse);
   gap: 8px;
 }
 
@@ -842,49 +834,49 @@ onMounted(() => {
   width: 32px;
   height: 32px;
   border-radius: var(--radius-xl);
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-secondary);
   transition: all 0.3s ease;
 }
 
 .step.active .step-icon {
-  background: #065f46;
-  color: #ffffff;
+  background: var(--primary-color);
+  color: var(--text-inverse);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .step.completed .step-icon {
-  background: #10b981;
-  color: #ffffff;
+  background: var(--success-color);
+  color: var(--text-inverse);
 }
 
 .step-text {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .step.active .step-text,
 .step.completed .step-text {
-  color: #065f46;
+  color: var(--primary-color);
   font-weight: 600;
 }
 
 .step-line {
   width: 40px;
   height: 2px;
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--border-light);
   margin: 0 8px;
   transition: all 0.3s ease;
 }
 
 .step-line.completed {
-  background: #10b981;
+  background: var(--success-color);
 }
 
 /* 当前状态 */
@@ -902,8 +894,8 @@ onMounted(() => {
 /* 提示卡片 */
 .tips-card {
   border-radius: var(--radius-lg);
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
 }
 
 .tips-header {
@@ -911,7 +903,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .tip-item {
@@ -919,11 +911,11 @@ onMounted(() => {
   align-items: flex-start;
   gap: 12px;
   padding: 12px;
-  background: #ffffff;
+  background: var(--bg-card);
   border-radius: var(--radius-md);
   margin-bottom: 12px;
-  border: 1px solid #e5e7eb;
-  box-shadow: 0 1px 2px rgba(6, 95, 70, 0.03);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .tip-item .el-icon {
@@ -939,19 +931,19 @@ onMounted(() => {
 .tip-title {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .tip-desc {
   font-size: 13px;
-  color: #4b5563;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 /* 对话框样式 */
 .cookie-dialog :deep(.el-dialog__header) {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--border-light);
   padding-bottom: 16px;
   margin-right: 0;
 }
@@ -978,24 +970,47 @@ onMounted(() => {
 .detail-label {
   font-size: 14px;
   font-weight: 500;
-  color: #4b5563;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .cookie-full-code {
-  background: rgba(0, 0, 0, 0.02);
-  border: 1px solid #e5e7eb;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-light);
   border-radius: var(--radius-md);
   padding: 16px;
   font-family: 'SF Mono', Monaco, monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: #4b5563;
+  color: var(--text-secondary);
   word-break: break-all;
   white-space: pre-wrap;
   margin: 0;
   max-height: 300px;
   overflow-y: auto;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .status-icon {
+    background: var(--bg-tertiary);
+  }
+
+  .qr-image-wrapper {
+    background: var(--bg-card);
+  }
+
+  .tip-item {
+    background: var(--bg-card);
+  }
+
+  .cookie-value-box {
+    background: var(--bg-secondary);
+  }
+
+  .step-icon {
+    background: var(--bg-tertiary);
+  }
 }
 
 /* 响应式优化 */

@@ -14,6 +14,7 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
     model: Optional[str] = "kimi-k2"
+    system_prompt: Optional[str] = None
 
 
 class ChatResponse(BaseModel):

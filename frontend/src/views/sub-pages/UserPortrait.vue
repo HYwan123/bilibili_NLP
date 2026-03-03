@@ -537,7 +537,7 @@ onMounted(() => {
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0fdf4 100%);
+  background: var(--bg-secondary);
   min-height: 100vh;
 }
 
@@ -558,14 +558,12 @@ onMounted(() => {
   font-size: 32px;
   font-weight: 700;
   margin: 0 0 8px 0;
-  background: linear-gradient(135deg, #065f46, #047857);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--primary-color);
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -575,36 +573,36 @@ onMounted(() => {
 }
 
 .stat-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(6, 95, 70, 0.1);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   transition: all 0.3s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-card.primary {
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   border: none;
 }
 
 .stat-card.success {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: var(--success-color);
   color: white;
   border: none;
 }
 
 .stat-card.warning {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: var(--warning-color);
   color: white;
   border: none;
 }
@@ -638,7 +636,7 @@ onMounted(() => {
 }
 
 .skeleton-card {
-  background: #f3f4f6;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
@@ -656,7 +654,7 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #e5e7eb;
+  background: var(--separator-color);
 }
 
 .skeleton-info {
@@ -665,7 +663,7 @@ onMounted(() => {
 
 .skeleton-line {
   height: 12px;
-  background: #e5e7eb;
+  background: var(--separator-color);
   border-radius: 6px;
   margin-bottom: 8px;
 }
@@ -683,7 +681,7 @@ onMounted(() => {
 .skeleton-tag {
   width: 80px;
   height: 24px;
-  background: #e5e7eb;
+  background: var(--separator-color);
   border-radius: 4px;
 }
 
@@ -702,25 +700,25 @@ onMounted(() => {
   width: 100px;
   height: 100px;
   margin: 0 auto 24px;
-  background: linear-gradient(135deg, rgba(6, 95, 70, 0.1), rgba(4, 120, 87, 0.1));
+  background: rgba(0, 122, 255, 0.1);
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 48px;
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .empty-state h3 {
   font-size: 20px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .empty-state p {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0 0 24px 0;
 }
 
@@ -730,19 +728,19 @@ onMounted(() => {
 }
 
 .user-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(6, 95, 70, 0.08);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
   transition: all 0.3s ease;
 }
 
 .user-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(6, 95, 70, 0.15);
-  border-color: rgba(6, 95, 70, 0.2);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-color);
 }
 
 .user-card .card-header {
@@ -756,7 +754,7 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -770,14 +768,14 @@ onMounted(() => {
 
 .uid-label {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   margin-bottom: 2px;
 }
 
 .uid-value {
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   font-family: 'SF Mono', Monaco, monospace;
 }
 
@@ -787,7 +785,7 @@ onMounted(() => {
 
 .preview-label {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   margin-bottom: 8px;
 }
 
@@ -814,7 +812,7 @@ onMounted(() => {
 }
 
 :deep(.portrait-dialog .el-dialog__header) {
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   padding: 20px 24px;
   margin-right: 0;
 }
@@ -854,21 +852,21 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 24px;
-  background: linear-gradient(135deg, #f0fdf4, #ffffff);
-  border-bottom: 1px solid rgba(6, 95, 70, 0.1);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .profile-avatar {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 32px;
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
 }
 
 .profile-info {
@@ -884,13 +882,13 @@ onMounted(() => {
 
 .profile-label {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .profile-uid {
   font-size: 24px;
   font-weight: 700;
-  color: #065f46;
+  color: var(--primary-color);
   font-family: 'SF Mono', Monaco, monospace;
 }
 
@@ -905,14 +903,14 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .meta-divider {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #d1d5db;
+  background: var(--separator-color);
 }
 
 /* 工具栏 */
@@ -921,8 +919,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  background: white;
-  border-bottom: 1px solid rgba(6, 95, 70, 0.1);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .view-switcher {
@@ -936,24 +934,24 @@ onMounted(() => {
   gap: 6px;
   padding: 8px 16px;
   border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: white;
-  color: #6b7280;
+  border: 1px solid var(--separator-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .switch-btn:hover {
-  border-color: #065f46;
-  color: #065f46;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .switch-btn.active {
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   border-color: transparent;
-  box-shadow: 0 2px 8px rgba(6, 95, 70, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
 
 .count-badge {
@@ -973,7 +971,7 @@ onMounted(() => {
 .content-display {
   flex: 1;
   overflow: hidden;
-  background: white;
+  background: var(--bg-card);
 }
 
 /* Markdown 内容 */
@@ -990,13 +988,13 @@ onMounted(() => {
 
 .markdown-body {
   line-height: 1.8;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .markdown-body :deep(h1),
 .markdown-body :deep(h2),
 .markdown-body :deep(h3) {
-  color: #065f46;
+  color: var(--primary-color);
   margin-top: 24px;
   margin-bottom: 12px;
   font-weight: 600;
@@ -1022,16 +1020,16 @@ onMounted(() => {
 }
 
 .markdown-body :deep(strong) {
-  color: #065f46;
+  color: var(--primary-color);
   font-weight: 600;
 }
 
 .markdown-body :deep(blockquote) {
-  border-left: 4px solid #065f46;
+  border-left: 4px solid var(--primary-color);
   padding-left: 16px;
   margin: 16px 0;
-  color: #4b5563;
-  background: #f0fdf4;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
   padding: 12px 16px;
   border-radius: 0 8px 8px 0;
 }
@@ -1047,7 +1045,7 @@ onMounted(() => {
 .mindmap-container {
   flex: 1;
   padding: 20px;
-  background: #f9fafb;
+  background: var(--bg-secondary);
 }
 
 .mindmap-svg {
@@ -1062,10 +1060,10 @@ onMounted(() => {
   justify-content: center;
   gap: 6px;
   padding: 12px;
-  background: #f0fdf4;
-  color: #065f46;
+  background: var(--bg-secondary);
+  color: var(--primary-color);
   font-size: 13px;
-  border-top: 1px solid rgba(6, 95, 70, 0.1);
+  border-top: 1px solid var(--border-light);
 }
 
 /* 评论面板 */
@@ -1101,7 +1099,7 @@ onMounted(() => {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   display: flex;
   align-items: center;
@@ -1114,22 +1112,23 @@ onMounted(() => {
 .marker-line {
   width: 2px;
   flex: 1;
-  background: linear-gradient(180deg, rgba(6, 95, 70, 0.3), transparent);
+  background: linear-gradient(180deg, var(--primary-color), transparent);
+  opacity: 0.3;
   margin-top: 8px;
   min-height: 40px;
 }
 
 .comment-card {
   flex: 1;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 16px;
-  border-left: 3px solid #065f46;
+  border-left: 3px solid var(--primary-color);
 }
 
 .comment-text {
   line-height: 1.6;
-  color: #374151;
+  color: var(--text-primary);
   word-break: break-all;
 }
 
@@ -1139,7 +1138,7 @@ onMounted(() => {
 
 .empty-comments-icon {
   font-size: 64px;
-  color: #d1d5db;
+  color: var(--separator-color);
   margin-bottom: 16px;
 }
 
@@ -1155,7 +1154,57 @@ onMounted(() => {
 
 .comment-text {
   line-height: 1.6;
-  color: #374151;
+  color: var(--text-primary);
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .skeleton-card {
+    background: var(--bg-secondary);
+  }
+
+  .skeleton-avatar,
+  .skeleton-line,
+  .skeleton-tag {
+    background: var(--border-light);
+  }
+
+  .empty-icon {
+    background: rgba(10, 132, 255, 0.1);
+  }
+
+  .comment-card {
+    background: var(--bg-secondary);
+  }
+
+  .switch-btn {
+    background: var(--bg-card);
+    border-color: var(--border-light);
+    color: var(--text-secondary);
+  }
+
+  .switch-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+  }
+
+  .switch-btn.active {
+    background: var(--primary-color);
+    color: var(--text-inverse);
+  }
+
+  .mindmap-container {
+    background: var(--bg-secondary);
+  }
+
+  .mindmap-hint {
+    background: var(--bg-secondary);
+    border-color: var(--border-light);
+  }
+
+  .empty-comments-icon {
+    color: var(--border-light);
+  }
 }
 
 /* 响应式 */

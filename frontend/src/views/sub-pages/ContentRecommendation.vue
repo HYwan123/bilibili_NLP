@@ -349,7 +349,7 @@ const openVideo = (videoId: string) => {
 
 .preference-item h4 {
   margin-bottom: 10px;
-  color: #333;
+  color: var(--text-primary);
   font-size: 16px;
 }
 
@@ -366,39 +366,39 @@ const openVideo = (videoId: string) => {
 .category-item {
   text-align: center;
   padding: 15px;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 8px;
 }
 
 .category-name {
   font-size: 16px;
   font-weight: bold;
-  color: #409eff;
+  color: var(--primary-color);
   margin-bottom: 5px;
 }
 
 .category-score {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .profile-item {
   text-align: center;
   padding: 10px;
-  background: #f0f2f5;
+  background: var(--bg-secondary);
   border-radius: 6px;
 }
 
 .profile-label {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 5px;
 }
 
 .profile-value {
   font-size: 14px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .recommendations-section {
@@ -425,7 +425,7 @@ const openVideo = (videoId: string) => {
 .rec-title {
   margin: 0;
   font-size: 16px;
-  color: #333;
+  color: var(--text-primary);
   flex: 1;
   margin-right: 10px;
 }
@@ -437,14 +437,14 @@ const openVideo = (videoId: string) => {
 }
 
 .rec-description {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.5;
   margin: 0;
 }
 
 .rec-stats {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   padding: 10px;
   border-radius: 6px;
 }
@@ -455,11 +455,11 @@ const openVideo = (videoId: string) => {
   justify-content: center;
   gap: 5px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .rec-reason {
-  background: #f0f2f5;
+  background: var(--bg-secondary);
   padding: 10px;
   border-radius: 6px;
 }
@@ -467,7 +467,7 @@ const openVideo = (videoId: string) => {
 .rec-reason p {
   margin: 5px 0 0 0;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 

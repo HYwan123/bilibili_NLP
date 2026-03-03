@@ -584,7 +584,7 @@ const getKeywordSize = (count) => {
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 50%, #f0fdf4 100%);
+  background: var(--bg-secondary);
   min-height: 100vh;
 }
 
@@ -598,9 +598,7 @@ const getKeywordSize = (count) => {
   font-size: 32px;
   font-weight: 700;
   margin: 0 0 8px 0;
-  background: linear-gradient(135deg, #065f46, #047857);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -609,11 +607,12 @@ const getKeywordSize = (count) => {
 
 .page-title .el-icon {
   font-size: 36px;
+  color: var(--primary-color);
 }
 
 .page-subtitle {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -638,7 +637,7 @@ const getKeywordSize = (count) => {
   gap: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .input-form {
@@ -656,11 +655,11 @@ const getKeywordSize = (count) => {
   margin-bottom: 8px;
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .help-icon {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: help;
 }
 
@@ -673,24 +672,25 @@ const getKeywordSize = (count) => {
 
 .quick-label {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-secondary);
 }
 
 .sample-tag {
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .sample-tag:hover {
-  background: #065f46;
+  background: var(--primary-color);
   color: white;
+  border-color: var(--primary-color);
 }
 
 /* 分析进度 */
 .analysis-progress {
   margin-top: 24px;
   padding: 20px;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
 }
 
@@ -704,12 +704,12 @@ const getKeywordSize = (count) => {
 .progress-title {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .progress-percent {
   font-size: 14px;
-  color: #065f46;
+  color: var(--primary-color);
   font-weight: 600;
 }
 
@@ -718,7 +718,7 @@ const getKeywordSize = (count) => {
   justify-content: space-between;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--separator-color);
 }
 
 .step-item {
@@ -727,16 +727,16 @@ const getKeywordSize = (count) => {
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #9ca3af;
-  transition: all 0.3s ease;
+  color: var(--text-tertiary);
+  transition: all 0.2s ease;
 }
 
 .step-item.active {
-  color: #065f46;
+  color: var(--primary-color);
 }
 
 .step-item.current {
-  color: #065f46;
+  color: var(--primary-color);
   font-weight: 600;
 }
 
@@ -755,7 +755,7 @@ const getKeywordSize = (count) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   padding: 16px 24px;
   border-radius: 12px;
@@ -781,36 +781,36 @@ const getKeywordSize = (count) => {
 }
 
 .stat-card {
-  background: white;
+  background: var(--bg-card);
   border-radius: 12px;
   padding: 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(6, 95, 70, 0.1);
-  transition: all 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+  transition: all 0.2s ease;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-card.primary {
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
   border: none;
 }
 
 .stat-card.success {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: var(--success-color);
   color: white;
   border: none;
 }
 
 .stat-card.warning {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: var(--warning-color);
   color: white;
   border: none;
 }
@@ -856,7 +856,7 @@ const getKeywordSize = (count) => {
   gap: 8px;
   font-size: 16px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 /* 情感分析 */
@@ -870,7 +870,7 @@ const getKeywordSize = (count) => {
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .summary-dot {
@@ -880,15 +880,15 @@ const getKeywordSize = (count) => {
 }
 
 .summary-item.positive .summary-dot {
-  background: #10b981;
+  background: var(--success-color);
 }
 
 .summary-item.neutral .summary-dot {
-  background: #6b7280;
+  background: var(--text-tertiary);
 }
 
 .summary-item.negative .summary-dot {
-  background: #ef4444;
+  background: var(--error-color);
 }
 
 .sentiment-content {
@@ -898,14 +898,14 @@ const getKeywordSize = (count) => {
 }
 
 .chart-container {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 16px;
 }
 
 /* 评论示例 */
 .comment-examples {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 20px;
 }
@@ -920,12 +920,12 @@ const getKeywordSize = (count) => {
 .examples-header h4 {
   margin: 0;
   font-size: 16px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .examples-count {
   font-size: 13px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .examples-list {
@@ -935,26 +935,26 @@ const getKeywordSize = (count) => {
 }
 
 .example-item {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   padding: 12px 16px;
-  border-left: 3px solid #e5e7eb;
+  border-left: 3px solid var(--separator-color);
 }
 
 .example-item.success {
-  border-left-color: #10b981;
+  border-left-color: var(--success-color);
 }
 
 .example-item.warning {
-  border-left-color: #f59e0b;
+  border-left-color: var(--warning-color);
 }
 
 .example-item.danger {
-  border-left-color: #ef4444;
+  border-left-color: var(--error-color);
 }
 
 .example-item.info {
-  border-left-color: #6b7280;
+  border-left-color: var(--text-tertiary);
 }
 
 .example-sentiment {
@@ -966,13 +966,13 @@ const getKeywordSize = (count) => {
 
 .confidence {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .example-text {
   font-size: 14px;
   line-height: 1.6;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .pagination-wrapper {
@@ -990,7 +990,7 @@ const getKeywordSize = (count) => {
 
 .wordcloud-section,
 .keywords-list-section {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 20px;
 }
@@ -999,11 +999,11 @@ const getKeywordSize = (count) => {
 .keywords-list-section h4 {
   margin: 0 0 16px 0;
   font-size: 16px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .wordcloud-container {
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   padding: 16px;
 }
@@ -1015,7 +1015,7 @@ const getKeywordSize = (count) => {
 }
 
 .keyword-tag {
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .keyword-tag:hover {
@@ -1035,7 +1035,7 @@ const getKeywordSize = (count) => {
 }
 
 .top-users-section {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 20px;
 }
@@ -1043,7 +1043,7 @@ const getKeywordSize = (count) => {
 .top-users-section h4 {
   margin: 0 0 16px 0;
   font-size: 16px;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .top-users-list {
@@ -1056,31 +1056,31 @@ const getKeywordSize = (count) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: white;
+  background: var(--bg-card);
   border-radius: 8px;
   padding: 12px 16px;
 }
 
 .top-user-item.top-3 {
-  background: linear-gradient(135deg, #f0fdf4, #ffffff);
-  border: 1px solid rgba(6, 95, 70, 0.2);
+  background: rgba(0, 122, 255, 0.05);
+  border: 1px solid rgba(0, 122, 255, 0.15);
 }
 
 .user-rank {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #e5e7eb;
+  background: var(--bg-tertiary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .top-user-item.top-3 .user-rank {
-  background: linear-gradient(135deg, #065f46, #047857);
+  background: var(--primary-color);
   color: white;
 }
 
@@ -1088,11 +1088,11 @@ const getKeywordSize = (count) => {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+  background: rgba(0, 122, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4f46e5;
+  color: var(--primary-color);
   font-size: 20px;
 }
 
@@ -1103,13 +1103,13 @@ const getKeywordSize = (count) => {
 .user-name {
   font-size: 14px;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .user-count {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .user-progress {
@@ -1123,7 +1123,7 @@ const getKeywordSize = (count) => {
 
 .activity-stat-item {
   flex: 1;
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 20px;
   text-align: center;
@@ -1132,13 +1132,59 @@ const getKeywordSize = (count) => {
 .activity-stat-item .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #065f46;
+  color: var(--primary-color);
   margin-bottom: 4px;
 }
 
 .activity-stat-item .stat-label {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .chart-container {
+    background: var(--bg-secondary);
+  }
+
+  .comment-examples {
+    background: var(--bg-secondary);
+  }
+
+  .example-item {
+    background: var(--bg-card);
+  }
+
+  .wordcloud-section,
+  .keywords-list-section {
+    background: var(--bg-secondary);
+  }
+
+  .wordcloud-container {
+    background: var(--bg-card);
+  }
+
+  .top-users-section {
+    background: var(--bg-secondary);
+  }
+
+  .top-user-item {
+    background: var(--bg-card);
+  }
+
+  .activity-stat-item {
+    background: var(--bg-secondary);
+  }
+
+  .analysis-progress {
+    background: var(--bg-secondary);
+  }
+
+  .stat-card.primary,
+  .stat-card.success,
+  .stat-card.warning {
+    color: var(--text-inverse);
+  }
 }
 
 /* 响应式 */

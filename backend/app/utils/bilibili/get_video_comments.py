@@ -116,7 +116,7 @@ async def select_by_BV(BV: str) -> list[dict]:
 
     # 2. 如果缓存未命中，则从源获取
     print(f"Cache miss for BV: {BV}. Fetching from source.")
-    new_comments = await get_comments(BV, 10)  # Fetch first page of comments
+    new_comments = await get_comments(BV, 1)  # Fetch first page of comments
 
     # 3. 如果获取到了评论，就写入缓存
     if new_comments:

@@ -129,32 +129,21 @@ const toggleCollapse = () => {
 </script>
 
 <style scoped>
-/* 侧边栏主体 */
+/* Apple 风格侧边栏主体 */
 .modern-sidebar {
-  background: linear-gradient(180deg, var(--bg-dark) 0%, var(--primary-color) 50%, var(--primary-light) 100%);
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  background: var(--bg-secondary);
+  box-shadow: 1px 0 0 var(--separator-color);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: none;
   position: relative;
   overflow: hidden;
 }
 
-.modern-sidebar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(180deg, transparent 0%, rgba(6, 95, 70, 0.4) 50%, transparent 100%);
-}
-
-/* Logo区域 */
+/* Logo区域 - Apple 风格 */
 .logo-section {
   padding: 24px 20px;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  background: transparent;
+  border-bottom: 1px solid var(--separator-color);
 }
 
 .logo-container {
@@ -164,32 +153,32 @@ const toggleCollapse = () => {
 }
 
 .logo-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--bg-dark) 0%, var(--primary-color) 50%, var(--primary-light) 100%);
-  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  background: var(--primary-color);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 20px;
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.3);
+  font-size: 18px;
 }
 
 .logo-text {
-  color: white;
+  color: var(--text-primary);
 }
 
 .logo-title {
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-bottom: 2px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-bottom: 1px;
+  letter-spacing: -0.01em;
 }
 
 .logo-subtitle {
-  font-size: 12px;
-  opacity: 0.7;
+  font-size: 11px;
+  color: var(--text-secondary);
   font-weight: 400;
 }
 
@@ -206,30 +195,32 @@ const toggleCollapse = () => {
   padding: 16px 0;
 }
 
-/* 菜单组标题 */
+/* Apple 风格菜单组标题 */
 .menu-group-title {
-  padding: 16px 24px 8px;
+  padding: 20px 24px 8px;
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 8px;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary);
+  margin-top: 4px;
 }
 
 .menu-group-title:first-child {
   margin-top: 0;
 }
 
-/* 菜单项 */
+/* Apple 风格菜单项 */
 .modern-menu-item {
-  margin: 4px 12px;
-  border-radius: 12px !important;
+  margin: 2px 12px;
+  border-radius: 8px !important;
   background: transparent !important;
   border: none !important;
-  transition: all 0.3s ease !important;
+  transition: all 0.2s ease !important;
   position: relative;
   overflow: hidden;
+  height: 40px !important;
+  line-height: 40px !important;
 }
 
 .modern-menu-item::before {
@@ -239,9 +230,10 @@ const toggleCollapse = () => {
   top: 0;
   width: 3px;
   height: 100%;
-  background: linear-gradient(135deg, var(--bg-dark) 0%, var(--primary-color) 50%, var(--primary-light) 100%);
+  background: var(--primary-color);
   transform: scaleY(0);
-  transition: transform 0.3s ease;
+  transition: transform 0.2s ease;
+  border-radius: 0 2px 2px 0;
 }
 
 .modern-menu-item.is-active::before {
@@ -249,14 +241,12 @@ const toggleCollapse = () => {
 }
 
 .modern-menu-item:hover {
-  background: rgba(6, 95, 70, 0.15) !important;
-  transform: translateX(4px);
+  background: var(--bg-hover) !important;
 }
 
 .modern-menu-item.is-active {
-  background: rgba(6, 95, 70, 0.2) !important;
-  color: var(--secondary-color) !important;
-  box-shadow: 0 4px 12px rgba(6, 95, 70, 0.25);
+  background: rgba(0, 122, 255, 0.1) !important;
+  color: var(--primary-color) !important;
 }
 
 .menu-item-content {
@@ -269,53 +259,59 @@ const toggleCollapse = () => {
 .menu-icon {
   width: 20px;
   height: 20px;
-  color: rgba(255, 255, 255, 0.7);
-  transition: all 0.3s ease;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  margin-right: 12px;
 }
 
-.modern-menu-item:hover .menu-icon,
+.modern-menu-item:hover .menu-icon {
+  color: var(--text-primary);
+}
+
 .modern-menu-item.is-active .menu-icon {
-  color: var(--secondary-color);
-  transform: scale(1.1);
+  color: var(--primary-color);
 }
 
 .menu-text {
   font-size: 14px;
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.8);
-  transition: color 0.3s ease;
+  font-weight: 400;
+  color: var(--text-primary);
+  transition: color 0.2s ease;
 }
 
-.modern-menu-item:hover .menu-text,
+.modern-menu-item:hover .menu-text {
+  color: var(--text-primary);
+}
+
 .modern-menu-item.is-active .menu-text {
-  color: var(--secondary-color);
+  color: var(--primary-color);
+  font-weight: 500;
 }
 
 /* 底部操作区域 */
 .sidebar-footer {
   padding: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--separator-color);
+  background: transparent;
 }
 
 .collapse-btn {
-  width: 40px;
-  height: 40px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
   margin: 0 auto;
 }
 
 .collapse-btn:hover {
-  background: rgba(6, 95, 70, 0.25);
-  color: var(--secondary-color);
-  transform: scale(1.05);
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* 过渡动画 */
@@ -334,7 +330,7 @@ const toggleCollapse = () => {
   transform: translateX(-20px);
 }
 
-/* Apple风格滚动条 - Sidebar专用 */
+/* Apple 风格滚动条 - Sidebar专用 */
 .nav-section::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -345,12 +341,12 @@ const toggleCollapse = () => {
 }
 
 .nav-section::-webkit-scrollbar-track:hover {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(0, 0, 0, 0.03);
   border-radius: 10px;
 }
 
 .nav-section::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 10px;
   border: 1px solid transparent;
   background-clip: padding-box;
@@ -358,13 +354,11 @@ const toggleCollapse = () => {
 }
 
 .nav-section::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
-  border: 1px solid transparent;
-  background-clip: padding-box;
+  background: rgba(0, 0, 0, 0.25);
 }
 
 .nav-section::-webkit-scrollbar-thumb:active {
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(0, 0, 0, 0.35);
 }
 
 .nav-section::-webkit-scrollbar-corner {
@@ -374,7 +368,7 @@ const toggleCollapse = () => {
 /* Firefox滚动条支持 */
 .nav-section {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
 }
 
 /* 折叠状态优化 */
@@ -410,7 +404,7 @@ const toggleCollapse = () => {
   }
 }
 
-/* Element Plus 菜单样式覆盖 */
+/* Apple 风格 Element Plus 菜单样式覆盖 */
 :deep(.el-menu) {
   background: transparent !important;
   border: none !important;
@@ -419,24 +413,24 @@ const toggleCollapse = () => {
 :deep(.el-menu-item) {
   background: transparent !important;
   border: none !important;
-  color: rgba(255, 255, 255, 0.8) !important;
-  padding: 12px 16px !important;
-  height: auto !important;
-  line-height: normal !important;
+  color: var(--text-primary) !important;
+  padding: 0 16px !important;
+  height: 40px !important;
+  line-height: 40px !important;
 }
 
 :deep(.el-menu-item:hover) {
-  background: rgba(6, 95, 70, 0.15) !important;
-  color: var(--secondary-color) !important;
+  background: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
 }
 
 :deep(.el-menu-item.is-active) {
-  background: rgba(6, 95, 70, 0.2) !important;
-  color: var(--secondary-color) !important;
+  background: rgba(0, 122, 255, 0.1) !important;
+  color: var(--primary-color) !important;
 }
 
 :deep(.el-menu--collapse .el-menu-item) {
-  padding: 12px 16px !important;
+  padding: 0 16px !important;
 }
 
 :deep(.el-menu--collapse .el-menu-item [class^="el-icon"]) {
