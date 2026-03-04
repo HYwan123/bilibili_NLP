@@ -145,7 +145,12 @@ async def get_user_comments_resp(
             logger.info(f"成功获取 {len(comments)} 条评论，准备保存到数据库")
             # 保存到数据库
             success = database.save_user_comments(uid, current_user.username, comments)
-            database.add_report_history(uid)
+            # Restore UID history saving
+            try:
+                database.add_uuid_history(uid, current_user.username, "none", f"获取到 {len(comments)} 条评论")
+            except Exception as e:
+                logger.error(f"Failed to add UID history: {e}")
+            
             if success:
                 logger.info(f"评论数据已成功保存到数据库")
                 return JSONResponse(
@@ -282,6 +287,16 @@ async def analyze_user_portrait_resp(
         if "error" in result:
             logger.warning(f"用户画像分析错误 for uid {uid}: {result['error']}")
             return create_error_response(400, result["error"])
+            
+        # Add to history
+        try:
+            summary = "用户画像分析完成"
+            if "comment_count" in result:
+                summary = f"用户画像分析完成 ({result['comment_count']} 条评论)"
+            database.add_uuid_history(uid, current_user.username, "none", summary)
+        except Exception as e:
+            logger.error(f"Failed to save UID history: {e}")
+            
         if "msg" in result:
             logger.info(f"用户画像分析完成 for uid {uid}")
             return JSONResponse(
@@ -333,13 +348,15 @@ async def get_user_analysis(uid: int, current_user: User = Depends(get_current_u
 
 
 # --- Background Task for Comment Analysis ---
-async def run_comment_analysis_task(bv_id: str, job_id: str):
+async def run_comment_analysis_task(bv_id: str, job_id: str, username: str):
     """
     The actual analysis function that runs in the background.
     """
     redis_handler = global_redis
     try:
-        logger.info(f"Starting comment analysis task for BV: {bv_id}, job_id: {job_id}")
+        logger.info(
+            f"Starting comment analysis task for BV: {bv_id}, job_id: {job_id}, user: {username}"
+        )
         # 1. Update status: Fetching comments
         status_update = {
             "status": "Processing",
@@ -377,6 +394,28 @@ async def run_comment_analysis_task(bv_id: str, job_id: str):
         redis_handler.set_job_status(job_id, status_update)
         logger.info(f"Comment analysis completed successfully for BV: {bv_id}")
 
+        # 4. Save to history
+        try:
+            summary = f"AI分析完成: 处理了 {len(comments)} 条评论"
+            if "basic_stats" in analysis_result:
+                stats = analysis_result["basic_stats"]
+                total = stats.get("total_comments", len(comments))
+                sentiment = analysis_result.get("sentiment_analysis", {})
+                pos = sentiment.get("positive", 0)
+                neg = sentiment.get("negative", 0)
+                neu = sentiment.get("neutral", 0)
+                total_s = pos + neg + neu
+                if total_s > 0:
+                    pos_rate = (pos / total_s) * 100
+                    summary = f"AI分析完成: {total}条评论, 正向率 {pos_rate:.1f}%"
+                else:
+                    summary = f"AI分析完成: {total}条评论"
+
+            database.add_bv_history(bv_id, username, summary)
+            logger.info(f"Saved analysis history for BV: {bv_id}, user: {username}")
+        except Exception as history_error:
+            logger.error(f"Failed to save analysis history: {history_error}")
+
     except Exception as e:
         error_message = f"评论分析任务失败: {e}"
         logger.error(error_message)
@@ -407,6 +446,16 @@ async def submit_comment_analysis_job(
     cached_result = await comment_analysis.get_bv_analysis(bv_id)
     if cached_result:
         print(f"Cache hit for analysis of BV: {bv_id}. Returning cached result.")
+        # Even if cached, we might want to update history timestamp
+        try:
+            summary = "从缓存获取分析结果"
+            if "basic_stats" in cached_result:
+                total = cached_result["basic_stats"].get("total_comments", "未知")
+                summary = f"智能分析: 处理了 {total} 条评论"
+            database.add_bv_history(bv_id, current_user.username, summary)
+        except Exception as e:
+            logger.error(f"Failed to update history for cached result: {e}")
+
         return JSONResponse(
             status_code=status.HTTP_200_OK,
             content={
@@ -431,7 +480,9 @@ async def submit_comment_analysis_job(
             },
         )
 
-    background_tasks.add_task(run_comment_analysis_task, bv_id, job_id)
+    background_tasks.add_task(
+        run_comment_analysis_task, bv_id, job_id, current_user.username
+    )
 
     return JSONResponse(
         status_code=202,  # HTTP 202 Accepted
