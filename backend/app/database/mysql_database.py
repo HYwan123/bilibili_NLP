@@ -264,6 +264,8 @@ def get_history_by_user(
         # Build query based on history_type
         items = []
         total = 0
+        bv_total = 0
+        uuid_total = 0
 
         if history_type == "bv":
             cursor.execute("SELECT COUNT(*) as count FROM BV_history WHERE user = %s", (username,))
@@ -301,7 +303,7 @@ def get_history_by_user(
 
             # Union query for unified sorting and pagination
             bv_subquery = f"SELECT BV as id, time as query_time, 'bv' as type, {'data' if has_bv_data else 'NULL'} as extra_data, NULL as job_id FROM BV_history WHERE user = %s"
-            uuid_subquery = "SELECT uuid as id, time as query_time, 'uuid' as type, NULL as extra_data, job_id FROM uuid_history WHERE user = %s"
+            uuid_subquery = "SELECT uuid as id, time as query_time, 'uuid' as type, data as extra_data, job_id FROM uuid_history WHERE user = %s"
             
             union_query = f"""
                 ({bv_subquery})

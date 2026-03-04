@@ -58,7 +58,7 @@ def user_select(uid: int, job_id: str) -> Optional[List[Dict[str, Any]]]:
     except Exception as e:
         print(f"Vector analysis for UID {uid} failed: {e}")
         # Update status to Failed
-        error_message = f"AI分析或向量存储失败: {e}"
+        error_message = f"智能分析或向量存储失败: {e}"
         status_update = {"status": "Failed", "progress": 100, "details": error_message}
         redis_handler.set_job_status(job_id, status_update)
         raise Exception(error_message)

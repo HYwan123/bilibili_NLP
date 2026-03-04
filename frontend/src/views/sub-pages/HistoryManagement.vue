@@ -251,7 +251,7 @@ const handleCurrentChange = (page) => {
 };
 
 const viewBvDetail = (bvId) => router.push({ path: '/comment-analysis', query: { bv: bvId } });
-const viewUidDetail = (uid) => router.push(`/user-portrait?uid=${uid}`);
+const viewUidDetail = (uid) => router.push({ path: '/user-portrait', query: { uid: uid } });
 const goToQuery = () => router.push('/query');
 const goToAnalysis = () => router.push('/user-analysis');
 

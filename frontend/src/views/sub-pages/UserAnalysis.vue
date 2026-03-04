@@ -484,8 +484,13 @@ const destroyMindMap = () => {
 };
 
 const saveToHistory = () => {
-  ElMessage.success('已保存到历史记录');
-  router.push('/user-portrait');
+  if (analysisResult.value && analysisResult.value.uid) {
+    ElMessage.success('分析结果已在后台保存');
+    router.push({ path: '/user-portrait', query: { uid: analysisResult.value.uid } });
+  } else {
+    ElMessage.success('已保存到历史记录');
+    router.push('/history');
+  }
 };
 
 const resetAnalysis = () => {

@@ -128,7 +128,7 @@ async def change_user_cookie(data: CookieData):
 
 @router.post("/user/comments/{uid}")
 async def get_user_comments_resp(
-    uid: int, current_user: User = Depends(get_current_user)
+    uid: str, current_user: User = Depends(get_current_user)
 ):
     global_redis.redis_value_add("leiji")
 
@@ -182,7 +182,7 @@ async def get_user_comments_resp(
 
 @router.get("/user/comments/{uid}")
 async def get_saved_user_comments(
-    uid: int, current_user: User = Depends(get_current_user)
+    uid: str, current_user: User = Depends(get_current_user)
 ):
     """
     获取用户评论数据
@@ -236,7 +236,7 @@ async def get_saved_user_comments(
 
 @router.get("/user/comments/redis/{uid}")
 async def get_user_comments_redis(
-    uid: int, current_user: User = Depends(get_current_user)
+    uid: str, current_user: User = Depends(get_current_user)
 ):
     global_redis.redis_value_add("leiji")
     """
@@ -271,7 +271,7 @@ from typing import Optional
 
 @router.post("/user/analyze/{uid}")
 async def analyze_user_portrait_resp(
-    uid: int,
+    uid: str,
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -320,7 +320,7 @@ async def analyze_user_portrait_resp(
 
 
 @router.get("/user/analysis/{uid}")
-async def get_user_analysis(uid: int, current_user: User = Depends(get_current_user)):
+async def get_user_analysis(uid: str, current_user: User = Depends(get_current_user)):
     global_redis.redis_value_add("huaxiang")
     """
     获取用户画像分析结果
@@ -375,7 +375,7 @@ async def run_comment_analysis_task(bv_id: str, job_id: str, username: str):
         status_update = {
             "status": "Processing",
             "progress": 60,
-            "details": f"已获取 {len(comments)} 条评论，正在进行AI分析...",
+            "details": f"已获取 {len(comments)} 条评论，正在进行智能分析...",
         }
         redis_handler.set_job_status(job_id, status_update)
 
@@ -396,7 +396,7 @@ async def run_comment_analysis_task(bv_id: str, job_id: str, username: str):
 
         # 4. Save to history
         try:
-            summary = f"AI分析完成: 处理了 {len(comments)} 条评论"
+            summary = f"智能分析完成: 处理了 {len(comments)} 条评论"
             if "basic_stats" in analysis_result:
                 stats = analysis_result["basic_stats"]
                 total = stats.get("total_comments", len(comments))
@@ -407,9 +407,9 @@ async def run_comment_analysis_task(bv_id: str, job_id: str, username: str):
                 total_s = pos + neg + neu
                 if total_s > 0:
                     pos_rate = (pos / total_s) * 100
-                    summary = f"AI分析完成: {total}条评论, 正向率 {pos_rate:.1f}%"
+                    summary = f"智能分析完成: {total}条评论, 正向率 {pos_rate:.1f}%"
                 else:
-                    summary = f"AI分析完成: {total}条评论"
+                    summary = f"智能分析完成: {total}条评论"
 
             database.add_bv_history(bv_id, username, summary)
             logger.info(f"Saved analysis history for BV: {bv_id}, user: {username}")

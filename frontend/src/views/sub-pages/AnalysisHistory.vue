@@ -119,10 +119,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import request from '@/utils/request';
 import { getHistory } from '@/api/bilibili';
 
+const router = useRouter();
 const searchUid = ref('');
 const loading = ref(false);
 const error = ref('');
@@ -179,7 +181,7 @@ const searchAnalysis = async () => {
     if (res.code === 200) {
       analysisResult.value = res.data;
       expandedComments.value = res.data.sample_comments || [];
-      // 同时添加到历史列表显示
+      // 保持搜索出的内容在列表显示
       historyList.value = [{
         uid: res.data.uid,
         query_time: formatTime(res.data.timestamp),
@@ -200,10 +202,9 @@ const searchAnalysis = async () => {
   }
 };
 
-// 查看详情
-const viewDetail = async (uid: string | number) => {
-  searchUid.value = String(uid);
-  await searchAnalysis();
+// 查看详情 - 现在跳转到用户画像详情页
+const viewDetail = (uid: string | number) => {
+  router.push(`/user-portrait?uid=${uid}`);
 };
 
 // 清除搜索

@@ -107,7 +107,7 @@ async def analyze_user_comments(uid: int) -> Dict[str, Any]:
         else:
             error_msg = response.get("error", "未知错误") if response else "响应为空"
             logger.error(f"OpenaiClient 调用失败: {error_msg}")
-            return {"error": f"AI分析失败: {error_msg}"}
+            return {"error": f"智能分析失败: {error_msg}"}
 
     except Exception as e:
         logger.error(f"分析用户评论时发生错误: {e}")
