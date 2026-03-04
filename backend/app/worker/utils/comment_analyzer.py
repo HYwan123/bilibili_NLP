@@ -5,190 +5,194 @@ from collections import Counter
 import re
 from datetime import datetime
 import jieba
-import redis
 from transformers import pipeline
+from app.database.redis_client_async import RedisClientAsync
 
 RESULT_STREAM = "streams_result_isok"
 
+# 延迟初始化分类器
+_classifier = None
 
-# 使用多语言模型
-classifier = pipeline(
-    "sentiment-analysis", # type: ignore
-    model="nlptown/bert-base-multilingual-uncased-sentiment"
-) # type: ignore
-
-redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
+def get_classifier():
+    global _classifier
+    if _classifier is None:
+        print("Worker: 正在加载 BERT 情感分析模型 (首次加载较慢)...")
+        _classifier = pipeline(
+            "sentiment-analysis",
+            model="nlptown/bert-base-multilingual-uncased-sentiment"
+        )
+    return _classifier
 
 class CommentAnalyzer:
+    def __init__(self):
+        self.redis_client = RedisClientAsync()
+
     async def analyze_comments(self, comments: List[Dict[str, Any]], bv_id: str) -> Dict[str, Any]:
         """
         综合分析评论数据
         """
-        if not comments:
-            return {"error": "没有评论数据"}
-        print(comments)
-        analysis_result = {
-            "bv_id": bv_id,
-            "timestamp": datetime.now().isoformat(),
-            "basic_stats": self._basic_statistics(comments),
-            "sentiment_analysis": await self._sentiment_analysis_pipeline(comments),
-            "keyword_analysis": self._keyword_analysis(comments),
-            "user_activity": self._user_activity_analysis(comments),
-        }
+        analysis_result = {"bv_id": bv_id, "timestamp": datetime.now().isoformat()}
         
-        # 保存分析结果到Redis
-        redis_client.set(f"comment_analysis_{bv_id}", json.dumps(analysis_result, ensure_ascii=False))
-        redis_client.xadd(RESULT_STREAM, {'BV': bv_id})
-        return analysis_result
-    
-    def _basic_statistics(self, comments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        try:
+            if not comments:
+                error_res = {"error": "没有获取到视频评论数据", **analysis_result}
+                await self.redis_client.set(f"comment_analysis_{bv_id}", json.dumps(error_res, ensure_ascii=False))
+                await self.redis_client.add_streams(RESULT_STREAM, {'BV': bv_id})
+                return error_res
+            
+            print(f"Worker: 正在预处理视频 {bv_id} 的 {len(comments)} 条评论...")
+            # --- 预处理环节 ---
+            cleaned_comments, clean_stats = self._preprocess_comments(comments)
+            
+            if not cleaned_comments:
+                error_res = {
+                    "error": "清洗后无有效语义内容（可能全是打卡/广告/抽奖）", 
+                    "cleaning_report": clean_stats, 
+                    **analysis_result
+                }
+                await self.redis_client.set(f"comment_analysis_{bv_id}", json.dumps(error_res, ensure_ascii=False))
+                await self.redis_client.add_streams(RESULT_STREAM, {'BV': bv_id})
+                return error_res
+
+            print(f"Worker: 预处理完成，剩余有效语料: {len(cleaned_comments)}")
+
+            # 构建结果
+            analysis_result["cleaning_report"] = clean_stats
+            analysis_result["basic_stats"] = self._basic_statistics(cleaned_comments)
+            
+            # 情感分析（限制样本量以防超时）
+            print(f"Worker: 正在执行情感建模分析...")
+            analysis_result["sentiment_analysis"] = await self._sentiment_analysis_pipeline(cleaned_comments)
+            
+            # 其他分析
+            analysis_result["keyword_analysis"] = self._keyword_analysis(cleaned_comments)
+            analysis_result["user_activity"] = self._user_activity_analysis(cleaned_comments)
+            
+            # 保存最终成功结果
+            await self.redis_client.set(f"comment_analysis_{bv_id}", json.dumps(analysis_result, ensure_ascii=False))
+            await self.redis_client.add_streams(RESULT_STREAM, {'BV': bv_id})
+            print(f"Worker: 视频 {bv_id} 分析任务圆满完成")
+            return analysis_result
+            
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            error_res = {"error": f"分析引擎内部异常: {str(e)}", **analysis_result}
+            await self.redis_client.set(f"comment_analysis_{bv_id}", json.dumps(error_res, ensure_ascii=False))
+            await self.redis_client.add_streams(RESULT_STREAM, {'BV': bv_id})
+            return error_res
+
+    def _preprocess_comments(self, comments: List[Dict[str, Any]]) -> tuple:
         """
-        基础统计分析
+        语料清洗：剔除噪音
         """
-        total_comments = len(comments)
-        unique_users = len(set(comment.get('user_name', '') for comment in comments))
+        raw_count = len(comments)
+        noise_details = {"check_in": 0, "spam": 0, "short_noise": 0, "lottery": 0}
         
-        # 计算评论长度统计
-        comment_lengths = [len(comment.get('comment_text', '')) for comment in comments]
-        avg_length = sum(comment_lengths) / len(comment_lengths) if comment_lengths else 0
+        check_in_patterns = [r"打卡", r"第一", r"前排", r"来了", r"报道"]
+        lottery_patterns = [r"抽奖", r"欧皇", r"转发", r"选我", r"万一呢"]
         
-        # 长度分布
-        short_comments = len([l for l in comment_lengths if l <= 20])
-        medium_comments = len([l for l in comment_lengths if 20 < l <= 100])
-        long_comments = len([l for l in comment_lengths if l > 100])
-        
-        return {
-            "total_comments": total_comments,
-            "unique_users": unique_users,
-            "average_length": round(avg_length, 2),
-            "length_distribution": {
-                "short": short_comments,
-                "medium": medium_comments,
-                "long": long_comments
-            },
-            "max_length": max(comment_lengths) if comment_lengths else 0,
-            "min_length": min(comment_lengths) if comment_lengths else 0
+        cleaned = []
+        seen = set()
+
+        for comment in comments:
+            text = str(comment.get('comment_text', '')).strip()
+            
+            if text in seen:
+                noise_details["spam"] += 1
+                continue
+            if len(text) < 2:
+                noise_details["short_noise"] += 1
+                continue
+                
+            if any(re.search(p, text) for p in check_in_patterns):
+                noise_details["check_in"] += 1
+                continue
+            if any(re.search(p, text) for p in lottery_patterns):
+                noise_details["lottery"] += 1
+                continue
+
+            # 正则清理
+            text = re.sub(r"\[.*?\]", "", text) 
+            text = re.sub(r"http\S+", "", text)
+            
+            if len(text.strip()) >= 2:
+                comment['comment_text'] = text.strip()
+                cleaned.append(comment)
+                seen.add(text)
+
+        stats = {
+            "raw_total": raw_count,
+            "cleaned_total": len(cleaned),
+            "filtered_out": raw_count - len(cleaned),
+            "efficiency": f"{round((len(cleaned)/raw_count)*100, 1)}%" if raw_count > 0 else "0%",
+            "noise_breakdown": noise_details
         }
-    @staticmethod
-    def _which_label(text: str) -> str:
-        if text == '1 star' or text == '2 stars':
-            return 'negative'
-        elif text == '3 stars':
-            return 'neutral'
-        else: return 'positive'
- 
+        return cleaned, stats
+
     async def _sentiment_analysis_pipeline(self, comments: List[Dict[str, Any]]) -> Dict[str, Any]:
-        texts = [comment['comment_text'] for comment in comments]
-        # 因为 classifier 是同步的，所以用 asyncio.to_thread 在线程中执行
+        """
+        BERT 情感分析（限制核心样本量以保证响应速度）
+        """
+        # 限制只分析前 50 条最具代表性的评论（防止大型视频导致 OOM 或超时）
+        sample_size = 50
+        analysis_samples = comments[:sample_size]
+        
+        texts = [c['comment_text'] for c in analysis_samples]
+        classifier = get_classifier()
+        
+        # 在线程池中执行耗时的 BERT 模型
         results = await asyncio.to_thread(classifier, texts)
-        result_dict = {}
-        result_dict['negative'] = 0
-        result_dict['neutral'] = 0
-        result_dict['positive'] = 0
-        for comment, result in zip(comments, results):
-            # result 本身是字典，直接存储
-            result_dict[self._which_label(result["label"])] += 1
-            result_dict[comment['comment_text']] = result
+        
+        result_dict = {'negative': 0, 'neutral': 0, 'positive': 0, 'examples': []}
+        
+        for comment_obj, res in zip(analysis_samples, results):
+            label = res["label"]
+            score = res["score"]
+            text = comment_obj['comment_text']
+            
+            # 映射模型标签到语义分类
+            # 1-2 stars -> negative, 3 -> neutral, 4-5 -> positive
+            star_count = int(label.split()[0])
+            if star_count <= 2:
+                category = 'negative'
+            elif star_count == 3:
+                category = 'neutral'
+            else:
+                category = 'positive'
+                
+            result_dict[category] += 1
+            result_dict['examples'].append({
+                "comment": text,
+                "label": star_count,
+                "score": score
+            })
 
         return result_dict
 
+    def _basic_statistics(self, comments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        comment_lengths = [len(str(c.get('comment_text', ''))) for c in comments]
+        return {
+            "total_comments": len(comments),
+            "unique_users": len(set(c.get('user_name', '') for c in comments)),
+            "average_length": round(sum(comment_lengths)/len(comment_lengths), 1) if comment_lengths else 0
+        }
+
     def _keyword_analysis(self, comments: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        关键词分析
-        """
-        try:
-            # 合并所有评论文本
-            all_text = " ".join([comment.get('comment_text', '') for comment in comments])
-            
-            # 使用jieba进行中文分词
-            words = jieba.cut(all_text)
-            
-            # 过滤停用词和短词
-            stop_words = {'的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看', '好', '自己', '这'}
-            filtered_words = [word for word in words if len(word) > 1 and word not in stop_words and not word.isdigit()]
-            
-            # 统计词频
-            word_freq = Counter(filtered_words)
-            top_keywords = word_freq.most_common(20)
-            
-            # 提取短语（2-3个词的组合）
-            phrases = []
-            for comment in comments:
-                text = comment.get('comment_text', '')
-                words = list(jieba.cut(text))
-                for i in range(len(words) - 1):
-                    phrase = words[i] + words[i+1]
-                    if len(phrase) >= 4:
-                        phrases.append(phrase)
-            
-            phrase_freq = Counter(phrases)
-            top_phrases = phrase_freq.most_common(10)
-            
-            return {
-                "top_keywords": [{"word": word, "count": count} for word, count in top_keywords],
-                "top_phrases": [{"phrase": phrase, "count": count} for phrase, count in top_phrases],
-                "total_unique_words": len(set(filtered_words))
-            }
-            
-        except Exception as e:
-            return {"error": f"关键词分析失败: {str(e)}"}
-    
+        all_text = " ".join([str(c.get('comment_text', '')) for c in comments])
+        words = jieba.cut(all_text)
+        stop_words = {'的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '上', '也', '很', '到', '说', '要', '去', '你', '会'}
+        filtered = [w for w in words if len(w) > 1 and w not in stop_words and not w.isdigit()]
+        top_keywords = Counter(filtered).most_common(20)
+        return {"top_keywords": [{"word": k, "count": v} for k, v in top_keywords]}
+
     def _user_activity_analysis(self, comments: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """
-        用户活跃度分析
-        """
-        try:
-            # 统计每个用户的评论数量
-            user_comment_count = Counter(comment.get('user_name', '') for comment in comments)
-            
-            # 找出最活跃的用户
-            most_active_users = user_comment_count.most_common(10)
-            
-            # 计算活跃度分布
-            comment_counts = list(user_comment_count.values())
-            single_comment_users = len([count for count in comment_counts if count == 1])
-            multiple_comment_users = len([count for count in comment_counts if count > 1])
-            
-            # 计算平均每个用户的评论数
-            avg_comments_per_user = sum(comment_counts) / len(comment_counts) if comment_counts else 0
-            
-            return {
-                "most_active_users": [{"username": user, "comment_count": count} for user, count in most_active_users],
-                "activity_distribution": {
-                    "single_comment_users": single_comment_users,
-                    "multiple_comment_users": multiple_comment_users
-                },
-                "average_comments_per_user": round(avg_comments_per_user, 2),
-                "total_unique_users": len(user_comment_count)
-            }
-            
-        except Exception as e:
-            return {"error": f"用户活跃度分析失败: {str(e)}"}
-    
-    
-    def get_analysis_from_redis(self, bv_id: str) -> Dict[str, Any]:
-        """
-        从Redis获取评论分析结果
-        """
-        data = redis_client.get(f"comment_analysis_{bv_id}")
-        if data:
-            try:
-                return json.loads(data) # type: ignore
-            except Exception as e:
-                print(f"Redis数据解析失败: {e}")
-                return {}
-        return {}
+        user_counts = Counter(c.get('user_name', '') for c in comments)
+        most_active = user_counts.most_common(5)
+        return {
+            "most_active_users": [{"username": u, "comment_count": c} for u, c in most_active],
+            "total_unique_users": len(user_counts)
+        }
 
 async def analyze_bv_comments(bv_id: str, comments: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """
-    便捷函数：分析BV评论
-    """
-    analyzer = CommentAnalyzer()
-    return await analyzer.analyze_comments(comments, bv_id)
-
-def get_bv_analysis(bv_id: str) -> Dict[str, Any]:
-    """
-    便捷函数：获取BV评论分析结果
-    """
-    analyzer = CommentAnalyzer()
-    return analyzer.get_analysis_from_redis(bv_id)
+    return await CommentAnalyzer().analyze_comments(comments, bv_id)

@@ -386,7 +386,8 @@ async def run_comment_analysis_task(bv_id: str, job_id: str):
     finally:
         # Task finished, always release the lock
         lock_key = f"lock:analyze_bv:{bv_id}"
-        redis_handler.release_lock(lock_key)
+        # 直接使用全局redis客户端强制删除锁，避免比较value导致失败
+        global_redis.get_client().delete(lock_key)
         logger.info(f"Released lock for BV: {bv_id}")
 
 

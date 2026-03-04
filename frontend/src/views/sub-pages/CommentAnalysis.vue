@@ -25,7 +25,7 @@
           <div class="bv-input-wrapper">
             <div class="input-label">
               <span>BV号</span>
-              <el-tooltip content="B站视频链接中的BV开头字符串，如：https://www.bilibili.com/video/BV1xx411c7mD" placement="top">
+              <el-tooltip content="B站视频链接中的BV开头字符串" placement="top">
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </div>
@@ -37,9 +37,7 @@
               :disabled="analyzing"
               @keyup.enter="startAnalysis"
             >
-              <template #prefix>
-                <el-icon><Link /></el-icon>
-              </template>
+              <template #prefix><el-icon><Link /></el-icon></template>
               <template #append>
                 <el-button 
                   type="primary" 
@@ -54,7 +52,6 @@
             </el-input>
           </div>
 
-          <!-- 快速尝试 -->
           <div class="quick-actions" v-if="!analysisResult">
             <span class="quick-label">快速尝试：</span>
             <el-tag 
@@ -62,39 +59,25 @@
               :key="sample"
               class="sample-tag"
               @click="form.bvId = sample; startAnalysis()"
+              style="cursor: pointer; margin-right: 10px;"
               effect="light"
-              type="info"
-            >
-              {{ sample }}
-            </el-tag>
+            >{{ sample }}</el-tag>
           </div>
 
-          <!-- 分析进度 -->
           <div v-if="analyzing" class="analysis-progress">
             <div class="progress-header">
-              <span class="progress-title">正在分析评论数据</span>
+              <span class="progress-title">正在执行专家级语料分析逻辑</span>
               <span class="progress-percent">{{ jobProgress }}%</span>
             </div>
-            <el-progress 
-              :percentage="jobProgress" 
-              :stroke-width="8"
-              status="success"
-              :show-text="false"
-            />
+            <el-progress :percentage="jobProgress" :stroke-width="8" status="success" :show-text="false" />
             <div class="progress-steps">
               <div 
                 v-for="(step, idx) in analysisSteps" 
                 :key="idx"
                 class="step-item"
-                :class="{ active: jobProgress >= step.percent, current: jobProgress >= step.percent && jobProgress < (analysisSteps[idx + 1]?.percent || 100) }"
+                :class="{ active: jobProgress >= step.percent }"
               >
-                <el-icon>
-                  <Search v-if="step.icon === 'Search'" />
-                  <Download v-else-if="step.icon === 'Download'" />
-                  <DataAnalysis v-else-if="step.icon === 'DataAnalysis'" />
-                  <Collection v-else-if="step.icon === 'Collection'" />
-                  <CircleCheck v-else />
-                </el-icon>
+                <el-icon><component :is="step.icon" /></el-icon>
                 <span>{{ step.text }}</span>
               </div>
             </div>
@@ -103,1085 +86,282 @@
       </el-card>
     </div>
 
-    <!-- 分析结果 -->
-    <div v-if="analysisResult" class="results-section">
-      <!-- 结果概览头部 -->
+    <!-- 分析结果渲染 -->
+    <div v-if="analysisResult && !analysisResult.error" class="results-section">
       <div class="result-header">
-        <div class="result-title">
-          <el-icon><CircleCheck /></el-icon>
-          <span>分析完成</span>
-        </div>
-        <div class="result-meta">
-          <el-tag type="success" effect="light">
-            <el-icon><ChatLineRound /></el-icon>
-            {{ analysisResult.basic_stats?.total_comments || 0 }} 条评论
-          </el-tag>
-          <el-button size="small" @click="resetAnalysis">
-            <el-icon><RefreshLeft /></el-icon>
-            重新分析
-          </el-button>
-        </div>
+        <div class="result-title"><el-icon><CircleCheck /></el-icon> 分析完成</div>
+        <el-button size="small" @click="resetAnalysis" round><el-icon><RefreshLeft /></el-icon> 新的分析</el-button>
       </div>
 
-      <!-- 基础统计卡片区 -->
+      <!-- 数据清洗报告 -->
+      <el-card class="result-card cleaning-report-card" v-if="analysisResult.cleaning_report">
+        <template #header>
+          <div class="section-header">
+            <div class="section-title"><el-icon><Filter /></el-icon> 语料预处理报告</div>
+            <div class="cleaning-efficiency">有效载荷: <span class="highlight">{{ analysisResult.cleaning_report.efficiency }}</span></div>
+          </div>
+        </template>
+        <div class="cleaning-content">
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <div class="cleaning-stat-item">
+                <div class="label">原始语料</div>
+                <div class="value">{{ analysisResult.cleaning_report.raw_total }}</div>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <div class="cleaning-stat-item">
+                <div class="label">过滤噪音</div>
+                <div class="value warning">{{ analysisResult.cleaning_report.filtered_out }}</div>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <div class="cleaning-stat-item">
+                <div class="label">清洗后有效</div>
+                <div class="value success">{{ analysisResult.cleaning_report.cleaned_total }}</div>
+              </div>
+            </el-col>
+          </el-row>
+          <div class="noise-details">
+            <h5>噪音构成分布 (Noise Analysis)</h5>
+            <div class="noise-tags">
+              <el-tag type="info">互动打卡: {{ analysisResult.cleaning_report.noise_breakdown?.check_in || 0 }}</el-tag>
+              <el-tag type="info">重复冗余: {{ analysisResult.cleaning_report.noise_breakdown?.spam || 0 }}</el-tag>
+              <el-tag type="info">活动噪音: {{ analysisResult.cleaning_report.noise_breakdown?.lottery || 0 }}</el-tag>
+              <el-tag type="info">无效过短: {{ analysisResult.cleaning_report.noise_breakdown?.short_noise || 0 }}</el-tag>
+            </div>
+          </div>
+        </div>
+      </el-card>
+
+      <!-- 核心统计 -->
       <div class="stats-grid">
         <el-row :gutter="16">
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="stat-card primary">
-              <div class="stat-icon">
-                <el-icon><ChatDotRound /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ analysisResult.basic_stats?.total_comments || 0 }}</div>
-                <div class="stat-label">总评论数</div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="stat-card success">
-              <div class="stat-icon">
-                <el-icon><User /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ analysisResult.basic_stats?.unique_users || 0 }}</div>
-                <div class="stat-label">独立用户</div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :xs="24" :sm="12" :md="8">
-            <div class="stat-card warning">
-              <div class="stat-icon">
-                <el-icon><Document /></el-icon>
-              </div>
-              <div class="stat-content">
-                <div class="stat-number">{{ analysisResult.basic_stats?.average_length || 0 }}</div>
-                <div class="stat-label">平均长度</div>
-              </div>
-            </div>
-          </el-col>
+          <el-col :span="8"><div class="stat-card primary"><div class="stat-number">{{ analysisResult.basic_stats?.total_comments }}</div><div class="stat-label">有效总数</div></div></el-col>
+          <el-col :span="8"><div class="stat-card success"><div class="stat-number">{{ analysisResult.basic_stats?.unique_users }}</div><div class="stat-label">互动用户</div></div></el-col>
+          <el-col :span="8"><div class="stat-card warning"><div class="stat-number">{{ analysisResult.basic_stats?.average_length }}</div><div class="stat-label">语义均长</div></div></el-col>
         </el-row>
       </div>
 
       <!-- 情感分析 -->
-      <el-card class="result-card sentiment-card" v-if="analysisResult.sentiment_analysis">
-        <template #header>
-          <div class="section-header">
-            <div class="section-title">
-              <el-icon><PieChart /></el-icon>
-              <span>情感分析</span>
-            </div>
-            <div class="sentiment-summary">
-              <div class="summary-item positive">
-                <div class="summary-dot"></div>
-                <span>正面 {{ sentimentPercentages.positive }}%</span>
-              </div>
-              <div class="summary-item neutral">
-                <div class="summary-dot"></div>
-                <span>中性 {{ sentimentPercentages.neutral }}%</span>
-              </div>
-              <div class="summary-item negative">
-                <div class="summary-dot"></div>
-                <span>负面 {{ sentimentPercentages.negative }}%</span>
-              </div>
-            </div>
-          </div>
-        </template>
-
+      <el-card class="result-card" v-if="analysisResult.sentiment_analysis">
+        <template #header><div class="section-title"><el-icon><PieChart /></el-icon> 情感极性建模</div></template>
         <div class="sentiment-content">
-          <div class="chart-container">
-            <SentimentPieChart :data="analysisResult.sentiment_analysis" width="100%" height="350px" />
-          </div>
-
-          <!-- 评论示例 -->
-          <div class="comment-examples" v-if="getCommentExamples.length > 0">
-            <div class="examples-header">
-              <h4>评论情感示例</h4>
-              <span class="examples-count">共 {{ getAllCommentExamples().length }} 条</span>
-            </div>
-            <div class="examples-list">
-              <div 
-                v-for="(example, idx) in getCommentExamples" 
-                :key="idx"
-                class="example-item"
-                :class="getSentimentType(example.label)"
-              >
-                <div class="example-sentiment">
-                  <el-tag :type="getSentimentType(example.label)" size="small" effect="light">
-                    {{ getSentimentText(example.label) }}
-                  </el-tag>
-                  <span class="confidence">{{ (example.score * 100).toFixed(1) }}%</span>
-                </div>
-                <div class="example-text">{{ example.comment }}</div>
-              </div>
-            </div>
-            
-            <!-- 分页 -->
-            <div class="pagination-wrapper" v-if="getAllCommentExamples().length > pageSize">
-              <el-pagination
-                v-model:current-page="currentPage"
-                v-model:page-size="pageSize"
-                :total="getAllCommentExamples().length"
-                :page-sizes="[5, 10, 20, 50]"
-                layout="total, sizes, prev, pager, next"
-                @current-change="handleCurrentChange"
-                @size-change="handleSizeChange"
-              />
+          <SentimentPieChart :data="analysisResult.sentiment_analysis" height="300px" />
+          <div class="comment-examples">
+            <div v-for="(ex, i) in getCommentExamples" :key="i" class="example-item" :class="getSentimentType(ex.label)">
+              <div class="example-text">{{ ex.comment }}</div>
             </div>
           </div>
         </div>
       </el-card>
 
-      <!-- 关键词分析 -->
-      <el-card class="result-card keywords-card" v-if="analysisResult.keyword_analysis">
-        <template #header>
-          <div class="section-header">
-            <div class="section-title">
-              <el-icon><Collection /></el-icon>
-              <span>关键词分析</span>
-            </div>
-          </div>
-        </template>
-
-        <div class="keywords-content">
-          <div class="wordcloud-section">
-            <h4>词云可视化</h4>
-            <div class="wordcloud-container">
-              <KeywordCloudChart :data="analysisResult.keyword_analysis?.top_keywords || []" width="100%" height="300px" />
-            </div>
-          </div>
-
-          <div class="keywords-list-section">
-            <h4>热门关键词 TOP20</h4>
-            <div class="keywords-tags">
-              <el-tag 
-                v-for="(keyword, index) in topKeywords" 
-                :key="index"
-                :type="getKeywordTagType(index)"
-                :size="getKeywordSize(keyword.count)"
-                effect="light"
-                class="keyword-tag"
-              >
-                {{ keyword.word }}
-                <span class="keyword-count">({{ keyword.count }})</span>
-              </el-tag>
-            </div>
-          </div>
-        </div>
-      </el-card>
-
-      <!-- 用户活跃度 -->
-      <el-card class="result-card activity-card" v-if="analysisResult.user_activity">
-        <template #header>
-          <div class="section-header">
-            <div class="section-title">
-              <el-icon><UserFilled /></el-icon>
-              <span>用户活跃度</span>
-            </div>
-          </div>
-        </template>
-
-        <div class="activity-content">
-          <div class="top-users-section">
-            <h4>最活跃用户 TOP5</h4>
-            <div class="top-users-list">
-              <div 
-                v-for="(user, index) in topUsers" 
-                :key="index"
-                class="top-user-item"
-                :class="{ 'top-3': index < 3 }"
-              >
-                <div class="user-rank">{{ index + 1 }}</div>
-                <div class="user-avatar">
-                  <el-icon><Avatar /></el-icon>
-                </div>
-                <div class="user-info">
-                  <div class="user-name">用户 {{ user.user_id }}</div>
-                  <div class="user-count">{{ user.comment_count }} 条评论</div>
-                </div>
-                <el-progress 
-                  :percentage="Math.round((user.comment_count / maxUserComments) * 100)" 
-                  :stroke-width="6"
-                  :show-text="false"
-                  class="user-progress"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="activity-stats">
-            <div class="activity-stat-item">
-              <div class="stat-value">{{ analysisResult.user_activity?.single_comment_users || 0 }}</div>
-              <div class="stat-label">仅评论一次</div>
-            </div>
-            <div class="activity-stat-item">
-              <div class="stat-value">{{ analysisResult.user_activity?.multi_comment_users || 0 }}</div>
-              <div class="stat-label">多次评论</div>
-            </div>
-          </div>
-        </div>
+      <!-- 词云 -->
+      <el-card class="result-card" v-if="analysisResult.keyword_analysis">
+        <template #header><div class="section-title"><el-icon><Collection /></el-icon> 特征词提取</div></template>
+        <KeywordCloudChart :data="analysisResult.keyword_analysis?.top_keywords || []" height="300px" />
       </el-card>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { submitCommentAnalysis, getJobStatus } from '@/api/bilibili';
 import SentimentPieChart from '@/components/charts/SentimentPieChart.vue';
 import KeywordCloudChart from '@/components/charts/KeywordCloudChart.vue';
 import {
-  ChatDotRound,
-  VideoPlay,
-  Cpu,
-  Link,
-  QuestionFilled,
-  CircleCheck,
-  ChatLineRound,
-  RefreshLeft,
-  PieChart,
-  User,
-  Document,
-  Collection,
-  UserFilled,
-  Avatar,
-  Download,
-  DataAnalysis,
-  Search,
-  InfoFilled
+  ChatDotRound, VideoPlay, Cpu, Link, QuestionFilled, CircleCheck, RefreshLeft,
+  PieChart, User, Document, Collection, Download, DataAnalysis, Search, Filter
 } from '@element-plus/icons-vue';
 
 const route = useRoute();
-
-// 状态
-const form = ref({ bvId: '' });
+const form = reactive({ bvId: '' });
 const analyzing = ref(false);
 const jobProgress = ref(0);
-const jobStatusText = ref('');
-const analysisResult = ref(null);
-
-// 分页
+const analysisResult = ref<any>(null);
 const currentPage = ref(1);
-const pageSize = ref(10);
-
-// 示例BV号
+const pageSize = ref(5);
 const sampleBVs = ['BV1xx411c7mD', 'BV1bK411x7ct', 'BV1S54y1G7h3'];
 
-// 分析步骤
 const analysisSteps = [
-  { percent: 0, text: '准备分析', icon: 'Search' },
-  { percent: 25, text: '获取评论', icon: 'Download' },
-  { percent: 50, text: '情感识别', icon: 'DataAnalysis' },
-  { percent: 75, text: '关键词提取', icon: 'Collection' },
-  { percent: 100, text: '分析完成', icon: 'CircleCheck' }
+  { percent: 0, text: '预处理', icon: Search },
+  { percent: 25, text: '去噪', icon: Filter },
+  { percent: 50, text: '特征分析', icon: DataAnalysis },
+  { percent: 75, text: '极性建模', icon: Collection },
+  { percent: 100, text: '完成', icon: CircleCheck }
 ];
 
-// 计算属性
-const sentimentPercentages = computed(() => {
-  if (!analysisResult.value?.sentiment_analysis) {
-    return { positive: 0, neutral: 0, negative: 0 };
-  }
-  const data = analysisResult.value.sentiment_analysis;
-  const total = data.positive + data.neutral + data.negative;
-  if (total === 0) return { positive: 0, neutral: 0, negative: 0 };
-  
-  return {
-    positive: Math.round((data.positive / total) * 100),
-    neutral: Math.round((data.neutral / total) * 100),
-    negative: Math.round((data.negative / total) * 100)
-  };
-});
-
-const topKeywords = computed(() => {
-  if (!analysisResult.value?.keyword_analysis?.top_keywords) return [];
-  return analysisResult.value.keyword_analysis.top_keywords.slice(0, 20);
-});
-
-const topUsers = computed(() => {
-  if (!analysisResult.value?.user_activity?.most_active_users) return [];
-  return analysisResult.value.user_activity.most_active_users.slice(0, 5).map(user => ({
-    user_id: user.username,
-    comment_count: user.comment_count
-  }));
-});
-
-const maxUserComments = computed(() => {
-  if (!topUsers.value.length) return 1;
-  return Math.max(...topUsers.value.map(u => u.comment_count));
-});
-
-// 方法
 const startAnalysis = async () => {
-  if (!form.value.bvId) {
-    ElMessage.warning('请输入BV号');
-    return;
-  }
-
+  if (!form.bvId) return;
   analyzing.value = true;
-  jobProgress.value = 0;
   analysisResult.value = null;
-
+  jobProgress.value = 0;
   try {
-    const res = await submitCommentAnalysis(form.value.bvId);
+    const res = await submitCommentAnalysis(form.bvId);
+    const data = res.data || res;
     
-    // 处理响应
-    let responseData = res;
-    if (res.data !== undefined) {
-      responseData = res.data;
+    if (data.error) {
+      ElMessage.error(data.error);
+      analyzing.value = false;
+      return;
     }
     
-    if (responseData.basic_stats || responseData.sentiment_analysis || responseData.keyword_analysis) {
-      analysisResult.value = responseData;
+    if (data.basic_stats || data.cleaning_report || data.sentiment_analysis) {
+      analysisResult.value = data;
       analyzing.value = false;
       jobProgress.value = 100;
-      ElMessage.success('获取成功！');
-    } else if (responseData.job_id) {
-      pollJobStatus(responseData.job_id);
+      ElMessage.success('分析成功');
+    } else if (data.job_id) {
+      pollJobStatus(data.job_id);
+    }
+  } catch (e: any) {
+    // 拦截 409 冲突错误
+    if (e.response && e.response.status === 409) {
+      ElMessage.info('该视频正在分析中，系统已自动连接到分析任务');
+      // 对于 409，虽然我们没有得到 job_id，但后端在进行分析。
+      // 我们尝试直接通过 BV 号来轮询结果，因为 backend 会在完成后写入 comment_analysis_{bv_id}
+      pollResultByBvOnly(form.bvId);
     } else {
-      ElMessage.error('无法获取分析结果');
+      ElMessage.error('服务连接失败，请检查网络');
       analyzing.value = false;
     }
-  } catch (error: any) {
-    ElMessage.error('提交分析失败: ' + (error.message || '未知错误'));
-    analyzing.value = false;
   }
 };
 
-const pollJobStatus = async (jobId) => {
+/**
+ * 专门用于没有 job_id 情况下的轮询（如 409 冲突时）
+ */
+const pollResultByBvOnly = async (bvId: string) => {
+  let attempts = 0;
+  const maxAttempts = 30; // 约 1 分钟
+  
   const poll = async () => {
     try {
-      const data = await getJobStatus(jobId);
-      let result = data;
-      if (data.code === 200 && data.data) {
-        result = data.data;
-      }
+      // 尝试获取结果
+      const res = await request.get(`/api/comments/analysis/${bvId}`);
+      const data = res.data || res;
       
-      jobProgress.value = result.progress || 0;
-      jobStatusText.value = result.status || '分析中...';
-      
-      if (result.status === 'completed') {
-        analysisResult.value = result.result;
+      if (data && (data.basic_stats || data.sentiment_analysis)) {
+        analysisResult.value = data;
         analyzing.value = false;
-        ElMessage.success('分析完成！');
-      } else if (result.status === 'failed') {
-        analyzing.value = false;
-        ElMessage.error('分析失败：' + (result.error || '未知错误'));
+        jobProgress.value = 100;
+        ElMessage.success('已获取最新分析结果');
+      } else if (attempts < maxAttempts) {
+        attempts++;
+        jobProgress.value = Math.min(95, attempts * 3); // 模拟进度
+        setTimeout(poll, 2000);
       } else {
-        setTimeout(() => poll(), 2000);
+        ElMessage.error('获取分析结果超时，请稍后刷新重试');
+        analyzing.value = false;
       }
     } catch (error) {
-      analyzing.value = false;
-      ElMessage.error('获取任务状态失败');
+      // 如果后端还没准备好数据，可能会报 404，我们继续等
+      if (attempts < maxAttempts) {
+        attempts++;
+        setTimeout(poll, 2000);
+      } else {
+        analyzing.value = false;
+      }
     }
   };
   poll();
 };
 
-const resetAnalysis = () => {
-  analysisResult.value = null;
-  form.value.bvId = '';
-  currentPage.value = 1;
+const pollJobStatus = async (jobId: string) => {
+  const poll = async () => {
+    try {
+      const data = await getJobStatus(jobId);
+      const res = data.data || data;
+      jobProgress.value = res.progress || 0;
+      if (res.status === 'completed') {
+        analysisResult.value = res.result;
+        analyzing.value = false;
+        ElMessage.success('分析完成');
+      } else if (res.status === 'failed') {
+        ElMessage.error(res.error || '分析引擎报错');
+        analyzing.value = false;
+      } else {
+        setTimeout(() => { poll(); }, 2000);
+      }
+    } catch { 
+      analyzing.value = false; 
+    }
+  };
+  poll();
+};
+
+const resetAnalysis = () => { analysisResult.value = null; form.bvId = ''; };
+
+const getAllCommentExamples = () => {
+  const s = analysisResult.value?.sentiment_analysis;
+  if (!s) return [];
+  if (s.examples) return s.examples;
+  const ex: any[] = [];
+  const exclude = ['positive','neutral','negative','total'];
+  Object.entries(s).forEach(([k, v]) => {
+    if (!exclude.includes(k) && typeof v === 'object' && (v as any).label) {
+      ex.push({ comment: k, label: (v as any).label });
+    }
+  });
+  return ex;
 };
 
 const getCommentExamples = computed(() => {
-  const examples = getAllCommentExamples();
-  const start = (currentPage.value - 1) * pageSize.value;
-  return examples.slice(start, start + pageSize.value);
+  const all = getAllCommentExamples();
+  return all.slice((currentPage.value - 1) * pageSize.value, currentPage.value * pageSize.value);
 });
 
-const getAllCommentExamples = () => {
-  if (!analysisResult.value?.sentiment_analysis) return [];
-  const sentiment = analysisResult.value.sentiment_analysis;
-  if (sentiment.examples && Array.isArray(sentiment.examples)) {
-    return sentiment.examples;
-  }
-  const examples = [];
-  const excludeKeys = ['negative', 'neutral', 'positive', 'total'];
-  for (const [key, value] of Object.entries(sentiment)) {
-    if (excludeKeys.includes(key)) continue;
-    if (typeof value === 'object' && (value as any).label) {
-      examples.push({
-        comment: key,
-        label: parseInt((value as any).label),
-        score: (value as any).score
-      });
-    }
-  }
-  return examples;
+const getSentimentType = (l: any) => {
+  const n = typeof l === 'string' ? parseInt(l) : l;
+  const map: any = { 1:'danger', 2:'warning', 3:'info', 4:'success', 5:'success' };
+  return map[n] || 'info';
 };
 
-const handleCurrentChange = (val) => { currentPage.value = val; };
-const handleSizeChange = (val) => { pageSize.value = val; currentPage.value = 1; };
-
-const getSentimentType = (label) => {
-  const num = typeof label === 'string' ? parseInt(label) : label;
-  const map: Record<number, string> = { 1: 'danger', 2: 'warning', 3: 'info', 4: 'success', 5: 'success' };
-  return map[num] || 'info';
+const getSentimentText = (l: any) => {
+  const n = typeof l === 'string' ? parseInt(l) : l;
+  const map: any = { 1:'负面', 2:'较差', 3:'中性', 4:'良好', 5:'优秀' };
+  return map[n] || '未知';
 };
 
-const getSentimentText = (label) => {
-  const num = typeof label === 'string' ? parseInt(label) : label;
-  const map: Record<number, string> = { 1: '非常负面', 2: '负面', 3: '中性', 4: '正面', 5: '非常正面' };
-  return map[num] || '未知';
-};
-
-const getKeywordTagType = (index) => {
-  if (index < 3) return 'danger';
-  if (index < 6) return 'warning';
-  if (index < 10) return 'success';
-  return 'info';
-};
-
-const getKeywordSize = (count) => {
-  const max = topKeywords.value[0]?.count || 1;
-  const ratio = count / max;
-  if (ratio > 0.7) return 'large';
-  if (ratio > 0.4) return 'default';
-  return 'small';
+const getKeywordTagType = (i: number) => i < 3 ? 'danger' : (i < 10 ? 'primary' : 'info');
+const getKeywordSize = (c: number) => {
+  const max = analysisResult.value?.keyword_analysis?.top_keywords?.[0]?.count || 1;
+  return (c / max) > 0.7 ? 'large' : 'default';
 };
 
 onMounted(() => {
-  const bvFromQuery = route.query.bv as string;
-  if (bvFromQuery) {
-    form.value.bvId = bvFromQuery;
-    startAnalysis();
-  }
+  const bv = route.query.bv as string;
+  if (bv) { form.bvId = bv; startAnalysis(); }
 });
 </script>
 
 <style scoped>
-.comment-analysis-page {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
-  background: var(--bg-secondary);
-  min-height: 100vh;
-}
-
-/* 页面标题 */
-.page-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.page-title {
-  font-size: 32px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.page-title .el-icon {
-  font-size: 36px;
-  color: var(--primary-color);
-}
-
-.page-subtitle {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* 输入区 */
-.input-section {
-  margin-bottom: 32px;
-}
-
-.input-card {
-  border-radius: 12px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.input-form {
-  padding: 20px 0;
-}
-
-.bv-input-wrapper {
-  margin-bottom: 20px;
-}
-
-.input-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.help-icon {
-  color: var(--text-tertiary);
-  cursor: help;
-}
-
-.quick-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.quick-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.sample-tag {
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.sample-tag:hover {
-  background: var(--primary-color);
-  color: white;
-  border-color: var(--primary-color);
-}
-
-/* 分析进度 */
-.analysis-progress {
-  margin-top: 24px;
-  padding: 20px;
-  background: var(--bg-secondary);
-  border-radius: 12px;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.progress-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.progress-percent {
-  font-size: 14px;
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-.progress-steps {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--separator-color);
-}
-
-.step-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-tertiary);
-  transition: all 0.2s ease;
-}
-
-.step-item.active {
-  color: var(--primary-color);
-}
-
-.step-item.current {
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-.step-item .el-icon {
-  font-size: 20px;
-}
-
-/* 结果区 */
-.results-section {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.result-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--primary-color);
-  color: white;
-  padding: 16px 24px;
-  border-radius: 12px;
-}
-
-.result-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.result-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* 统计卡片 */
-.stats-grid {
-  margin-bottom: 8px;
-}
-
-.stat-card {
-  background: var(--bg-card);
-  border-radius: 12px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light);
-  transition: all 0.2s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.stat-card.primary {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-}
-
-.stat-card.success {
-  background: var(--success-color);
-  color: white;
-  border: none;
-}
-
-.stat-card.warning {
-  background: var(--warning-color);
-  color: white;
-  border: none;
-}
-
-.stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
-}
-
-.stat-number {
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-
-.stat-label {
-  font-size: 13px;
-  opacity: 0.9;
-}
-
-/* 结果卡片 */
-.result-card {
-  border-radius: 12px;
-  margin-bottom: 0;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-/* 情感分析 */
-.sentiment-summary {
-  display: flex;
-  gap: 16px;
-}
-
-.summary-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-.summary-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.summary-item.positive .summary-dot {
-  background: var(--success-color);
-}
-
-.summary-item.neutral .summary-dot {
-  background: var(--text-tertiary);
-}
-
-.summary-item.negative .summary-dot {
-  background: var(--error-color);
-}
-
-.sentiment-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.chart-container {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 16px;
-}
-
-/* 评论示例 */
-.comment-examples {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
-}
-
-.examples-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.examples-header h4 {
-  margin: 0;
-  font-size: 16px;
-  color: var(--text-primary);
-}
-
-.examples-count {
-  font-size: 13px;
-  color: var(--text-tertiary);
-}
-
-.examples-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.example-item {
-  background: var(--bg-card);
-  border-radius: 8px;
-  padding: 12px 16px;
-  border-left: 3px solid var(--separator-color);
-}
-
-.example-item.success {
-  border-left-color: var(--success-color);
-}
-
-.example-item.warning {
-  border-left-color: var(--warning-color);
-}
-
-.example-item.danger {
-  border-left-color: var(--error-color);
-}
-
-.example-item.info {
-  border-left-color: var(--text-tertiary);
-}
-
-.example-sentiment {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.confidence {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
-.example-text {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text-primary);
-}
-
-.pagination-wrapper {
-  margin-top: 16px;
-  display: flex;
-  justify-content: center;
-}
-
-/* 关键词分析 */
-.keywords-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.wordcloud-section,
-.keywords-list-section {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
-}
-
-.wordcloud-section h4,
-.keywords-list-section h4 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: var(--text-primary);
-}
-
-.wordcloud-container {
-  background: var(--bg-card);
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.keywords-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.keyword-tag {
-  transition: all 0.2s ease;
-}
-
-.keyword-tag:hover {
-  transform: scale(1.05);
-}
-
-.keyword-count {
-  opacity: 0.7;
-  margin-left: 4px;
-}
-
-/* 用户活跃度 */
-.activity-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.top-users-section {
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
-}
-
-.top-users-section h4 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  color: var(--text-primary);
-}
-
-.top-users-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.top-user-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--bg-card);
-  border-radius: 8px;
-  padding: 12px 16px;
-}
-
-.top-user-item.top-3 {
-  background: rgba(0, 122, 255, 0.05);
-  border: 1px solid rgba(0, 122, 255, 0.15);
-}
-
-.user-rank {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--bg-tertiary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.top-user-item.top-3 .user-rank {
-  background: var(--primary-color);
-  color: white;
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: rgba(0, 122, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--primary-color);
-  font-size: 20px;
-}
-
-.user-info {
-  flex: 1;
-}
-
-.user-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 2px;
-}
-
-.user-count {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-
-.user-progress {
-  width: 100px;
-}
-
-.activity-stats {
-  display: flex;
-  gap: 16px;
-}
-
-.activity-stat-item {
-  flex: 1;
-  background: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
-}
-
-.activity-stat-item .stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--primary-color);
-  margin-bottom: 4px;
-}
-
-.activity-stat-item .stat-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-}
-
-/* 深色模式适配 */
-@media (prefers-color-scheme: dark) {
-  .chart-container {
-    background: var(--bg-secondary);
-  }
-
-  .comment-examples {
-    background: var(--bg-secondary);
-  }
-
-  .example-item {
-    background: var(--bg-card);
-  }
-
-  .wordcloud-section,
-  .keywords-list-section {
-    background: var(--bg-secondary);
-  }
-
-  .wordcloud-container {
-    background: var(--bg-card);
-  }
-
-  .top-users-section {
-    background: var(--bg-secondary);
-  }
-
-  .top-user-item {
-    background: var(--bg-card);
-  }
-
-  .activity-stat-item {
-    background: var(--bg-secondary);
-  }
-
-  .analysis-progress {
-    background: var(--bg-secondary);
-  }
-
-  .stat-card.primary,
-  .stat-card.success,
-  .stat-card.warning {
-    color: var(--text-inverse);
-  }
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-  .comment-analysis-page {
-    padding: 16px;
-  }
-  
-  .page-title {
-    font-size: 24px;
-  }
-  
-  .result-header {
-    flex-direction: column;
-    gap: 12px;
-    text-align: center;
-  }
-  
-  .sentiment-summary {
-    flex-direction: column;
-    gap: 8px;
-  }
-  
-  .progress-steps {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-}
+.comment-analysis-page { padding: 32px; max-width: 1200px; margin: 0 auto; background: var(--bg-secondary); min-height: 100vh; }
+.page-header { text-align: center; margin-bottom: 40px; }
+.page-title { font-size: 32px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 12px; }
+.page-title .el-icon { font-size: 40px; color: var(--primary-color); }
+.input-card { border-radius: 16px; border: 1px solid var(--border-light); }
+.analysis-progress { margin-top: 32px; padding: 24px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-light); }
+.progress-steps { display: flex; justify-content: space-between; margin-top: 24px; }
+.step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; opacity: 0.4; }
+.step-item.active { opacity: 1; color: var(--primary-color); }
+.results-section { display: flex; flex-direction: column; gap: 24px; margin-top: 40px; }
+.result-header { background: var(--primary-color); color: white; padding: 16px 24px; border-radius: 12px; display: flex; justify-content: space-between; }
+.cleaning-report-card { border-left: 6px solid var(--primary-color); }
+.cleaning-stat-item { text-align: center; padding: 16px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-light); }
+.cleaning-stat-item .value { font-size: 24px; font-weight: 800; }
+.value.warning { color: var(--warning-color); }
+.value.success { color: var(--success-color); }
+.noise-tags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.stat-card { background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border-light); display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.stat-card.primary { background: linear-gradient(135deg, #007AFF, #0051D5); color: white; }
+.stat-card.success { background: linear-gradient(135deg, #34C759, #248A3D); color: white; }
+.stat-card.warning { background: linear-gradient(135deg, #FF9500, #C97300); color: white; }
+.stat-number { font-size: 24px; font-weight: 800; }
+.example-item { padding: 12px; border-radius: 8px; margin-bottom: 8px; background: var(--bg-secondary); border-left: 4px solid #eee; }
+.example-item.danger { border-left-color: var(--error-color); }
+.example-item.success { border-left-color: var(--success-color); }
 </style>

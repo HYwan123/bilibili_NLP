@@ -30,9 +30,15 @@ class RedisClientAsync:
     async def get(self, key):
         return await self.redis_client.get(key)
 
+    async def set(self, key, value, ex=None):
+        return await self.redis_client.set(key, value, ex=ex)
+
 
     async def get_streams(self, stream_name) -> list:
         return await self.redis_client.xread({stream_name: "$"}, count=1, block=0) # type: ignore
+
+    async def get_streams_from_id(self, stream_name, last_id='0') -> list:
+        return await self.redis_client.xread({stream_name: last_id}, count=1, block=0) # type: ignore
     
     async def del_stream_key(self, stream_name, msg_id):
         await self.redis_client.xdel(stream_name, msg_id)
