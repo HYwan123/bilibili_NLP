@@ -18,9 +18,13 @@
     </el-alert>
     
     <div class="search-section">
+      <el-radio-group v-model="historyType" @change="handleTypeChange" style="margin-right: 20px;">
+        <el-radio-button label="uuid">用户分析</el-radio-button>
+        <el-radio-button label="bv">视频分析</el-radio-button>
+      </el-radio-group>
       <el-input 
         v-model="searchUid" 
-        placeholder="输入用户UID查看分析结果" 
+        :placeholder="historyType === 'uuid' ? '输入用户UID查看分析结果' : '输入视频BV号查看分析结果'" 
         style="width: 300px; margin-right: 10px;"
         clearable
         @clear="handleClearSearch"
@@ -32,14 +36,18 @@
     <!-- 分析历史列表 -->
     <div style="margin-top: 20px;">
       <div v-if="!searchUid" style="margin-bottom: 15px;">
-        <h3>我的分析历史</h3>
+        <h3>我的{{ historyType === 'uuid' ? '用户分析' : '视频分析' }}历史</h3>
       </div>
       <div v-else style="margin-bottom: 15px;">
         <h3>搜索结果</h3>
       </div>
       
       <el-table :data="historyList" stripe style="width: 100%" v-loading="loading" empty-text="暂无分析记录">
-        <el-table-column prop="uid" label="用户UID" width="150" />
+        <el-table-column :label="historyType === 'uuid' ? '用户UID' : '视频BV号'" width="150">
+          <template #default="scope">
+            {{ historyType === 'uuid' ? scope.row.uid : scope.row.bv }}
+          </template>
+        </el-table-column>
         <el-table-column prop="query_time" label="分析时间" width="180" />
         <el-table-column label="样本评论" min-width="400">
           <template #default="scope">
@@ -51,7 +59,7 @@
                 class="comment-tag"
                 type="success"
               >
-                {{ comment.length > 30 ? comment.substring(0, 30) + '...' : comment }}
+                {{ (typeof comment === 'string' ? comment : comment.content || '').length > 30 ? (typeof comment === 'string' ? comment : comment.content || '').substring(0, 30) + '...' : (typeof comment === 'string' ? comment : comment.content || '') }}
               </el-tag>
               <el-tag v-if="scope.row.sample_comments.length > 3" size="small" type="info">
                 +{{ scope.row.sample_comments.length - 3 }} 更多
@@ -60,14 +68,23 @@
             <span v-else class="no-data">暂无样本评论</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="scope">
             <el-button 
               size="small" 
               type="primary" 
-              @click="viewDetail(scope.row.uid)"
+              @click="viewDetail(scope.row)"
             >
               查看详情
+            </el-button>
+            <el-button 
+              v-if="historyType === 'bv'"
+              size="small" 
+              type="success" 
+              @click="handleInsertVector(scope.row.bv)"
+              :loading="vectorLoading === scope.row.bv"
+            >
+              插入向量
             </el-button>
           </template>
         </el-table-column>
@@ -122,11 +139,13 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import request from '@/utils/request';
-import { getHistory } from '@/api/bilibili';
+import { getHistory, insertVectorByBV } from '@/api/bilibili';
 
 const router = useRouter();
 const searchUid = ref('');
+const historyType = ref<'uuid' | 'bv'>('uuid');
 const loading = ref(false);
+const vectorLoading = ref('');
 const error = ref('');
 const analysisResult = ref<any>(null);
 const expandedComments = ref<string[]>([]);
@@ -148,7 +167,7 @@ const loadHistory = async () => {
     const response = await getHistory({
       page: currentPage.value,
       page_size: pageSize.value,
-      type: 'uuid'
+      type: historyType.value
     });
     
     if (response.data) {
@@ -166,7 +185,7 @@ const loadHistory = async () => {
 // 搜索分析结果
 const searchAnalysis = async () => {
   if (!searchUid.value) {
-    error.value = '请输入UID';
+    error.value = historyType.value === 'uuid' ? '请输入UID' : '请输入BV号';
     return;
   }
   
@@ -176,17 +195,28 @@ const searchAnalysis = async () => {
   expandedComments.value = [];
   
   try {
-    const response = await request.get(`/api/user/analysis/${searchUid.value}`);
+    const url = historyType.value === 'uuid' 
+      ? `/api/user/analysis/${searchUid.value}`
+      : `/api/comments/analysis/${searchUid.value}`;
+      
+    const response = await request.get(url);
     const res = response.data;
     if (res.code === 200) {
       analysisResult.value = res.data;
       expandedComments.value = res.data.sample_comments || [];
       // 保持搜索出的内容在列表显示
-      historyList.value = [{
-        uid: res.data.uid,
-        query_time: formatTime(res.data.timestamp),
+      const historyItem: any = {
+        query_time: formatTime(res.data.timestamp || res.data.query_time),
         sample_comments: res.data.sample_comments || []
-      }];
+      };
+      
+      if (historyType.value === 'uuid') {
+        historyItem.uid = res.data.uid;
+      } else {
+        historyItem.bv = res.data.bv || searchUid.value;
+      }
+      
+      historyList.value = [historyItem];
       total.value = 1;
     } else {
       error.value = res.message || '未找到分析结果';
@@ -202,9 +232,41 @@ const searchAnalysis = async () => {
   }
 };
 
-// 查看详情 - 现在跳转到用户画像详情页
-const viewDetail = (uid: string | number) => {
-  router.push(`/user-portrait?uid=${uid}`);
+// 查看详情
+const viewDetail = (row: any) => {
+  if (historyType.value === 'uuid') {
+    router.push(`/user-portrait?uid=${row.uid}`);
+  } else {
+    router.push(`/comment-analysis?bv=${row.bv}`);
+  }
+};
+
+// 处理类型切换
+const handleTypeChange = () => {
+  searchUid.value = '';
+  analysisResult.value = null;
+  expandedComments.value = [];
+  currentPage.value = 1;
+  loadHistory();
+};
+
+// 插入向量
+const handleInsertVector = async (bv_id: string) => {
+  if (!bv_id) return;
+  
+  vectorLoading.value = bv_id;
+  try {
+    const res: any = await insertVectorByBV(bv_id);
+    if (res.code === 200) {
+      ElMessage.success('成功插入向量数据库');
+    } else {
+      ElMessage.error(res.message || '插入失败');
+    }
+  } catch (e: any) {
+    ElMessage.error(e.message || '插入失败');
+  } finally {
+    vectorLoading.value = '';
+  }
 };
 
 // 清除搜索

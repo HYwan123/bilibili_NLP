@@ -41,8 +41,19 @@
       </el-card>
     </div>
 
-    <!-- 3. 分析结果渲染 -->
     <div v-if="analysisResult && !analysisResult.error" class="dashboard-content">
+      
+      <!-- 操作按钮区 -->
+      <div class="action-bar" style="margin-bottom: 20px; display: flex; justify-content: flex-end; gap: 10px;">
+        <el-button 
+          type="success" 
+          :icon="Download" 
+          @click="handleInsertVector" 
+          :loading="vectorLoading"
+        >
+          保存到向量数据库 (Embeddings)
+        </el-button>
+      </div>
       
       <!-- 第一行：预处理与基础统计 -->
       <el-row :gutter="20">
@@ -182,7 +193,7 @@ import { ref, computed, onMounted, reactive } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import request from '@/utils/request';
-import { submitCommentAnalysis, getJobStatus } from '@/api/bilibili';
+import { submitCommentAnalysis, getJobStatus, insertVectorByBV } from '@/api/bilibili';
 import SentimentPieChart from '@/components/charts/SentimentPieChart.vue';
 import KeywordCloudChart from '@/components/charts/KeywordCloudChart.vue';
 import KeywordBarChart from '@/components/charts/KeywordBarChart.vue';
@@ -196,12 +207,33 @@ import {
 const route = useRoute();
 const form = reactive({ bvId: '' });
 const analyzing = ref(false);
+const vectorLoading = ref(false);
 const jobProgress = ref(0);
 const jobStatusText = ref('');
 const analysisResult = ref<any>(null);
 const currentPage = ref(1);
 const pageSize = ref(5);
 const sampleBVs = ['BV1xx411c7mD', 'BV1bK411x7ct', 'BV1S54y1G7h3'];
+
+/**
+ * 插入向量
+ */
+const handleInsertVector = async () => {
+  if (!form.bvId) return;
+  vectorLoading.value = true;
+  try {
+    const res: any = await insertVectorByBV(form.bvId);
+    if (res.code === 200) {
+      ElMessage.success('成功插入向量数据库');
+    } else {
+      ElMessage.error(res.message || '插入失败');
+    }
+  } catch (e: any) {
+    ElMessage.error(e.message || '插入失败');
+  } finally {
+    vectorLoading.value = false;
+  }
+};
 
 const startAnalysis = async () => {
   if (!form.bvId) return;
