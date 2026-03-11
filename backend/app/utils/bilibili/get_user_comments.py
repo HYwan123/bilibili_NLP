@@ -271,6 +271,8 @@ def get_user_comments_simple(uid: int) -> List[Dict[str, Any]]:
     """
     简单的用户评论获取函数，使用subprocess调用curl，直接获取评论数据，并保存到Redis
     """
+
+
     try:
         print(f"开始获取用户 {uid} 的评论...")
         cmd = [
@@ -303,7 +305,7 @@ def get_user_comments_simple(uid: int) -> List[Dict[str, Any]]:
         return []
     except json.JSONDecodeError as e:
         print(f"JSON解析失败 for UID {uid}: {e}")
-        print(f"响应内容: {result.stdout[:200]}...")
+        print(f"响应内容: {result.stdout}...")
         return []
     except Exception as e:
         print(f"获取评论时发生未知错误 for UID {uid}: {e}")
