@@ -7,8 +7,9 @@ import os
 import logging
 from app.database.mysql_database_pool import db_pool, DatabasePool
 from app.database.mysql_exceptions import DatabaseConnectionError
-from app.database.redis_pool import redis_pool, get_redis_client
+from app.database.redis_client_async import RedisClientAsync
 
+redis_client = RedisClientAsync()
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -236,7 +237,7 @@ def get_uuid_history(username: str):
         conn.close()
 
 
-def get_history_by_user(
+async def get_history_by_user(
     user_id: int, page: int = 1, page_size: int = 20, history_type: str = "all"
 ):
     conn = get_db_connection()
@@ -244,7 +245,6 @@ def get_history_by_user(
         return {"items": [], "total": 0, "page": page, "page_size": page_size}
 
     cursor = conn.cursor(dictionary=True)
-    redis_client = get_redis_client()
 
     try:
         # Get username
@@ -348,7 +348,7 @@ def get_history_by_user(
                     keys.extend([f"{uid}_result", f"analysis_{uid}"])
                     
                     for key in keys:
-                        data = redis_client.get(key)
+                        data = await redis_client.get(key)
                         if data:
                             try:
                                 res = json.loads(data)
@@ -382,7 +382,7 @@ def get_history_by_user(
         conn.close()
 
 
-def save_user_comments(uid: int, username: str, comments: List[Dict[str, Any]]) -> bool:
+def save_user_comments(uid: int | str, username: str, comments: List[Dict[str, Any]]) -> bool:
     """
     保存用户评论到数据库
     """
@@ -431,7 +431,7 @@ def save_user_comments(uid: int, username: str, comments: List[Dict[str, Any]]) 
         conn.close()
 
 
-def get_user_comments(uid: int | str) -> List[Dict[str, Any]]:
+def get_user_comments(uid: str) -> List[Dict[str, Any]]:
     """
     从数据库获取用户评论
     """

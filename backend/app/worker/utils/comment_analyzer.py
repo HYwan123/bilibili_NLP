@@ -18,9 +18,9 @@ def get_classifier():
     if _classifier is None:
         print("Worker: 正在加载 BERT 情感分析模型...")
         _classifier = pipeline(
-            "sentiment-analysis",
+            "sentiment-analysis", # type: ignore
             model="nlptown/bert-base-multilingual-uncased-sentiment"
-        )
+        ) # type: ignore
     return _classifier
 
 class CommentAnalyzer:
@@ -39,16 +39,16 @@ class CommentAnalyzer:
 
             # 2. 基础统计（增强版）
             analysis_result["cleaning_report"] = clean_stats
-            analysis_result["basic_stats"] = self._basic_statistics(cleaned_comments)
+            analysis_result["basic_stats"] = self._basic_statistics(cleaned_comments) # type: ignore
             
             # 3. 情感分析
-            analysis_result["sentiment_analysis"] = await self._sentiment_analysis_pipeline(cleaned_comments)
+            analysis_result["sentiment_analysis"] = await self._sentiment_analysis_pipeline(cleaned_comments) # type: ignore
             
             # 4. 关键词分析
-            analysis_result["keyword_analysis"] = self._keyword_analysis(cleaned_comments)
+            analysis_result["keyword_analysis"] = self._keyword_analysis(cleaned_comments) # type: ignore
             
             # 5. 用户活跃度
-            analysis_result["user_activity"] = self._user_activity_analysis(cleaned_comments)
+            analysis_result["user_activity"] = self._user_activity_analysis(cleaned_comments) # type: ignore
             
             await self.redis_client.set(f"comment_analysis_{bv_id}", json.dumps(analysis_result, ensure_ascii=False))
             await self.redis_client.add_streams(RESULT_STREAM, {'BV': bv_id})

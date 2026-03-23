@@ -7,7 +7,7 @@ import json
 redis_client = RedisClient()
 
 
-def get_user_comments_from_redis(uid: int) -> List[Dict[str, Any]]:
+def get_user_comments_from_redis(uid: int | str) -> List[Dict[str, Any]]:
     """
     从Redis获取用户评论
     """
@@ -24,7 +24,7 @@ def get_user_comments_from_redis(uid: int) -> List[Dict[str, Any]]:
             return []
     return []
 
-async def analyze_user_comments(uid: int) -> Dict[str, Any]:
+async def analyze_user_comments(uid: int | str) -> Dict[str, Any]:
     """
     使用大模型API分析用户评论，生成用户画像
     """
@@ -118,7 +118,7 @@ async def analyze_user_comments(uid: int) -> Dict[str, Any]:
     finally:
         redis_client.set('last_huaxiang', 0)
 
-def get_user_analysis_from_redis(uid: int) -> Dict[str, Any]:
+def get_user_analysis_from_redis(uid: int | str) -> Dict[str, Any]:
     """
     从Redis获取用户画像分析结果，优先查找{uid}_result，其次查analysis_{uid}
     """

@@ -105,7 +105,7 @@ async def get_history(
     ),
     current_user: User = Depends(get_current_user),
 ):
-    history_data = database.get_history_by_user(
+    history_data = await database.get_history_by_user(
         user_id=current_user.id, page=page, page_size=page_size, history_type=type
     )
     return JSONResponse(
