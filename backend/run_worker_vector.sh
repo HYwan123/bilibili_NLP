@@ -1,1 +1,0 @@
-/home/vscode/MyCode/project/bilibili_NLP/.venv/bin/python -m app.worker.main_vector

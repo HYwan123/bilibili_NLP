@@ -1,0 +1,40 @@
+[project]
+name = "bilibili-nlp"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "aiohttp>=3.13.3",
+    "fastapi[standard]>=0.135.2",
+    "jieba>=0.42.1",
+    "mysql-connector-python>=9.6.0",
+    "numpy>=2.4.3",
+    "pandas>=3.0.1",
+    "passlib[bcrypt]>=1.7.4",
+    "bcrypt<4",
+    "pyjwt>=2.12.1",
+    "pymilvus>=2.6.10",
+    "python-jose[cryptography]>=3.5.0",
+    "redis>=7.3.0",
+    "sentence-transformers>=5.3.0",
+    "uvicorn[standard]>=0.42.0",
+    "langchain>=1.2.13",
+    "langchain-openai>=1.1.12",
+    "langchain-google-genai>=4.2.1",
+    "pytest>=9.0.2",
+]
+
+[project.scripts]
+start-api = "app.main:main"
+start-vector = "app.worker.main_vector:main"
+start-video = "app.worker.main_video_comment:main"
+start-all = "app.run:main"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["frontend*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
