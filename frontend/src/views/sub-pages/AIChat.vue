@@ -107,7 +107,7 @@
             placeholder="输入您的问题，按 Enter 发送，Shift + Enter 换行..."
             resize="none"
             :disabled="loading"
-            @keydown.enter.prevent="handleEnter"
+            @keydown.enter.prevent="(e: KeyboardEvent) => handleEnter(e)"
           />
           <div class="input-actions">
             <div class="input-hint">
@@ -196,6 +196,7 @@ const handleEnter = (e: KeyboardEvent) => {
   if (!e.shiftKey) {
     sendMessage()
   }
+  e.preventDefault()
 }
 
 // 格式化时间
@@ -279,7 +280,7 @@ const sendMessage = async () => {
     await chatWithAIStream(
       chatMessages,
       (content: string, done: boolean) => {
-        if (content) {
+        if (content !== undefined && content !== null) {
           lastMessage.content += content
         }
         if (done) {
@@ -288,7 +289,7 @@ const sendMessage = async () => {
         // 每次接收到内容都滚动到底部
         scrollToBottom()
       },
-      'kimi-k2',
+      'glm-4.7-flash',  // 使用GLM模型
       systemPrompt.value || undefined
     )
     

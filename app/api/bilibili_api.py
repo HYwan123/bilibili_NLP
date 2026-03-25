@@ -1,4 +1,3 @@
-import asyncio
 import json
 import uuid
 from typing import Optional
@@ -809,13 +808,18 @@ async def chat_with_ai(
         # 调用AI接口
         response = await client.chat(
             messages=messages,
-            model=chat_request.model or "kimi-k2",
+            model="glm-4.7-flash",  # 锁定使用GLM模型，不使用前端传入的模型
             system_prompt=system_prompt
         )
 
         # 提取AI回复内容
-        ai_message = client.get_message(response)
-        ai_content = client.get_message_content(response)
+        try:
+            ai_message = client.get_message(response)
+            ai_content = client.get_message_content(response)
+        except TypeError:
+            # 如果响应格式不正确，返回错误
+            logger.error("AI响应格式错误")
+            return create_error_response(500, "AI响应格式错误")
 
         logger.info(f"AI问答成功，用户: {current_user.username}")
 
@@ -827,7 +831,7 @@ async def chat_with_ai(
                 "data": {
                     "message": ai_message,
                     "content": ai_content,
-                    "model": chat_request.model or "kimi-k2",
+                    "model": chat_request.model or "glm-4.7-flash",
                 },
             },
         )
@@ -905,23 +909,29 @@ async def chat_with_ai_stream(
 
             # 流式调用AI接口
             chunk_count = 0
+            # 使用 OpenAI 客户端的流式方法
             async for content in client.chat_stream(
                 messages=messages,
-                model=chat_request.model or "kimi-k2",
-                system_prompt=system_prompt,
+                model="glm-4.7-flash",  # 锁定使用GLM模型，不使用前端传入的模型
+                system_prompt=system_prompt
             ):
-                chunk_count += 1
-                data = json.dumps({"content": content})
-                logger.debug(f"Yielding chunk {chunk_count}: {content[:50]}...")
-                yield f"data: {data}\n\n"
+                if content:  # 只有当内容不为空时才发送
+                    chunk_count += 1
+                    data = json.dumps({"content": content}, ensure_ascii=False)
+                    logger.debug(f"Yielding chunk {chunk_count}: {content[:50]}...")
+                    yield f"data: {data}\n\n"
+                    
+                    # 添加额外的刷新指令以确保数据立即发送
+                    yield f": \n\n"
 
             logger.info(f"AI流式输出完成，共 {chunk_count} 个chunks")
+            yield f"data: {json.dumps({'content': ''})}\n\n"  # 发送一个空内容表示流结束
             yield "data: [DONE]\n\n"
             logger.info(f"AI流式问答完成，用户: {current_user.username}")
 
         except Exception as e:
             logger.error(f"AI流式问答失败: {e}")
-            error_data = json.dumps({"error": str(e)})
+            error_data = json.dumps({"error": str(e)}, ensure_ascii=False)
             yield f"data: {error_data}\n\n"
             yield "data: [DONE]\n\n"
 
@@ -931,7 +941,8 @@ async def chat_with_ai_stream(
         headers={
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-            "Content-Type": "text/event-stream",
+            "X-Accel-Buffering": "no",  # 禁用 Nginx 缓冲
+            "X-Content-Type-Options": "nosniff",  # 防止MIME嗅探
+            "Content-Type": "text/event-stream; charset=utf-8",
         },
     )

@@ -257,7 +257,7 @@ export function chatWithAISimple(text: string) {
  * AI问答 - 流式输出模式
  * @param messages 对话消息列表 [{role: 'user'|'assistant', content: string}]
  * @param onMessage 流式消息回调函数
- * @param model 模型名称，默认 kimi-k2
+ * @param model 模型名称，默认 glm-4.7-flash
  * @param systemPrompt 系统提示词
  */
 export async function chatWithAIStream(
@@ -269,13 +269,16 @@ export async function chatWithAIStream(
   const baseURL = import.meta.env.VITE_API_BASE_URL || ''
   const token = localStorage.getItem('token')
   
+  // 如果没有提供model，则使用默认的GLM模型
+  const modelToSend = model || 'glm-4.7-flash'
+  
   const response = await fetch(`${baseURL}/api/chat/stream`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': token ? `Bearer ${token}` : ''
     },
-    body: JSON.stringify({ messages, model, system_prompt: systemPrompt })
+    body: JSON.stringify({ messages, model: modelToSend, system_prompt: systemPrompt })
   })
 
   if (!response.ok) {
@@ -301,21 +304,17 @@ export async function chatWithAIStream(
 
       buffer += decoder.decode(value, { stream: true })
       
-      // SSE格式: data: {...}\n\n 每个消息以两个换行符结束
+      // 处理SSE格式：按两个换行符分割
       const messages = buffer.split('\n\n')
-      // 最后一个可能不完整，保留到下次处理
+      // 保留最后一个可能未完成的片段
       buffer = messages.pop() || ''
       
       for (const message of messages) {
-        // 每个消息可能包含多行，以\n分隔
-        const lines = message.split('\n')
-        
-        for (const line of lines) {
-          const trimmedLine = line.trim()
-          // 处理 "data:..." 或 "data: ..." 两种情况
-          if (!trimmedLine.startsWith('data:')) continue
-          
-          const data = trimmedLine.slice(5).trim()
+        if (!message.trim()) continue;
+        // 检查是否是 'data:' 开头的SSE消息
+        const dataMatch = message.match(/^data: (.*)$/m)
+        if (dataMatch) {
+          const data = dataMatch[1].trim()
           console.log('SSE data received:', data)
           
           if (data === '[DONE]') {
@@ -326,8 +325,12 @@ export async function chatWithAIStream(
           try {
             const parsed = JSON.parse(data)
             console.log('Parsed:', parsed)
-            if (parsed.content !== undefined && parsed.content !== null && parsed.content !== '') {
+            if (parsed.content) {
               onMessage(parsed.content, false)
+            } else if (parsed.error) {
+              console.error('Stream error:', parsed.error)
+              onMessage(`错误: ${parsed.error}`, true)
+              return
             }
           } catch (e) {
             console.error('JSON parse error:', e, 'Raw:', data)

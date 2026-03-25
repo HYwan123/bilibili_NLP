@@ -13,7 +13,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage]
-    model: Optional[str] = "kimi-k2"
+    model: Optional[str] = "glm-4.6v-flash"
     system_prompt: Optional[str] = None
 
 

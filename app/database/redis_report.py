@@ -79,35 +79,41 @@ async def analyze_user_comments(uid: int) -> Dict[str, Any]:
         
         logger.info(f"开始使用 OpenaiClient 分析用户 {uid} 的评论...")
         
-        # 调用AI接口 (使用默认 Qwen/QwQ-32B 类似的高质量模型逻辑，或默认 kimi-k2)
-        # 这里统一使用 Qwen/QwQ-32B 以保持之前逻辑的一致性
         response = await client.chat(
             messages=[{"role": "user", "content": user_prompt}],
-            model="Qwen/QwQ-32B",
             system_prompt=system_prompt
         )
 
-        if response and "choices" in response:
-            analysis_content = client.get_message_content(response)
+        try:
+            if response:
+                # 检查响应对象是否包含有效结果
+                if hasattr(response, 'choices') and response.choices:
+                    analysis_content = client.get_message_content(response)
 
-            analysis_result = {
-                "uid": uid,
-                "comment_count": len(comments),
-                "analysis": analysis_content,
-                "sample_comments": sample_comments,
-                "timestamp": datetime.now().isoformat()
-            }
+                    analysis_result = {
+                        "uid": uid,
+                        "comment_count": len(comments),
+                        "analysis": analysis_content,
+                        "sample_comments": sample_comments,
+                        "timestamp": datetime.now().isoformat()
+                    }
 
-            # 将分析结果保存到Redis的两种key
-            redis_client.set(f"analysis_{uid}", json.dumps(analysis_result, ensure_ascii=False))
-            redis_client.set(f"{uid}_result", json.dumps(analysis_result, ensure_ascii=False))
-            logger.info(f"用户 {uid} 画像分析完成")
+                    # 将分析结果保存到Redis的两种key
+                    redis_client.set(f"analysis_{uid}", json.dumps(analysis_result, ensure_ascii=False))
+                    redis_client.set(f"{uid}_result", json.dumps(analysis_result, ensure_ascii=False))
+                    logger.info(f"用户 {uid} 画像分析完成")
 
-            return analysis_result
-        else:
-            error_msg = response.get("error", "未知错误") if response else "响应为空"
-            logger.error(f"OpenaiClient 调用失败: {error_msg}")
-            return {"error": f"智能分析失败: {error_msg}"}
+                    return analysis_result
+                else:
+                    error_msg = "AI响应中没有有效内容" if response else "响应为空"
+                    logger.error(f"OpenaiClient 调用失败: {error_msg}")
+                    return {"error": f"智能分析失败: {error_msg}"}
+            else:
+                logger.error("OpenaiClient 调用失败: 响应为空")
+                return {"error": "智能分析失败: 响应为空"}
+        except Exception as e:
+            logger.error(f"处理AI响应时发生错误: {e}")
+            return {"error": f"智能分析失败: {str(e)}"}
 
     except Exception as e:
         logger.error(f"分析用户评论时发生错误: {e}")

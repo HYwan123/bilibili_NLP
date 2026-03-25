@@ -203,7 +203,9 @@ dependencies = [
     { name = "python-jose", extra = ["cryptography"] },
     { name = "redis" },
     { name = "sentence-transformers" },
+    { name = "sseclient" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "zai-sdk" },
 ]
 
 [package.metadata]
@@ -225,7 +227,9 @@ requires-dist = [
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
     { name = "redis", specifier = ">=7.3.0" },
     { name = "sentence-transformers", specifier = ">=5.3.0" },
+    { name = "sseclient", specifier = ">=0.0.27" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.42.0" },
+    { name = "zai-sdk", specifier = ">=0.2.2" },
 ]
 
 [[package]]
@@ -2678,6 +2682,16 @@ wheels = [
 ]
 
 [[package]]
+name = "sseclient"
+version = "0.0.27"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cf/6c/fa601216344952be8f9a51a3f49b4274bbbc58bd395f87f67f6131726358/sseclient-0.0.27.tar.gz", hash = "sha256:b2fe534dcb33b1d3faad13d60c5a7c718e28f85987f2a034ecf5ec279918c11c", size = 7465, upload-time = "2020-09-25T02:46:41.997Z" }
+
+[[package]]
 name = "starlette"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -3329,6 +3343,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e1/19/3774d162f6732d1cfb0b47b4140a942a35ca82bb19b6db1f80e9e7bdc8f8/yarl-1.23.0-cp314-cp314t-win_amd64.whl", hash = "sha256:4503053d296bc6e4cbd1fad61cf3b6e33b939886c4f249ba7c78b602214fabe2", size = 97610, upload-time = "2026-03-01T22:07:45.773Z" },
     { url = "https://files.pythonhosted.org/packages/51/47/3fa2286c3cb162c71cdb34c4224d5745a1ceceb391b2bd9b19b668a8d724/yarl-1.23.0-cp314-cp314t-win_arm64.whl", hash = "sha256:44bb7bef4ea409384e3f8bc36c063d77ea1b8d4a5b2706956c0d6695f07dcc25", size = 86041, upload-time = "2026-03-01T22:07:49.026Z" },
     { url = "https://files.pythonhosted.org/packages/69/68/c8739671f5699c7dc470580a4f821ef37c32c4cb0b047ce223a7f115757f/yarl-1.23.0-py3-none-any.whl", hash = "sha256:a2df6afe50dea8ae15fa34c9f824a3ee958d785fd5d089063d960bae1daa0a3f", size = 48288, upload-time = "2026-03-01T22:07:51.388Z" },
+]
+
+[[package]]
+name = "zai-sdk"
+version = "0.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cachetools" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "pydantic-core" },
+    { name = "pyjwt" },
+    { name = "sniffio" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/64/a1/0f392da4afd53977383c03ad5c4cc4079b958fb4acd9f8bdeb8fa1e2e5e5/zai_sdk-0.2.2.tar.gz", hash = "sha256:841af188586c41f0f98abcad17b162dc97461c3ab8b3d09f93b0333ebdfe72c3", size = 76605, upload-time = "2026-02-02T16:10:28.502Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ba/02/d586e861e711f8449c567b01b004d7c5f65ee07c75709992a84e3ef9c40e/zai_sdk-0.2.2-py3-none-any.whl", hash = "sha256:675e9ff3fc2a86e38631331469b935589ae60492127f2c2822c7555214f2dd25", size = 125579, upload-time = "2026-02-02T16:10:26.975Z" },
 ]
 
 [[package]]

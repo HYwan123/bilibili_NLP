@@ -23,6 +23,8 @@ dependencies = [
     "langchain-openai>=1.1.12",
     "langchain-google-genai>=4.2.1",
     "pytest>=9.0.2",
+    "zai-sdk>=0.2.2",
+    "sseclient>=0.0.27",
 ]
 
 [project.scripts]
