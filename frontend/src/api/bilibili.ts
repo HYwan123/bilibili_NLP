@@ -297,25 +297,19 @@ export async function chatWithAIStream(
     while (true) {
       const { done, value } = await reader.read()
       
-      if (done) {
-        onMessage('', true)
-        break
-      }
-
-      buffer += decoder.decode(value, { stream: true })
-      
-      // 处理SSE格式：按两个换行符分割
-      const messages = buffer.split('\n\n')
-      // 保留最后一个可能未完成的片段
-      buffer = messages.pop() || ''
-      
-      for (const message of messages) {
-        if (!message.trim()) continue;
-        // 检查是否是 'data:' 开头的SSE消息
-        const dataMatch = message.match(/^data: (.*)$/m)
-        if (dataMatch) {
-          const data = dataMatch[1].trim()
-          console.log('SSE data received:', data)
+      if (value) {
+        buffer += decoder.decode(value, { stream: true })
+        
+        // 处理SSE格式：按两个或多个换行符分割
+        const parts = buffer.split(/\n\n+/)
+        // 保留最后一个可能未完成的片段
+        buffer = parts.pop() || ''
+        
+        for (const part of parts) {
+          const line = part.trim()
+          if (!line || !line.startsWith('data:')) continue
+          
+          const data = line.replace(/^data:\s*/, '').trim()
           
           if (data === '[DONE]') {
             onMessage('', true)
@@ -324,18 +318,32 @@ export async function chatWithAIStream(
           
           try {
             const parsed = JSON.parse(data)
-            console.log('Parsed:', parsed)
-            if (parsed.content) {
+            if (parsed.content !== undefined && parsed.content !== null) {
               onMessage(parsed.content, false)
             } else if (parsed.error) {
-              console.error('Stream error:', parsed.error)
               onMessage(`错误: ${parsed.error}`, true)
               return
             }
           } catch (e) {
-            console.error('JSON parse error:', e, 'Raw:', data)
+            console.error('SSE JSON parse error:', e, 'Raw data:', data)
           }
         }
+      }
+
+      if (done) {
+        // 处理最后剩余的内容
+        const line = buffer.trim()
+        if (line && line.startsWith('data:')) {
+          const data = line.replace(/^data:\s*/, '').trim()
+          if (data !== '[DONE]') {
+            try {
+              const parsed = JSON.parse(data)
+              if (parsed.content) onMessage(parsed.content, false)
+            } catch (e) {}
+          }
+        }
+        onMessage('', true)
+        break
       }
     }
   } finally {

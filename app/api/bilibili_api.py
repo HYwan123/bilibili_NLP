@@ -909,23 +909,28 @@ async def chat_with_ai_stream(
 
             # 流式调用AI接口
             chunk_count = 0
-            # 使用 OpenAI 客户端的流式方法
-            async for content in client.chat_stream(
-                messages=messages,
-                model="glm-4.7-flash",  # 锁定使用GLM模型，不使用前端传入的模型
-                system_prompt=system_prompt
-            ):
-                if content:  # 只有当内容不为空时才发送
-                    chunk_count += 1
-                    data = json.dumps({"content": content}, ensure_ascii=False)
-                    logger.debug(f"Yielding chunk {chunk_count}: {content[:50]}...")
-                    yield f"data: {data}\n\n"
-                    
-                    # 添加额外的刷新指令以确保数据立即发送
-                    yield f": \n\n"
+            try:
+                # 使用 OpenAI 客户端的流式方法
+                # 注意：由于 zai-sdk 可能阻塞，我们在这里添加日志
+                async for content in client.chat_stream(
+                    messages=messages,
+                    model="glm-4.7-flash",
+                    system_prompt=system_prompt
+                ):
+                    if content is not None:
+                        chunk_count += 1
+                        data = json.dumps({"content": content}, ensure_ascii=False)
+                        if chunk_count % 20 == 0:
+                            logger.info(f"发送 chunk {chunk_count} 给用户 {current_user.username}")
+                        yield f"data: {data}\n\n"
+                        # 发送注释行以刷新缓冲区
+                        yield f": flush\n\n"
+            except Exception as stream_err:
+                logger.error(f"流式生成过程中出错: {stream_err}")
+                error_data = json.dumps({"error": str(stream_err)}, ensure_ascii=False)
+                yield f"data: {error_data}\n\n"
 
             logger.info(f"AI流式输出完成，共 {chunk_count} 个chunks")
-            yield f"data: {json.dumps({'content': ''})}\n\n"  # 发送一个空内容表示流结束
             yield "data: [DONE]\n\n"
             logger.info(f"AI流式问答完成，用户: {current_user.username}")
 

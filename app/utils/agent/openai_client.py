@@ -36,9 +36,9 @@ class OpenaiClient:
             self._initialized = True
             self.client = ZhipuAiClient(api_key=self.api_key)
 
-    async def chat(self, messages: list[dict], model: str = "glm-4.6v-flash", system_prompt: str = None, max_tokens: int = 65536, temperature: float = 1.0):
+    async def chat(self, messages: list[dict], model: str = "glm-4.7-flash", system_prompt: str = None, max_tokens: int = 65536, temperature: float = 1.0):
         """
-        同步AI聊天接口
+        同步AI聊天接口 (已包装为异步)
 
         Args:
             messages: 消息列表
@@ -84,20 +84,21 @@ class OpenaiClient:
                 })
 
         # 确保模型参数不为None，如果为None则使用默认值
-        model = model if model is not None else "glm-4.6v-flash"
-        # 使用 zai-sdk 同步调用，不使用thinking模式，避免API错误
-        response = self.client.chat.completions.create(
-            model=model,  # 使用传入的模型名称
+        model = model if model is not None else "glm-4.7-flash"
+        # 使用 asyncio.to_thread 运行同步 SDK 调用，避免阻塞事件循环
+        response = await asyncio.to_thread(
+            self.client.chat.completions.create,
+            model=model,
             messages=standardized_messages
         )
 
         return response
 
     async def chat_stream(
-        self, messages: list[dict], model: str = "glm-4.6v-flash", system_prompt: str = None, max_tokens: int = 65536, temperature: float = 1.0
+        self, messages: list[dict], model: str = "glm-4.7-flash", system_prompt: str = None, max_tokens: int = 65536, temperature: float = 1.0
     ):
         """
-        流式AI聊天接口
+        流式AI聊天接口 (已包装为异步)
 
         Args:
             messages: 消息列表
@@ -145,37 +146,60 @@ class OpenaiClient:
                 })
 
         # 确保模型参数不为None，如果为None则使用默认值
-        model = model if model is not None else "glm-4.6v-flash"
-        # 不使用thinking模式，直接使用普通流式调用
-        response = self.client.chat.completions.create(
+        model = model if model is not None else "glm-4.7-flash"
+        
+        # 使用 asyncio.to_thread 运行同步 SDK 调用
+        response = await asyncio.to_thread(
+            self.client.chat.completions.create,
             model=model,
             messages=standardized_messages,
             stream=True
         )
 
-        # 流式获取回复 - 使用同步迭代器，因为zai-sdk的流式响应可能是同步的
-        for chunk in response:
+        # 流式获取回复 - 使用同步迭代器包装在异步生成器中
+        # zai-sdk 的流式响应迭代可能是阻塞的
+        it = iter(response)
+        
+        while True:
             try:
+                # 在单独的线程中获取下一个 chunk，避免阻塞主线程
+                chunk = await asyncio.to_thread(next, it)
+                
                 # 检查 chunk 是否为元组格式 (event_type, data) 或其他格式
                 if isinstance(chunk, tuple) and len(chunk) >= 2:
-                    # 如果是元组格式，取第二个元素作为实际数据
                     actual_chunk = chunk[1]
                 else:
-                    # 否则直接使用 chunk
                     actual_chunk = chunk
 
                 # 对于流式响应，处理实际的 chunk
                 if hasattr(actual_chunk, 'choices') and actual_chunk.choices:
-                    # 检查是否有实际内容
-                    if hasattr(actual_chunk.choices[0], 'delta') and hasattr(actual_chunk.choices[0].delta, 'content') and actual_chunk.choices[0].delta.content:
+                    if hasattr(actual_chunk.choices[0], 'delta') and hasattr(actual_chunk.choices[0].delta, 'content'):
                         content = actual_chunk.choices[0].delta.content
-                        if content:  # 确保内容不为 None
+                        if content:
                             yield content
-            except (AttributeError, IndexError, TypeError, KeyError) as e:
-                # 如果访问属性出错，跳过此chunk
-                continue
+            except StopIteration:
+                break
+            except Exception as e:
+                # 发生错误时跳出循环
+                break
 
-    async def one_chat(self, text: str, model: str = "glm-4.6v-flash", system_prompt: str = None, max_tokens: int = 65536, temperature: float = 1.0):
+    async def one_chat(self, text: str, model: str = "glm-4.7-flash", system_prompt: str = None, max_tokens: int = 65536, temperature: float = 1.0):
+        """
+        单次AI聊天接口
+
+        Args:
+            text: 用户输入文本
+            model: 模型名称
+            system_prompt: 系统提示词
+            max_tokens: 最大输出 tokens
+            temperature: 控制输出的随机性
+
+        Returns:
+            Zhipu AI响应对象: AI响应结果
+        """
+        messages = [{"role": "user", "content": text}]
+        # 传递参数给chat方法
+        return await self.chat(messages=messages, model=model, system_prompt=system_prompt, max_tokens=max_tokens, temperature=temperature)
         """
         单次AI聊天接口
 

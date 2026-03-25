@@ -259,7 +259,7 @@ const sendMessage = async () => {
     role: 'assistant',
     content: '',
     timestamp: Date.now(),
-    isLoading: false,
+    isLoading: true, // 初始显示加载中
     isStreaming: true
   }
   messages.value.push(aiMessage)
@@ -268,9 +268,10 @@ const sendMessage = async () => {
   await scrollToBottom()
 
   try {
-    // 准备对话消息 - 只包含已完成的消息（排除当前正在流式输出的AI消息）
+    // 准备对话消息 - 包含之前的完整对话和刚发送的用户消息
+    // 排除掉当前正在等待回复的这个AI消息占位符
     const chatMessages = messages.value
-      .filter(m => !m.isStreaming && !m.isLoading)
+      .filter(m => m.role === 'user' || (m.role === 'assistant' && !m.isLoading && !m.isStreaming))
       .map(m => ({ role: m.role, content: m.content }))
     
     // 获取当前AI消息引用
@@ -280,9 +281,15 @@ const sendMessage = async () => {
     await chatWithAIStream(
       chatMessages,
       (content: string, done: boolean) => {
+        // 只要收到任何回调，哪怕是空字符串或完成信号，都应该处理加载状态
+        if (lastMessage.isLoading) {
+          lastMessage.isLoading = false
+        }
+        
         if (content !== undefined && content !== null) {
           lastMessage.content += content
         }
+        
         if (done) {
           lastMessage.isStreaming = false
         }
@@ -294,10 +301,11 @@ const sendMessage = async () => {
     )
     
   } catch (error) {
-    // 更新错误消息
+    // 发生错误时，确保取消加载状态并显示错误信息
     const lastMessage = messages.value[messages.value.length - 1]
+    lastMessage.isLoading = false
     lastMessage.isStreaming = false
-    lastMessage.content = '抱歉，网络连接失败，请检查网络后重试。'
+    lastMessage.content = '抱歉，对话请求失败。请检查网络连接或稍后重试。'
     ElMessage.error('发送消息失败，请稍后重试')
   } finally {
     loading.value = false
