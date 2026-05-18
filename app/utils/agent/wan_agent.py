@@ -35,7 +35,7 @@ class WanAgent:
         model = ChatOpenAI(
             model="deepseek-v4-flash",
             base_url="https://api.deepseek.com",
-            api_key=SecretStr("sk-55bc1781799a490a8c294616999acf41"),
+            api_key=SecretStr(""),
         )
         return model
 
