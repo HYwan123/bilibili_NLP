@@ -200,22 +200,6 @@ class OpenaiClient:
         messages = [{"role": "user", "content": text}]
         # 传递参数给chat方法
         return await self.chat(messages=messages, model=model, system_prompt=system_prompt, max_tokens=max_tokens, temperature=temperature)
-        """
-        单次AI聊天接口
-
-        Args:
-            text: 用户输入文本
-            model: 模型名称
-            system_prompt: 系统提示词
-            max_tokens: 最大输出 tokens
-            temperature: 控制输出的随机性
-
-        Returns:
-            Zhipu AI响应对象: AI响应结果
-        """
-        messages = [{"role": "user", "content": text}]
-        # 传递参数给chat方法，但chat方法内部会根据模型类型决定是否使用这些参数
-        return await self.chat(messages=messages, model=model, system_prompt=system_prompt, max_tokens=max_tokens, temperature=temperature)
 
     async def test(self):
         """

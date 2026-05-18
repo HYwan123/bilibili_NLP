@@ -25,6 +25,7 @@ dependencies = [
     "pytest>=9.0.2",
     "zai-sdk>=0.2.2",
     "sseclient>=0.0.27",
+    "locust>=2.43.4",
 ]
 
 [project.scripts]

@@ -1,7 +1,7 @@
 import json
 import uuid
 from typing import Optional
-from fastapi import Depends, status, APIRouter, BackgroundTasks, Query
+from fastapi import Depends, Request, status, APIRouter, BackgroundTasks, Query
 from fastapi.responses import JSONResponse, StreamingResponse
 import logging
 
@@ -883,7 +883,9 @@ async def chat_with_ai_simple(
 
 @router.post("/chat/stream")
 async def chat_with_ai_stream(
-    chat_request: ChatRequest, current_user: User = Depends(get_current_user)
+    request: Request,
+    chat_request: ChatRequest, 
+    current_user: User = Depends(get_current_user)
 ):
     """
     AI问答接口 - 流式输出

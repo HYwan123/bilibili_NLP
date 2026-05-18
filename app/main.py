@@ -6,11 +6,11 @@ from app.api import user, bilibili_api
 from app.database.mysql_exceptions import register_exception_handlers
 import os
 import uvicorn
-
+from app.utils.agent.wan_agent import WanAgent
 
 # Initialize app
 app = FastAPI(title="Bilibili NLP API", version="1.0.0")
-
+app.state.deepseek = WanAgent()
 # CORS - Allow specific origins only (more secure)
 # ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:8080,http://127.0.0.1:8080").split(",")
 
